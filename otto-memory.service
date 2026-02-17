@@ -1,0 +1,16 @@
+[Unit]
+Description=Otto Memory API
+After=docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=web3relic
+WorkingDirectory=/home/web3relic/otto
+ExecStart=/home/web3relic/otto/memory/.venv/bin/uvicorn memory.api:app --host 0.0.0.0 --port 8100
+Restart=always
+RestartSec=5
+Environment=PATH=/home/web3relic/otto/memory/.venv/bin:/usr/local/bin:/usr/bin
+
+[Install]
+WantedBy=multi-user.target
