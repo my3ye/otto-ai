@@ -38,8 +38,8 @@ cd "$OTTO_DIR"
     --agent heartbeat \
     --dangerously-skip-permissions \
     --model sonnet \
-    --max-budget-usd 0.50 \
-    -p "Run your autonomous heartbeat cycle. Check system health, review your mission and goals, take one small action, and log what you did." \
+    --max-budget-usd 2.00 \
+    -p "Run your heartbeat. Drive the mission forward. Ask Mev about his brands and projects, research, build, propose plans. Do as much as you can. Message Mev." \
     >> "$LOG_FILE" 2>&1 || {
     echo "$(date -Iseconds) Heartbeat failed with exit code $?" >> "$LOG_FILE"
 }

@@ -1,6 +1,11 @@
 from fastapi import APIRouter
+from pydantic import BaseModel
 from ..db import get_pool
 from ..models import PendingQuestionCreate, PendingQuestionOut
+
+
+class ResolveQuestion(BaseModel):
+    answer: str
 
 router = APIRouter(prefix="/pending", tags=["pending"])
 
@@ -32,7 +37,7 @@ async def get_open_questions():
 
 
 @router.post("/{question_id}/resolve", response_model=PendingQuestionOut)
-async def resolve_question(question_id: str, answer: str):
+async def resolve_question(question_id: str, req: ResolveQuestion):
     """Mark a pending question as resolved with the given answer."""
     pool = await get_pool()
     row = await pool.fetchrow(
@@ -40,6 +45,6 @@ async def resolve_question(question_id: str, answer: str):
            SET resolved_at = now(), answer = $2
            WHERE id = $1
            RETURNING id, question, intent, context, channel, asked_at, resolved_at, answer""",
-        question_id, answer,
+        question_id, req.answer,
     )
     return PendingQuestionOut(**dict(row))
