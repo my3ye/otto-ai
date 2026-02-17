@@ -88,9 +88,14 @@ def start_session(session_type="claude_code"):
             print(f"  - {proc['name']}{rate}")
         print()
 
-    # Graph status
-    graph = briefing.get("graph_context", {})
-    print(f"Graph: {graph.get('status', 'unknown')}")
+    # Graph facts from Graphiti
+    graph_facts = briefing.get("graph_facts", [])
+    if graph_facts:
+        print(f"--- Knowledge Graph ({len(graph_facts)} facts) ---")
+        for fact in graph_facts[:10]:
+            print(f"  - {fact['fact']}")
+        print()
+
     print(f"========================")
 
     return session_id

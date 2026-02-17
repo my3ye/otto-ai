@@ -2,6 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter
 from ..db import get_pool
 from ..models import SessionStart, SessionEnd, SessionOut
+from ..graphiti import graphiti_ingest, make_message
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
@@ -28,7 +29,17 @@ async def end_session(session_id: UUID, req: SessionEnd):
            RETURNING id, session_type, started_at, ended_at, summary, key_decisions""",
         session_id, req.summary, req.key_decisions,
     )
-    return SessionOut(**dict(row))
+    session = SessionOut(**dict(row))
+
+    # Ingest session summary into Graphiti knowledge graph
+    summary_text = req.summary
+    if req.key_decisions:
+        summary_text += "\nKey decisions: " + "; ".join(req.key_decisions)
+    await graphiti_ingest("sessions", [
+        make_message(summary_text, "system", "Otto", session.ended_at),
+    ])
+
+    return session
 
 
 @router.get("/last", response_model=SessionOut | None)

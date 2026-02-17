@@ -105,7 +105,26 @@ class ContextBriefing(BaseModel):
     high_confidence_facts: list[SemanticMemoryOut] = Field(default_factory=list)
     recent_events: list[EpisodicEventOut] = Field(default_factory=list)
     procedures: list[ProcedureOut] = Field(default_factory=list)
-    graph_context: dict = Field(default_factory=dict)
+    graph_facts: list[dict] = Field(default_factory=list)
+
+
+# ── Pending Questions ─────────────────────────────────────────────
+class PendingQuestionCreate(BaseModel):
+    question: str
+    intent: str = "general"  # mission, goal, decision, clarification, general
+    context: str | None = None
+    channel: str = "whatsapp"
+
+
+class PendingQuestionOut(BaseModel):
+    id: UUID
+    question: str
+    intent: str
+    context: str | None = None
+    channel: str
+    asked_at: datetime
+    resolved_at: datetime | None = None
+    answer: str | None = None
 
 
 # ── WhatsApp ───────────────────────────────────────────────────────

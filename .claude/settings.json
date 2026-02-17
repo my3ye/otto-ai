@@ -1,0 +1,44 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl:*)",
+      "Bash(docker ps:*)",
+      "Bash(docker exec:*)",
+      "Bash(systemctl is-active:*)",
+      "Bash(systemctl status:*)",
+      "Bash(systemctl list-timers:*)",
+      "Bash(df:*)",
+      "Bash(python3:*)",
+      "Bash(ls:*)",
+      "Bash(chmod:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(/home/web3relic/otto/tools/whatsapp_send.sh:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/web3relic/otto/.claude/hooks/session_start.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/home/web3relic/otto/.claude/hooks/session_stop.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

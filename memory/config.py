@@ -14,8 +14,11 @@ class Settings(BaseSettings):
     qdrant_port: int = 6333
     qdrant_api_key: str = ""
 
-    # OpenAI
+    # OpenAI (used for embeddings)
     openai_api_key: str = ""
+
+    # Gemini (used for Otto's LLM responses)
+    gemini_api_key: str = ""
 
     # Graphiti
     graphiti_url: str = "http://localhost:8000"
