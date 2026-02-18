@@ -13,8 +13,8 @@ async def remember(req: SemanticMemoryCreate):
 
     pool = await get_pool()
     row = await pool.fetchrow(
-        """INSERT INTO semantic_memories (content, category, confidence, source, embedding, metadata)
-           VALUES ($1, $2, $3, $4, $5::vector, $6)
+        """INSERT INTO semantic_memories (content, category, confidence, source, embedding, embedding_hv, metadata)
+           VALUES ($1, $2, $3, $4, $5::vector, $5::halfvec(1536), $6)
            RETURNING id, content, category, confidence, source, created_at""",
         req.content, req.category, req.confidence, req.source,
         embedding_str, req.metadata,
@@ -47,14 +47,18 @@ async def search(req: SemanticSearchQuery):
     where = (" AND " + " AND ".join(conditions)) if conditions else ""
     params.append(req.limit)
 
-    rows = await pool.fetch(
-        f"""SELECT id, content, category, confidence, source, created_at,
-                   1 - (embedding <=> $1::vector) AS score
-            FROM semantic_memories
-            WHERE embedding IS NOT NULL{where}
-            ORDER BY embedding <=> $1::vector
-            LIMIT ${idx}""",
-        *params,
-    )
+    async with pool.acquire() as conn:
+        # Enable iterative HNSW scan so WHERE-clause filtering doesn't over-skip candidates
+        if conditions:
+            await conn.execute("SET hnsw.iterative_scan = relaxed_order")
+        rows = await conn.fetch(
+            f"""SELECT id, content, category, confidence, source, created_at,
+                       1 - (embedding_hv <=> $1::halfvec(1536)) AS score
+                FROM semantic_memories
+                WHERE embedding_hv IS NOT NULL{where}
+                ORDER BY embedding_hv <=> $1::halfvec(1536)
+                LIMIT ${idx}""",
+            *params,
+        )
 
-    return [SemanticMemoryOut(**{**dict(r), "score": r["score"]}) for r in rows]
+        return [SemanticMemoryOut(**{**dict(r), "score": r["score"]}) for r in rows]
