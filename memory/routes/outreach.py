@@ -1,0 +1,243 @@
+"""
+Outreach Queue API routes — manage AI-generated outreach messages for Web Assist leads.
+Mev reviews and approves messages before they're sent.
+"""
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
+from ..db import get_pool
+
+router = APIRouter(prefix="/outreach", tags=["outreach"])
+
+
+class ApprovalBody(BaseModel):
+    action: str  # "approve" | "reject"
+    rejection_reason: str = ""
+
+
+@router.get("/queue")
+async def get_queue(status: str = "pending", limit: int = 50):
+    """Get outreach messages in queue, filtered by status."""
+    valid = ("pending", "approved", "rejected", "sent", "failed")
+    if status not in valid:
+        raise HTTPException(status_code=400, detail=f"status must be one of: {valid}")
+
+    pool = await get_pool()
+    rows = await pool.fetch("""
+        SELECT id, business_name, city, phone, website, lead_type, lead_score,
+               channel, message_body, status, created_at, approved_at, sent_at
+        FROM outreach_queue
+        WHERE status = $1
+        ORDER BY lead_score DESC, created_at DESC
+        LIMIT $2
+    """, status, limit)
+
+    return {
+        "status": status,
+        "count": len(rows),
+        "messages": [dict(r) for r in rows],
+    }
+
+
+@router.get("/stats")
+async def outreach_stats():
+    """Stats for the outreach queue."""
+    pool = await get_pool()
+
+    by_status = await pool.fetch("""
+        SELECT status, COUNT(*) as count
+        FROM outreach_queue
+        GROUP BY status ORDER BY count DESC
+    """)
+
+    by_type = await pool.fetch("""
+        SELECT lead_type, status, COUNT(*) as count
+        FROM outreach_queue
+        GROUP BY lead_type, status ORDER BY lead_type, count DESC
+    """)
+
+    return {
+        "by_status": [dict(r) for r in by_status],
+        "by_type": [dict(r) for r in by_type],
+    }
+
+
+@router.post("/queue/{message_id}/approve")
+async def approve_message(message_id: str, body: ApprovalBody):
+    """Approve or reject an outreach message."""
+    pool = await get_pool()
+
+    row = await pool.fetchrow(
+        "SELECT id, status FROM outreach_queue WHERE id = $1", message_id
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if row["status"] != "pending":
+        raise HTTPException(status_code=400, detail=f"Message is already '{row['status']}'")
+
+    if body.action == "approve":
+        await pool.execute("""
+            UPDATE outreach_queue
+            SET status = 'approved', approved_at = NOW()
+            WHERE id = $1
+        """, message_id)
+        return {"ok": True, "action": "approved", "id": message_id}
+
+    elif body.action == "reject":
+        await pool.execute("""
+            UPDATE outreach_queue
+            SET status = 'rejected', rejection_reason = $2
+            WHERE id = $1
+        """, message_id, body.rejection_reason)
+        return {"ok": True, "action": "rejected", "id": message_id}
+
+    else:
+        raise HTTPException(status_code=400, detail="action must be 'approve' or 'reject'")
+
+
+@router.post("/queue/{message_id}/mark-sent")
+async def mark_sent(message_id: str):
+    """Mark an approved message as sent."""
+    pool = await get_pool()
+    result = await pool.execute("""
+        UPDATE outreach_queue
+        SET status = 'sent', sent_at = NOW()
+        WHERE id = $1 AND status = 'approved'
+    """, message_id)
+    if result == "UPDATE 0":
+        raise HTTPException(status_code=404, detail="Message not found or not in approved state")
+    return {"ok": True, "id": message_id, "status": "sent"}
+
+
+@router.get("/dashboard", response_class=HTMLResponse)
+async def outreach_dashboard():
+    """Outreach queue dashboard — review and approve messages."""
+    pool = await get_pool()
+
+    pending = await pool.fetch("""
+        SELECT id, business_name, city, phone, website, lead_type, lead_score,
+               channel, message_body, created_at
+        FROM outreach_queue
+        WHERE status = 'pending'
+        ORDER BY lead_score DESC, created_at DESC
+        LIMIT 100
+    """)
+
+    stats = await pool.fetch("""
+        SELECT status, COUNT(*) as count FROM outreach_queue GROUP BY status
+    """)
+    stats_dict = {r["status"]: r["count"] for r in stats}
+
+    total_pending = stats_dict.get("pending", 0)
+    total_approved = stats_dict.get("approved", 0)
+    total_sent = stats_dict.get("sent", 0)
+    total_rejected = stats_dict.get("rejected", 0)
+
+    rows_html = ""
+    for row in pending:
+        lt = row["lead_type"]
+        badge_color = {"no_website": "#10b981", "revamp_candidate": "#f59e0b"}.get(lt, "#6b7280")
+        badge_label = {"no_website": "No Site", "revamp_candidate": "Revamp"}.get(lt, lt)
+        msg = row["message_body"].replace('"', '&quot;').replace('\n', '<br>')
+        phone = row["phone"] or "—"
+        wa_link = f"https://wa.me/{row['phone'].replace('+','').replace(' ','')}" if row["phone"] else "#"
+
+        rows_html += f"""
+        <div class="card" id="card-{row['id']}">
+          <div class="card-header">
+            <div>
+              <strong>{row['business_name']}</strong>
+              <span class="badge" style="background:{badge_color}">{badge_label}</span>
+              <span class="score">Score: {row['lead_score']}</span>
+            </div>
+            <div class="meta">{row['city'] or '—'} · {phone}</div>
+          </div>
+          <div class="message">{msg}</div>
+          <div class="actions">
+            <a href="{wa_link}" target="_blank" class="btn btn-wa">Open WhatsApp</a>
+            <button class="btn btn-approve" onclick="updateStatus('{row['id']}', 'approve')">Approve</button>
+            <button class="btn btn-reject" onclick="updateStatus('{row['id']}', 'reject')">Reject</button>
+          </div>
+        </div>"""
+
+    if not rows_html:
+        rows_html = '<div style="padding:40px;text-align:center;color:#64748b;">No pending messages. Run the generator to create some.</div>'
+
+    html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Assist — Outreach Queue</title>
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0f172a; color: #e2e8f0; }}
+  .header {{ background: #1e293b; border-bottom: 1px solid #334155; padding: 20px 32px; display: flex; align-items: center; gap: 16px; }}
+  .header h1 {{ font-size: 1.4rem; font-weight: 700; color: #f1f5f9; }}
+  .logo {{ width: 36px; height: 36px; background: linear-gradient(135deg, #10b981, #6366f1); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; }}
+  .stats-bar {{ background: #1e293b; border-bottom: 1px solid #334155; padding: 12px 32px; display: flex; gap: 24px; font-size: 0.85rem; }}
+  .stat {{ color: #94a3b8; }}
+  .stat strong {{ color: #f1f5f9; }}
+  .container {{ max-width: 860px; margin: 0 auto; padding: 24px 32px; }}
+  .card {{ background: #1e293b; border: 1px solid #334155; border-radius: 12px; padding: 20px; margin-bottom: 16px; }}
+  .card-header {{ display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }}
+  .card-header strong {{ font-size: 1rem; color: #f1f5f9; }}
+  .badge {{ display: inline-block; padding: 2px 8px; border-radius: 9999px; font-size: 0.7rem; font-weight: 600; color: white; margin-left: 8px; }}
+  .score {{ font-size: 0.8rem; color: #64748b; margin-left: 8px; }}
+  .meta {{ font-size: 0.8rem; color: #64748b; }}
+  .message {{ background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 14px 16px; font-size: 0.9rem; line-height: 1.6; color: #cbd5e1; margin-bottom: 14px; white-space: pre-wrap; }}
+  .actions {{ display: flex; gap: 10px; flex-wrap: wrap; }}
+  .btn {{ padding: 8px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; text-decoration: none; display: inline-block; }}
+  .btn-approve {{ background: #10b981; color: white; }}
+  .btn-approve:hover {{ background: #059669; }}
+  .btn-reject {{ background: #334155; color: #94a3b8; }}
+  .btn-reject:hover {{ background: #ef4444; color: white; }}
+  .btn-wa {{ background: #25d366; color: white; }}
+  .btn-wa:hover {{ background: #128c7e; }}
+  .removed {{ opacity: 0.3; transition: opacity 0.3s; }}
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo">W</div>
+  <div>
+    <h1>Web Assist — Outreach Queue</h1>
+    <div style="font-size:0.85rem;color:#94a3b8;margin-top:2px;">Review AI-generated messages before sending</div>
+  </div>
+</div>
+<div class="stats-bar">
+  <div class="stat">Pending: <strong>{total_pending}</strong></div>
+  <div class="stat">Approved: <strong>{total_approved}</strong></div>
+  <div class="stat">Sent: <strong>{total_sent}</strong></div>
+  <div class="stat">Rejected: <strong>{total_rejected}</strong></div>
+  <div class="stat" style="margin-left:auto"><a href="/leads/dashboard" style="color:#60a5fa;font-size:0.8rem;">← Lead Database</a></div>
+</div>
+<div class="container">
+  {rows_html}
+</div>
+<script>
+async function updateStatus(id, action) {{
+  const card = document.getElementById('card-' + id);
+  const reason = action === 'reject' ? (prompt('Rejection reason (optional):') || '') : '';
+
+  try {{
+    const r = await fetch('/outreach/queue/' + id + '/approve', {{
+      method: 'POST',
+      headers: {{'Content-Type': 'application/json'}},
+      body: JSON.stringify({{ action, rejection_reason: reason }})
+    }});
+    if (r.ok) {{
+      card.classList.add('removed');
+      setTimeout(() => card.remove(), 400);
+    }} else {{
+      alert('Error: ' + (await r.json()).detail);
+    }}
+  }} catch(e) {{
+    alert('Network error: ' + e);
+  }}
+}}
+</script>
+</body>
+</html>"""
+    return HTMLResponse(content=html)

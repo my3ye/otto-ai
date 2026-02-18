@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from .db import get_pool, close_pool
-from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads
+from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach
 
 
 @asynccontextmanager
@@ -29,6 +29,7 @@ app.include_router(context.router)
 app.include_router(whatsapp.router)
 app.include_router(pending.router)
 app.include_router(leads.router)
+app.include_router(outreach.router)
 
 
 @app.get("/health")
