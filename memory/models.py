@@ -136,6 +136,62 @@ class CrossBrainNote(BaseModel):
     source_summary: str | None = None
 
 
+# ── Tasks ─────────────────────────────────────────────────────────
+class TaskCreate(BaseModel):
+    title: str
+    prompt: str
+    context: str | None = None
+    priority: int = Field(default=5, ge=1, le=10)
+    model: str = "sonnet"
+    max_budget_usd: float = 1.00
+    max_turns: int = 10
+    timeout_seconds: int = 300
+    working_directory: str = "/home/web3relic/otto"
+    created_by: str = "heartbeat"
+    session_id: UUID | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class TaskOut(BaseModel):
+    id: UUID
+    title: str
+    prompt: str
+    context: str | None = None
+    priority: int
+    status: str
+    model: str
+    max_budget_usd: float
+    max_turns: int
+    timeout_seconds: int
+    working_directory: str
+    pid: int | None = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+    output: str | None = None
+    error: str | None = None
+    exit_code: int | None = None
+    reviewed: bool
+    reviewed_at: datetime | None = None
+    created_by: str
+    session_id: UUID | None = None
+    created_at: datetime
+    updated_at: datetime
+    metadata: dict = Field(default_factory=dict)
+
+
+class TaskComplete(BaseModel):
+    output: str | None = None
+    error: str | None = None
+    exit_code: int = 0
+
+
+class TaskRunResponse(BaseModel):
+    id: UUID
+    status: str
+    pid: int
+    message: str
+
+
 # ── WhatsApp ───────────────────────────────────────────────────────
 class WhatsAppIncoming(BaseModel):
     from_jid: str

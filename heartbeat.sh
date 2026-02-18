@@ -39,7 +39,7 @@ export OTTO_SESSION_TYPE=heartbeat
     --agent heartbeat \
     --dangerously-skip-permissions \
     --model sonnet \
-    --max-budget-usd 2.00 \
+    --max-budget-usd 3.00 \
     -p "Run your heartbeat. Drive the mission forward. Ask Mev about his brands and projects, research, build, propose plans. Do as much as you can. Message Mev." \
     >> "$LOG_FILE" 2>&1 || {
     echo "$(date -Iseconds) Heartbeat failed with exit code $?" >> "$LOG_FILE"

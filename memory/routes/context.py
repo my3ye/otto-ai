@@ -197,6 +197,33 @@ async def get_injection(
         _add("  ACTION: Read these, act on them, then acknowledge via POST /pending/<id>/resolve")
         _add("")
 
+    # ── Tier 3c: Task queue status (always) ─────────────────────────
+    running_rows = await pool.fetch(
+        """SELECT id, title, model, started_at FROM tasks
+           WHERE status = 'running' ORDER BY started_at ASC LIMIT 5"""
+    )
+    done_rows = await pool.fetch(
+        """SELECT id, title, exit_code FROM tasks
+           WHERE status IN ('completed', 'failed') AND reviewed = FALSE
+           ORDER BY completed_at DESC LIMIT 10"""
+    )
+    pending_count = await pool.fetchval(
+        "SELECT COUNT(*) FROM tasks WHERE status = 'pending'"
+    )
+    if running_rows or done_rows or pending_count:
+        _add("[Otto] Task Queue:")
+        if running_rows:
+            for r in running_rows:
+                _add(f"  [RUNNING] {r['title']} (model: {r['model']}, since: {r['started_at']})")
+        if done_rows:
+            for r in done_rows:
+                label = "DONE" if (r["exit_code"] or 0) == 0 else "FAIL"
+                _add(f"  [{label}] {r['title']} (id: {r['id']}) — NEEDS REVIEW")
+            _add("  ACTION: Review output with GET /tasks/{id}, then POST /tasks/{id}/review")
+        if pending_count:
+            _add(f"  [QUEUE] {pending_count} pending task(s)")
+        _add("")
+
     # ── Tier 4: Last session (if budget) ────────────────────────────
     last_row = await pool.fetchrow(
         """SELECT summary FROM sessions
