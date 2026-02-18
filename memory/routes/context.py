@@ -168,13 +168,33 @@ async def get_injection(
     # ── Tier 3: Pending questions (always) ──────────────────────────
     pending_rows = await pool.fetch(
         """SELECT question, intent FROM pending_questions
-           WHERE resolved_at IS NULL ORDER BY asked_at DESC LIMIT 5""",
+           WHERE resolved_at IS NULL AND direction = 'claude_to_gemini'
+           ORDER BY asked_at DESC LIMIT 5""",
     )
     if pending_rows:
         _add("[Otto] Pending questions (awaiting Mev):")
         for r in pending_rows:
             if not _add(f"  [{r['intent'].upper()}] {r['question']}"):
                 break
+        _add("")
+
+    # ── Tier 3b: Cross-brain notes from WhatsApp (always) ────────
+    crossbrain_rows = await pool.fetch(
+        """SELECT id, question, intent, context, metadata FROM pending_questions
+           WHERE resolved_at IS NULL AND direction = 'gemini_to_claude'
+           ORDER BY asked_at DESC LIMIT 10""",
+    )
+    if crossbrain_rows:
+        _add("[Otto] Messages from WhatsApp brain (Gemini -> Claude):")
+        _add("  These are things Mev said via WhatsApp that need your attention:")
+        for r in crossbrain_rows:
+            urgency = "NORMAL"
+            if r["metadata"] and isinstance(r["metadata"], dict):
+                urgency = r["metadata"].get("urgency", "normal").upper()
+            ctx = f"\n    Context: {r['context']}" if r["context"] else ""
+            if not _add(f"  [{r['intent'].upper()}] [{urgency}] {r['question']}{ctx}"):
+                break
+        _add("  ACTION: Read these, act on them, then acknowledge via POST /pending/<id>/resolve")
         _add("")
 
     # ── Tier 4: Last session (if budget) ────────────────────────────

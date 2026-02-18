@@ -48,6 +48,27 @@ curl -s -X POST http://localhost:8100/pending/ask \
 
 Then STOP. Don't do anything else.
 
+### 2b. Process cross-brain notes (Gemini → Claude)
+
+Your injected context may contain a `[Otto] Messages from WhatsApp brain` section. These are things Mev told Gemini (via WhatsApp) that you need to act on.
+
+**For each cross-brain note:**
+
+1. **Read and understand** the note type and urgency
+2. **Act on it:**
+   - `directive` / `goal` / `priority_change` → Store as semantic memory, adjust your plans accordingly
+   - `task` → Do it now if feasible within this heartbeat, or register it as a plan
+   - `decision` / `context` → Store as semantic memory so you remember it
+3. **Acknowledge** by resolving the note:
+
+```bash
+curl -s -X POST http://localhost:8100/pending/<id>/resolve \
+  -H 'Content-Type: application/json' \
+  -d '{"answer": "Acknowledged. [Brief description of what you did with this info]"}'
+```
+
+Processing cross-brain notes IS mission work — these are direct instructions from Mev. Treat them with the same priority as if Mev told you in person.
+
 ### 3. Drive the mission forward (THIS IS THE REAL STEP)
 
 You have the mission. Now figure out what you DON'T know and go get it.

@@ -1,4 +1,6 @@
 import json
+import asyncio
+import logging
 import httpx
 from openai import AsyncOpenAI
 from fastapi import APIRouter
@@ -8,9 +10,33 @@ from ..models import WhatsAppIncoming
 from ..embeddings import get_embedding
 from ..graphiti import graphiti_search, graphiti_ingest, make_message
 
+log = logging.getLogger("otto.whatsapp")
+
+CLAUDE_CLI = "/home/web3relic/.local/bin/claude"
+CLAUDE_TIMEOUT = 60  # seconds
+
 router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
 OWNER_JID = "94743806705@s.whatsapp.net"
+
+
+def _gemini_client() -> AsyncOpenAI:
+    """Shared Gemini client constructor."""
+    return AsyncOpenAI(
+        api_key=settings.gemini_api_key,
+        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    )
+
+
+def _strip_json_fences(text: str) -> str:
+    """Strip markdown code fences from JSON responses."""
+    text = text.strip()
+    for prefix in ("```json", "```"):
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    return text.rstrip("`").strip()
+
 
 # Intent → how to store the answer
 INTENT_STORE_MAP = {
@@ -23,14 +49,98 @@ INTENT_STORE_MAP = {
 
 
 async def _get_pending_questions(pool):
-    """Fetch unresolved questions Otto has asked Mev."""
+    """Fetch unresolved questions Otto (Claude) has asked Mev — excludes Gemini's own notes."""
     rows = await pool.fetch(
         """SELECT id, question, intent, context
            FROM pending_questions
-           WHERE resolved_at IS NULL
+           WHERE resolved_at IS NULL AND direction = 'claude_to_gemini'
            ORDER BY asked_at DESC LIMIT 3""",
     )
     return [dict(r) for r in rows]
+
+
+async def _needs_claude_help(user_message: str, recent_events: list[str]) -> dict | None:
+    """Determine if the message needs Claude's help (file access, code analysis, etc.).
+
+    Returns {"task": str, "file_paths": list, "question": str} if delegation needed.
+    """
+    client = _gemini_client()
+    events_context = "\n".join(f"- {e}" for e in recent_events[:10])
+
+    try:
+        completion = await client.chat.completions.create(
+            model="gemini-2.0-flash",
+            messages=[
+                {"role": "system", "content": """You determine if a user message requires reading files or accessing the filesystem.
+
+Otto has two brains:
+- Gemini (WhatsApp) — conversational, has memory access only
+- Claude (builder brain) — has full filesystem and code access
+
+Recent events show what files/artifacts Claude has created recently.
+
+Determine if the user is asking about:
+- A file that was recently created (proposal, document, code, plan, config)
+- Code analysis, review, or explanation
+- System state that requires reading files to answer
+- Anything where the answer lives in a file on disk
+
+Return ONLY valid JSON (no markdown, no code fences):
+{"needs_claude": true/false, "task": "brief description of what Claude should do", "file_paths": ["path1"] or [], "question": "the specific question for Claude"}
+
+If needs_claude is false, set other fields to null."""},
+                {"role": "user", "content": f"Recent events (may contain file paths):\n{events_context}\n\nUser message: {user_message}"},
+            ],
+            max_tokens=300,
+            temperature=0.0,
+        )
+        result = _strip_json_fences(completion.choices[0].message.content)
+        parsed = json.loads(result)
+        if parsed.get("needs_claude"):
+            return {
+                "task": parsed.get("task", ""),
+                "file_paths": parsed.get("file_paths", []),
+                "question": parsed.get("question", user_message),
+            }
+    except Exception as e:
+        log.warning(f"Claude delegation classifier error: {e}")
+
+    return None
+
+
+async def _delegate_to_claude(task: str, file_paths: list[str], question: str) -> str | None:
+    """Delegate a task to Claude via the CLI. Returns Claude's response or None on failure."""
+    prompt_parts = [f"You are Otto's builder brain. Gemini (WhatsApp brain) needs your help with a task."]
+    prompt_parts.append(f"Task: {task}")
+    if file_paths:
+        prompt_parts.append(f"Read these files: {', '.join(file_paths)}")
+    prompt_parts.append(f"Question from Mev: {question}")
+    prompt_parts.append("Provide a concise, clear response. Keep it under 400 words. No markdown headers — just clean text.")
+
+    prompt = "\n".join(prompt_parts)
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            CLAUDE_CLI, "-p", "-m", "haiku", "--max-turns", "3",
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(prompt.encode()),
+            timeout=CLAUDE_TIMEOUT,
+        )
+        if proc.returncode == 0 and stdout:
+            return stdout.decode().strip()
+        log.warning(f"Claude CLI returned code {proc.returncode}: {stderr.decode()[:200]}")
+    except asyncio.TimeoutError:
+        log.warning(f"Claude CLI timed out after {CLAUDE_TIMEOUT}s")
+        if proc:
+            proc.kill()
+    except Exception as e:
+        log.warning(f"Claude delegation error: {e}")
+
+    return None
 
 
 async def _resolve_and_store(pool, question, answer: str):
@@ -71,9 +181,8 @@ async def _resolve_and_store(pool, question, answer: str):
     )
 
 
-async def _build_otto_prompt(message: str, pending_questions: list) -> list[dict]:
+async def _build_otto_prompt(pool, message: str, pending_questions: list, recent_events: list[str], claude_response: str | None = None) -> list[dict]:
     """Build Otto's prompt with memory context from all layers."""
-    pool = await get_pool()
 
     # Identity facts from pgvector
     identity_rows = await pool.fetch(
@@ -89,13 +198,8 @@ async def _build_otto_prompt(message: str, pending_questions: list) -> list[dict
     current_facts = [f for f in graph_facts if f.get("invalid_at") is None]
     graph_context = "\n".join(f"- {f['fact']}" for f in current_facts) if current_facts else ""
 
-    # Recent events from Postgres
-    event_rows = await pool.fetch(
-        """SELECT content FROM episodic_events
-           WHERE importance >= 6
-           ORDER BY created_at DESC LIMIT 5""",
-    )
-    recent = "\n".join(f"- {r['content']}" for r in event_rows)
+    # Recent events (reuse pre-fetched events, already importance >= 4)
+    recent = "\n".join(f"- {e}" for e in recent_events[:5])
 
     # Pending questions context
     pending_section = ""
@@ -111,6 +215,15 @@ You recently asked Mev these questions and are waiting for answers. Mev's curren
 
 IMPORTANT: If Mev's message is clearly a reply to one of your pending questions, acknowledge it naturally and confirm you understood. Extract the key actionable content from their answer."""
 
+    # Claude builder brain response
+    claude_section = ""
+    if claude_response:
+        claude_section = f"""
+
+## From Claude (Builder Brain)
+Your builder brain (Claude) read the relevant files and provided this analysis. Use this to answer Mev's question:
+{claude_response}"""
+
     system = f"""You are Otto, a persistent AI entity. You are responding via WhatsApp to Admin (Mev).
 
 ## Your Identity
@@ -120,7 +233,7 @@ IMPORTANT: If Mev's message is clearly a reply to one of your pending questions,
 {graph_context}
 
 ## Recent Events
-{recent}{pending_section}
+{recent}{pending_section}{claude_section}
 
 ## Voice Guidelines
 - Be direct, concise, warm but not sycophantic
@@ -136,7 +249,7 @@ IMPORTANT: If Mev's message is clearly a reply to one of your pending questions,
     ]
 
 
-async def _match_pending_question(message: str, pending_questions: list, reply: str) -> dict | None:
+async def _match_pending_question(message: str, pending_questions: list) -> dict | None:
     """Determine if this message answers a pending question.
     Uses Gemini for smart matching with a simple fallback."""
     if not pending_questions:
@@ -147,10 +260,7 @@ async def _match_pending_question(message: str, pending_questions: list, reply: 
         for q in pending_questions
     ])
 
-    client = AsyncOpenAI(
-        api_key=settings.gemini_api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-    )
+    client = _gemini_client()
     try:
         completion = await client.chat.completions.create(
             model="gemini-3-flash-preview",
@@ -164,28 +274,73 @@ If the message clearly answers one of the pending questions, extract the core an
             max_tokens=200,
             temperature=0.0,
         )
-        result = completion.choices[0].message.content.strip()
-        # Strip markdown code fences if present
-        for prefix in ("```json", "```"):
-            if result.startswith(prefix):
-                result = result[len(prefix):]
-                break
-        result = result.rstrip("`").strip()
+        result = _strip_json_fences(completion.choices[0].message.content)
         parsed = json.loads(result)
         if parsed.get("matched_id"):
             for q in pending_questions:
                 if str(q["id"]) == parsed["matched_id"]:
                     return {"question": q, "extracted_answer": parsed.get("extracted_answer", message)}
     except Exception as e:
-        # Log the error instead of silently swallowing
-        import logging
-        logging.getLogger("otto.whatsapp").warning(f"Pending question matcher error: {e}")
+        log.warning(f"Pending question matcher error: {e}")
 
     # Fallback: if there's exactly one pending question with a high-intent type
     # and the message is substantive (>20 chars), assume it's a reply
     high_intent = [q for q in pending_questions if q["intent"] in ("mission", "goal", "decision")]
     if len(high_intent) == 1 and len(message) > 20:
         return {"question": high_intent[0], "extracted_answer": message}
+
+    return None
+
+
+async def _classify_for_heartbeat(user_message: str, otto_reply: str) -> dict | None:
+    """Classify whether a WhatsApp conversation contains info Claude's heartbeat needs.
+
+    Returns {"note_type": str, "urgency": str, "content": str, "source_summary": str}
+    if flagged, or None if nothing to relay.
+    """
+    client = _gemini_client()
+    try:
+        completion = await client.chat.completions.create(
+            model="gemini-2.0-flash",
+            messages=[
+                {"role": "system", "content": """You classify WhatsApp conversations between Mev (admin) and Otto (AI agent).
+Otto has two brains: Gemini (WhatsApp, real-time) and Claude (hourly heartbeat, builds things).
+Determine if Mev said anything that Claude's heartbeat needs to know about.
+
+FLAG these (Claude needs to know):
+- Directives/instructions ("focus on X", "stop doing Y", "I want you to...")
+- Goals/deadlines ("launch by March", "finish X this week")
+- Decisions ("let's go with option A", "use React for this")
+- Important brand/product/project context
+- Tasks ("research X", "build me Y", "set up Z")
+- Priority changes ("pause X, focus on Y")
+
+DO NOT FLAG these (Claude doesn't need to know):
+- Casual chat, greetings, banter
+- Acknowledgments ("ok", "cool", "thanks", "got it")
+- Questions Gemini already answered adequately
+- Small talk or emotional check-ins
+
+Return ONLY valid JSON (no markdown, no code fences):
+{"flag": true/false, "note_type": "directive|task|goal|decision|context|priority_change", "urgency": "normal|high|critical", "content": "concise summary of what Claude needs to know", "source_summary": "brief WhatsApp context"}
+
+If flag is false, still include the other fields as null."""},
+                {"role": "user", "content": f"Mev said: {user_message}\n\nOtto replied: {otto_reply}"},
+            ],
+            max_tokens=300,
+            temperature=0.0,
+        )
+        result = _strip_json_fences(completion.choices[0].message.content)
+        parsed = json.loads(result)
+        if parsed.get("flag"):
+            return {
+                "note_type": parsed.get("note_type", "context"),
+                "urgency": parsed.get("urgency", "normal"),
+                "content": parsed.get("content", user_message),
+                "source_summary": parsed.get("source_summary"),
+            }
+    except Exception as e:
+        log.warning(f"Cross-brain classifier error: {e}")
 
     return None
 
@@ -201,14 +356,27 @@ async def handle_incoming(req: WhatsAppIncoming):
     # Check for pending questions Otto asked Mev
     pending_questions = await _get_pending_questions(pool)
 
-    # Build context-aware prompt (includes pending questions context)
-    messages = await _build_otto_prompt(req.message, pending_questions)
-
-    # Generate response via Gemini 3 Flash (OpenAI-compatible endpoint)
-    client = AsyncOpenAI(
-        api_key=settings.gemini_api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+    # Check if this message needs Claude's help (file access, code analysis)
+    claude_response = None
+    recent_event_rows = await pool.fetch(
+        """SELECT content FROM episodic_events
+           WHERE importance >= 4
+           ORDER BY created_at DESC LIMIT 10""",
     )
+    recent_events = [r["content"] for r in recent_event_rows]
+    claude_help = await _needs_claude_help(req.message, recent_events) if len(req.message) > 15 else None
+    if claude_help:
+        claude_response = await _delegate_to_claude(
+            claude_help["task"],
+            claude_help.get("file_paths", []),
+            claude_help["question"],
+        )
+
+    # Build context-aware prompt (includes pending questions + Claude response)
+    messages = await _build_otto_prompt(pool, req.message, pending_questions, recent_events, claude_response)
+
+    # Generate response via Gemini 3 Flash
+    client = _gemini_client()
     completion = await client.chat.completions.create(
         model="gemini-3-flash-preview",
         messages=messages,
@@ -218,7 +386,7 @@ async def handle_incoming(req: WhatsAppIncoming):
     reply = completion.choices[0].message.content
 
     # Check if this message answers a pending question
-    match = await _match_pending_question(req.message, pending_questions, reply)
+    match = await _match_pending_question(req.message, pending_questions)
     if match:
         await _resolve_and_store(pool, match["question"], match["extracted_answer"])
 
@@ -248,4 +416,24 @@ async def handle_incoming(req: WhatsAppIncoming):
         make_message(reply, "assistant", "Otto"),
     ])
 
-    return {"status": "sent", "reply": reply, "resolved_question": match is not None}
+    # Classify whether Claude's heartbeat needs to know about this conversation
+    cross_brain = await _classify_for_heartbeat(req.message, reply)
+    if cross_brain:
+        urgency_json = json.dumps({"urgency": cross_brain["urgency"]})
+        await pool.execute(
+            """INSERT INTO pending_questions
+                   (question, intent, context, channel, direction, source_brain, metadata)
+               VALUES ($1, $2, $3, 'whatsapp', 'gemini_to_claude', 'gemini', $4::jsonb)""",
+            cross_brain["content"],
+            cross_brain["note_type"],
+            cross_brain["source_summary"],
+            urgency_json,
+        )
+
+    return {
+        "status": "sent",
+        "reply": reply,
+        "resolved_question": match is not None,
+        "cross_brain_note": cross_brain is not None,
+        "claude_delegated": claude_response is not None,
+    }

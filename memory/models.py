@@ -125,6 +125,15 @@ class PendingQuestionOut(BaseModel):
     asked_at: datetime
     resolved_at: datetime | None = None
     answer: str | None = None
+    direction: str = "claude_to_gemini"
+    source_brain: str = "claude"
+
+
+class CrossBrainNote(BaseModel):
+    content: str
+    note_type: str = "context"  # directive, task, goal, decision, context, priority_change
+    urgency: str = "normal"  # normal, high, critical
+    source_summary: str | None = None
 
 
 # ── WhatsApp ───────────────────────────────────────────────────────

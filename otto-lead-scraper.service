@@ -1,0 +1,12 @@
+[Unit]
+Description=Otto Web Assist Lead Scraper
+After=network.target
+
+[Service]
+Type=oneshot
+User=web3relic
+WorkingDirectory=/home/web3relic/otto
+ExecStart=/home/web3relic/otto/memory/.venv/bin/python3 /home/web3relic/otto/tools/lead_scraper.py
+EnvironmentFile=/home/web3relic/memory/.env
+StandardOutput=append:/home/web3relic/otto/logs/lead-scraper.log
+StandardError=append:/home/web3relic/otto/logs/lead-scraper.log
