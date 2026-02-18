@@ -1,6 +1,6 @@
 # Brand Map — Mev's Portfolio
 
-Last updated: 2026-02-18 (heartbeat — 505.systems + my3ye.xyz research complete)
+Last updated: 2026-02-19 (heartbeat — Tech Assist landing page built, lead DB at 1689)
 
 This document is Otto's running map of all brands, products, and projects under Mev's vision. Updated progressively as more context is gathered.
 
@@ -101,13 +101,15 @@ This document is Otto's running map of all brands, products, and projects under 
 
 ## Priority Queue (Otto's current focus)
 
-1. **[BLOCKED]** Lead scraper — needs Places API key enabled in GCP or a separate Maps API key
-2. **[BLOCKED]** otto.505.systems web server — ready to stand up, waiting on Mev go-ahead
-3. **[READY]** Assistive Tech domain — remind Mev to acquire domain (was asked 2026-02-17)
-4. **[READY]** Start building any of the brands above — waiting on Mev's priority signal
-5. **[OPEN]** Get Mev's confirmation on Assist suite product scopes
-6. **[OPEN]** Clarify which 505.systems/MY3YE projects need active building vs passive monitoring
-7. **[OPEN]** arXiv paper ID — Mev may have meant a different paper (2502.13045 = condensed matter physics)
+1. **[DONE]** Lead scraper — running, 1689 leads in DB (508 no-website, 1181 revamp candidates), hourly via systemd timer
+2. **[DONE]** otto.505.systems — live with 9 sample sites at /review/, intake form at /start
+3. **[DONE]** Tech Assist landing page — built at otto.505.systems/review/tech-assist (2026-02-19)
+4. **[BLOCKED]** WebAssist outreach — 25 messages queued, awaiting Mev approval to send
+5. **[BLOCKED]** Assistive Tech domain — reminder to Mev (asked 2026-02-17, 2026-02-18, 2026-02-19)
+6. **[OPEN]** WebAssist dedicated WhatsApp number — awaiting Mev
+7. **[OPEN]** Share local WebAssist workflow (intake → build → delivery)
+8. **[OPEN]** Get Mev's confirmation on Assist suite product scopes
+9. **[OPEN]** Clarify which 505.systems/MY3YE projects need active building vs passive monitoring
 
 ---
 
