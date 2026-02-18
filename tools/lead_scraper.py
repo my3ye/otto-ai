@@ -81,6 +81,50 @@ SL_QUERIES = [
     "cafes in Colombo Sri Lanka",
     "bakeries in Colombo Sri Lanka",
     "food delivery in Colombo Sri Lanka",
+    # More Colombo verticals
+    "travel agencies in Colombo Sri Lanka",
+    "logistics companies in Colombo Sri Lanka",
+    "pharmacies in Colombo Sri Lanka",
+    "car dealerships in Colombo Sri Lanka",
+    "auto repair shops in Colombo Sri Lanka",
+    "printing companies in Colombo Sri Lanka",
+    "advertising agencies in Colombo Sri Lanka",
+    "catering services in Colombo Sri Lanka",
+    "florists in Colombo Sri Lanka",
+    "pet shops in Colombo Sri Lanka",
+    "furniture stores in Colombo Sri Lanka",
+    "hardware stores in Colombo Sri Lanka",
+    # Negombo
+    "restaurants in Negombo Sri Lanka",
+    "hotels in Negombo Sri Lanka",
+    "guesthouses in Negombo Sri Lanka",
+    "businesses in Negombo Sri Lanka",
+    # Kandy expanded
+    "restaurants in Kandy Sri Lanka",
+    "beauty salons in Kandy Sri Lanka",
+    "real estate agencies in Kandy Sri Lanka",
+    # Matara
+    "restaurants in Matara Sri Lanka",
+    "hotels in Matara Sri Lanka",
+    "businesses in Matara Sri Lanka",
+    # Galle expanded
+    "hotels in Galle Sri Lanka",
+    "boutiques in Galle Sri Lanka",
+    "guesthouses in Galle Sri Lanka",
+    "cafes in Galle Sri Lanka",
+    # Jaffna
+    "restaurants in Jaffna Sri Lanka",
+    "hotels in Jaffna Sri Lanka",
+    "businesses in Jaffna Sri Lanka",
+    # Kurunegala
+    "businesses in Kurunegala Sri Lanka",
+    "restaurants in Kurunegala Sri Lanka",
+    # Colombo suburbs
+    "restaurants in Nugegoda Sri Lanka",
+    "restaurants in Dehiwala Sri Lanka",
+    "restaurants in Mount Lavinia Sri Lanka",
+    "businesses in Battaramulla Sri Lanka",
+    "businesses in Malabe Sri Lanka",
 ]
 
 

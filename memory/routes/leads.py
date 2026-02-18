@@ -269,7 +269,7 @@ async def leads_dashboard():
   <div class="table-wrap">
     <div class="table-header">
       <h3>Top Priority Leads (score ≥ 70)</h3>
-      <span class="refresh">Auto-refresh: reload page</span>
+      <div><span class="refresh">Auto-refresh: reload page</span> &nbsp; <a href="/leads/export/csv?lead_type=no_website&min_score=70" style="color:#22d3ee;font-size:0.8rem;text-decoration:none;border:1px solid #22d3ee;padding:4px 10px;border-radius:4px;">Export CSV (no-website)</a> &nbsp; <a href="/leads/export/csv?lead_type=revamp_candidate&min_score=0" style="color:#a78bfa;font-size:0.8rem;text-decoration:none;border:1px solid #a78bfa;padding:4px 10px;border-radius:4px;">Export CSV (revamp)</a></div>
     </div>
     <table>
       <thead>
@@ -286,3 +286,88 @@ async def leads_dashboard():
 </body>
 </html>"""
     return HTMLResponse(content=html)
+
+
+@router.get("/export/csv")
+async def export_leads_csv(
+    lead_type: str = None,
+    min_score: int = 0,
+    outreach_status: str = "new",
+    limit: int = 500,
+):
+    """Export leads as CSV — ready for outreach campaigns."""
+    import csv
+    import io
+    from fastapi.responses import StreamingResponse
+
+    pool = await get_pool()
+
+    query = """
+        SELECT name, city, address, phone, website, lead_score, lead_type,
+               lead_notes, google_maps_url, outreach_status, scraped_at
+        FROM web_assist_leads
+        WHERE lead_score >= $1
+    """
+    params = [min_score]
+
+    if lead_type:
+        if lead_type not in ("no_website", "revamp_candidate", "strong_web_presence"):
+            raise HTTPException(status_code=400, detail="Invalid lead_type")
+        params.append(lead_type)
+        query += f" AND lead_type = ${len(params)}"
+
+    if outreach_status:
+        params.append(outreach_status)
+        query += f" AND outreach_status = ${len(params)}"
+
+    query += f" ORDER BY lead_score DESC LIMIT {min(limit, 1000)}"
+
+    rows = await pool.fetch(query, *params)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow([
+        "Name", "City", "Address", "Phone", "Website",
+        "Score", "Lead Type", "Notes", "Google Maps URL",
+        "Outreach Status", "Scraped At"
+    ])
+    for row in rows:
+        writer.writerow([
+            row["name"], row["city"], row["address"] or "", row["phone"] or "",
+            row["website"] or "", row["lead_score"], row["lead_type"],
+            row["lead_notes"] or "", row["google_maps_url"] or "",
+            row["outreach_status"], row["scraped_at"]
+        ])
+
+    output.seek(0)
+    filename = f"web_assist_leads_{lead_type or 'all'}.csv"
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"},
+    )
+
+
+@router.post("/{lead_id}/outreach")
+async def update_outreach_status(lead_id: str, body: dict):
+    """Update outreach status for a lead (new → contacted → responded → converted)."""
+    pool = await get_pool()
+
+    valid_statuses = ("new", "contacted", "responded", "not_interested", "converted", "invalid")
+    status = body.get("status")
+    if status not in valid_statuses:
+        raise HTTPException(status_code=400, detail=f"Invalid status. Must be one of: {valid_statuses}")
+
+    notes = body.get("notes", "")
+    result = await pool.execute(
+        """
+        UPDATE web_assist_leads
+        SET outreach_status = $1,
+            lead_notes = CASE WHEN $2 != '' THEN lead_notes || E'\n' || $2 ELSE lead_notes END
+        WHERE place_id = $3
+        """,
+        status, notes, lead_id
+    )
+    if result == "UPDATE 0":
+        raise HTTPException(status_code=404, detail="Lead not found")
+    return {"ok": True, "place_id": lead_id, "status": status}
