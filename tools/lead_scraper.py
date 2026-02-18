@@ -220,12 +220,40 @@ async def upsert_lead(conn: asyncpg.Connection, place: dict, query: str) -> str:
     score, notes, lead_type = compute_lead_score(place)
 
     # Determine city from address
+    # SL address format: "123 Street, Area, CityCode, Province, Sri Lanka"
+    # We identify city by matching known SL city names in the address parts.
+    SL_CITIES = [
+        "Colombo", "Kandy", "Galle", "Jaffna", "Negombo", "Trincomalee",
+        "Batticaloa", "Matara", "Kurunegala", "Ratnapura", "Badulla",
+        "Anuradhapura", "Polonnaruwa", "Hambantota", "Vavuniya", "Mannar",
+        "Ampara", "Monaragala", "Nuwara Eliya", "Puttalam", "Kegalle",
+        "Kalutara", "Gampaha", "Matale", "Mullativu", "Kilinochchi",
+        "Wattala", "Dehiwala", "Moratuwa", "Panadura", "Piliyandala",
+        "Kaduwela", "Kelaniya", "Kotte", "Maharagama", "Nugegoda",
+        "Boralesgamuwa", "Homagama", "Avissawella", "Hanwella",
+        "Kadawatha", "Ragama", "Ja-Ela", "Seeduwa", "Katunayake",
+        "Minuwangoda", "Gampaha", "Veyangoda", "Mirigama", "Aluthgama",
+        "Bentota", "Ambalangoda", "Hikkaduwa", "Unawatuna", "Mirissa",
+        "Tangalle", "Tissamaharama", "Kataragama", "Ella", "Haputale",
+        "Bandarawela", "Diyatalawa", "Welimada", "Nawalapitiya", "Hatton",
+        "Dambulla", "Sigiriya", "Habarana", "Trinco", "Batticaloa"
+    ]
     city = None
     if address:
         parts = [p.strip() for p in address.split(",")]
-        # Usually: "123 Street, Area, City, Province, Sri Lanka"
-        if len(parts) >= 2:
-            city = parts[-3] if len(parts) >= 3 else parts[-2]
+        # Try to match a known SL city in the parts (skip first part = street)
+        for part in parts[1:]:
+            clean = part.strip()
+            # Strip postal codes like "Colombo 03" → "Colombo"
+            city_candidate = clean.split()[0] if clean else ""
+            if any(city_candidate.lower() == c.lower() or clean.lower().startswith(c.lower()) for c in SL_CITIES):
+                city = city_candidate if city_candidate else clean
+                break
+        # Fallback: second-to-last part (before "Sri Lanka"), skip country
+        if not city and len(parts) >= 3:
+            city = parts[-2].strip()
+        elif not city and len(parts) == 2:
+            city = parts[-1].strip() if parts[-1].strip().lower() != "sri lanka" else None
 
     existing = await conn.fetchrow(
         "SELECT id FROM web_assist_leads WHERE place_id = $1", place_id
