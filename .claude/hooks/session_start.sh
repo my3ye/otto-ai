@@ -26,11 +26,16 @@ echo "$SESSION_ID" > /tmp/otto-session-id
 # But scale budget to content needs — no point reserving 60k for 800 tokens of memories
 # Use generous defaults that grow with Otto's knowledge, capped at 30%
 CONTEXT_CEILING=60000
+# Heartbeat sessions get a tighter budget to leave room for actual work
+OTTO_SESSION_TYPE="${OTTO_SESSION_TYPE:-}"
 case "$SOURCE" in
   compact) MAX_TOKENS=4000 ;;   # Essentials after compaction
   resume)  MAX_TOKENS=10000 ;;  # Medium on resume
   *)       MAX_TOKENS=15000 ;;  # Full on startup
 esac
+if [ "$OTTO_SESSION_TYPE" = "heartbeat" ]; then
+  MAX_TOKENS=5000  # Keep heartbeat context lean — leaves budget for real work
+fi
 # Never exceed 30% ceiling
 if [ "$MAX_TOKENS" -gt "$CONTEXT_CEILING" ]; then
   MAX_TOKENS=$CONTEXT_CEILING

@@ -33,6 +33,7 @@ echo "$(date -Iseconds) Otto heartbeat starting..." >> "$LOG_FILE"
 
 # Run Claude Code CLI as Otto's autonomous brain
 cd "$OTTO_DIR"
+export OTTO_SESSION_TYPE=heartbeat
 /home/web3relic/.local/bin/claude \
     --print \
     --agent heartbeat \
