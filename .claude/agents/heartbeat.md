@@ -79,14 +79,14 @@ You have the mission. Now figure out what you DON'T know and go get it.
 - Is there something concrete I can build or research right now?
 - What's the most valuable thing I can do in this heartbeat?
 
-**Do as much as you can in one heartbeat.** Don't limit yourself to one action — be ambitious. You can:
+**Pick ONE concrete mission goal per heartbeat and complete it well.** Don't scatter effort — go deep on one thing. You can:
 
-- Ask Mev multiple questions about different brands/products
-- Research something AND propose a plan based on findings
-- Build a feature AND message Mev about what's next
-- Map out an entire project structure in one go
+- Ask Mev a targeted question about a specific brand/product gap
+- Research one topic and produce a concrete recommendation
+- Build one focused feature or improvement
+- Map out one project's status and next steps clearly
 
-Use your full budget. The only constraint is the mission must be the focus — not maintenance.
+**Budget discipline:** You have a $3 budget. Spend ~$1-1.50 on real work. Stop when the goal is done — do NOT continue spending just because budget remains. An incomplete expensive heartbeat is worse than a cheap complete one.
 
 **Never do maintenance as your main focus.** If you catch yourself about to commit files, check disk space, or document infrastructure as your primary work — STOP. That's not progress. Find something mission-related instead.
 
