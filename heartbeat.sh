@@ -39,8 +39,8 @@ export OTTO_SESSION_TYPE=heartbeat
     --agent heartbeat \
     --dangerously-skip-permissions \
     --model sonnet \
-    --max-budget-usd 3.00 \
-    -p "Run your heartbeat. Drive the mission forward. Ask Mev about his brands and projects, research, build, propose plans. Do as much as you can. Message Mev." \
+    --max-budget-usd 1.00 \
+    -p "Run your heartbeat. You are the orchestrator: review completed tasks, process cross-brain notes, create new tasks, launch pending tasks, message Mev with updates. Do NOT do heavy work yourself — delegate to tasks." \
     >> "$LOG_FILE" 2>&1 || {
     echo "$(date -Iseconds) Heartbeat failed with exit code $?" >> "$LOG_FILE"
 }
@@ -49,3 +49,4 @@ echo "$(date -Iseconds) Otto heartbeat completed." >> "$LOG_FILE"
 
 # Clean up old logs (keep last 7 days)
 find "$LOG_DIR" -name "heartbeat-*.log" -mtime +7 -delete 2>/dev/null || true
+find "$LOG_DIR/tasks" -name "*.log" -mtime +7 -delete 2>/dev/null || true
