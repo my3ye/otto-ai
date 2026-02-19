@@ -1,6 +1,6 @@
 # Brand Map — Mev's Portfolio
 
-Last updated: 2026-02-19 (heartbeat — Tech Assist landing page built, lead DB at 1689)
+Last updated: 2026-02-19 (heartbeat — Lead DB 2447, outreach queue 80 pending, 13 sample sites live)
 
 This document is Otto's running map of all brands, products, and projects under Mev's vision. Updated progressively as more context is gathered.
 
@@ -101,15 +101,16 @@ This document is Otto's running map of all brands, products, and projects under 
 
 ## Priority Queue (Otto's current focus)
 
-1. **[DONE]** Lead scraper — running, 1689 leads in DB (508 no-website, 1181 revamp candidates), hourly via systemd timer
-2. **[DONE]** otto.505.systems — live with 9 sample sites at /review/, intake form at /start
-3. **[DONE]** Tech Assist landing page — built at otto.505.systems/review/tech-assist (2026-02-19)
-4. **[BLOCKED]** WebAssist outreach — 25 messages queued, awaiting Mev approval to send
-5. **[BLOCKED]** Assistive Tech domain — reminder to Mev (asked 2026-02-17, 2026-02-18, 2026-02-19)
-6. **[OPEN]** WebAssist dedicated WhatsApp number — awaiting Mev
-7. **[OPEN]** Share local WebAssist workflow (intake → build → delivery)
-8. **[OPEN]** Get Mev's confirmation on Assist suite product scopes
-9. **[OPEN]** Clarify which 505.systems/MY3YE projects need active building vs passive monitoring
+1. **[DONE]** Lead scraper — running, 2447 leads in DB (805 no-website, 163 revamp), hourly via systemd timer
+2. **[DONE]** otto.505.systems — live with 13 sample dirs at /review/ incl Tech/Brand/App Assist, intake form at /start
+3. **[DONE]** Tech Assist, Brand Assist, App Assist landing pages — all built and live
+4. **[DONE]** Outreach generator — 80 messages queued (55 + 25 new today), all pending Mev approval
+5. **[BLOCKED]** WebAssist outreach send — 80 messages queued, awaiting Mev go-ahead
+6. **[BLOCKED]** Assistive Tech domain — asked 3x (2026-02-17, 18, 19), still waiting
+7. **[BLOCKED]** WebAssist dedicated WhatsApp number — awaiting Mev details
+8. **[BLOCKED]** WebAssist workflow handoff — need local steps 3-5 to automate pipeline
+9. **[OPEN]** Assist suite product scope confirmation — research hypotheses ready, need Mev input
+10. **[OPEN]** Clarify which 505.systems/MY3YE projects need active building vs passive monitoring
 
 ---
 
