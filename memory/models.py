@@ -540,6 +540,85 @@ class ARAGSearchResponse(BaseModel):
     structured_count: int    # candidates from structured strategy
 
 
+# ── RL2F: Teacher Feedback (Abhidharma evaluation) ─────────────────
+
+class RL2FFeedbackCreate(BaseModel):
+    cycle_ts: datetime
+    heartbeat_type: str = "orchestrator"
+    system_state: str | None = None
+    decision: str
+    teacher_feedback: str | None = None
+    root_condition_analysis: dict | None = None  # lobha/dosa/moha/alobha/adosa/amoha scores
+    mental_factor_scores: dict | None = None     # sati/panna/viriya/upekkha/ekaggata
+    outcome: str | None = None
+    outcome_match: str | None = None             # matched | partial | miss
+
+
+class RL2FFeedbackOut(BaseModel):
+    id: UUID
+    cycle_ts: datetime
+    heartbeat_type: str
+    system_state: str | None = None
+    decision: str
+    teacher_feedback: str | None = None
+    root_condition_analysis: dict | None = None
+    mental_factor_scores: dict | None = None
+    outcome: str | None = None
+    outcome_match: str | None = None
+    used_in_training: bool
+    created_at: datetime
+
+
+class RL2FTrainingBatch(BaseModel):
+    """Untrained feedback entries ready for next training cycle."""
+    entries: list[RL2FFeedbackOut]
+    count: int
+
+
+# ── RL2F Phase 2: Task-level Retry Feedback ────────────────────────
+
+class TaskRetryFeedbackCreate(BaseModel):
+    original_task_id: UUID
+    retry_task_id: UUID | None = None
+    attempt_number: int = 1
+    feedback: dict                        # structured rl2f_feedback JSON
+    qa_rejection_reason: str | None = None
+    feedback_injected: bool = False
+
+
+class TaskRetryFeedbackOut(BaseModel):
+    id: UUID
+    original_task_id: UUID
+    retry_task_id: UUID | None = None
+    attempt_number: int
+    feedback: dict
+    qa_rejection_reason: str | None = None
+    feedback_injected: bool
+    outcome: str                          # pending | succeeded | failed | abandoned
+    outcome_details: str | None = None
+    created_at: datetime
+    resolved_at: datetime | None = None
+
+
+class TaskRetryFeedbackResolve(BaseModel):
+    outcome: str                          # succeeded | failed | abandoned
+    outcome_details: str | None = None
+    retry_task_id: UUID | None = None     # if not set at creation
+
+
+class RetryMetrics(BaseModel):
+    total_rejections: int
+    total_retries: int
+    retries_with_feedback: int
+    retries_without_feedback: int
+    success_with_feedback: int
+    success_without_feedback: int
+    success_rate_with_feedback: float     # 0.0–1.0
+    success_rate_without_feedback: float  # 0.0–1.0
+    improvement_delta: float              # with - without (positive = RL2F helps)
+    pending_outcomes: int
+
+
 # ── WhatsApp ───────────────────────────────────────────────────────
 class WhatsAppIncoming(BaseModel):
     from_jid: str

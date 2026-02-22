@@ -365,8 +365,31 @@ qa_log "QA decision: ${QA_DECISION} — ${QA_REASON}"
 
 # ── Act on decision ───────────────────────────────────────────────────────────
 
+# Read rl2f_feedback_id from task metadata (set on rejection, passed to retry task)
+RL2F_FEEDBACK_ID=$(echo "$TASK_JSON" | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('metadata', {}).get('rl2f_feedback_id', ''))
+" 2>/dev/null || echo "")
+
 if [ "$QA_DECISION" = "APPROVE" ]; then
     qa_log "QA APPROVED — committing changes..."
+
+    # ── RL2F Phase 2: Mark feedback turn as succeeded ──────────────────────────
+    # If this task was a retry (has rl2f_feedback_id), the retry succeeded.
+    # Update the feedback record's outcome so we can track: feedback → success.
+    if [ -n "$RL2F_FEEDBACK_ID" ]; then
+        RESOLVE_PAYLOAD=$(python3 -c "
+import json, sys
+print(json.dumps({'outcome': 'succeeded', 'outcome_details': 'QA approved retry task ' + sys.argv[1][:8]}))
+" "$TASK_ID" 2>/dev/null || echo '{"outcome": "succeeded"}')
+        curl -sf -X PATCH "${API}/rl2f/task-feedback/${RL2F_FEEDBACK_ID}/resolve" \
+            -H 'Content-Type: application/json' \
+            -d "$RESOLVE_PAYLOAD" \
+            >> "$PARENT_LOG" 2>&1 && \
+            qa_log "RL2F Phase 2: feedback ${RL2F_FEEDBACK_ID:0:8} resolved as succeeded" || \
+            qa_log "RL2F Phase 2: WARNING — could not resolve feedback outcome (non-fatal)"
+    fi
+    # ── End RL2F Phase 2 outcome resolution ───────────────────────────────────
 
     COMMIT_HASH=""
     if cd "$WORK_DIR" 2>/dev/null; then
@@ -446,18 +469,120 @@ feedback = {
 print('REJECTED: ' + d.get('reason', '') + '\n' + json.dumps(feedback))
 " 2>/dev/null || echo "REJECTED: ${QA_REASON}")
 
+    # ── RL2F Phase 2: Mark previous feedback as failed (chain rejection) ────────
+    # If this task was already a retry (has rl2f_feedback_id), and it's being rejected
+    # again, update the previous feedback record's outcome to 'failed' before creating new.
+    if [ -n "$RL2F_FEEDBACK_ID" ]; then
+        FAIL_PAYLOAD=$(python3 -c "
+import json, sys
+print(json.dumps({'outcome': 'failed', 'outcome_details': 'Retry task ' + sys.argv[1][:8] + ' was re-rejected by QA'}))
+" "$TASK_ID" 2>/dev/null || echo '{"outcome": "failed"}')
+        curl -sf -X PATCH "${API}/rl2f/task-feedback/${RL2F_FEEDBACK_ID}/resolve" \
+            -H 'Content-Type: application/json' \
+            -d "$FAIL_PAYLOAD" \
+            >> "$PARENT_LOG" 2>&1 && \
+            qa_log "RL2F Phase 2: previous feedback ${RL2F_FEEDBACK_ID:0:8} resolved as failed (re-rejected)" || \
+            qa_log "RL2F Phase 2: WARNING — could not resolve previous feedback as failed (non-fatal)"
+    fi
+    # ── End chain rejection handling ──────────────────────────────────────────
+
+    # ── RL2F Phase 2: Persist feedback turn to task_retry_feedback table ──────
+    # This enables: feedback chain retrieval, retry success metrics, training data.
+    # attempt_number = current retry_count + 1 (or 1 for first rejection).
+    CURRENT_RETRY_COUNT=$(echo "$TASK_JSON" | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('metadata', {}).get('retry_count', 0))
+" 2>/dev/null || echo "0")
+    ATTEMPT_NUMBER=$(( CURRENT_RETRY_COUNT + 1 ))
+
+    # Extract the structured feedback object for the DB record
+    RL2F_FEEDBACK_JSON=$(echo "$QA_PARSED" | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print(json.dumps({
+    'reason': d.get('reason', ''),
+    'issues': d.get('issues', []),
+    'expected': d.get('expected', ''),
+    'actual': d.get('actual', ''),
+    'failure_points': d.get('failure_points', []),
+    'suggestions': d.get('suggestions', []),
+}))
+" 2>/dev/null || echo "{}")
+
+    # POST to /rl2f/task-feedback — store the rejection feedback turn
+    TASK_FEEDBACK_PAYLOAD=$(python3 -c "
+import json, sys
+print(json.dumps({
+    'original_task_id': sys.argv[1],
+    'attempt_number': int(sys.argv[2]),
+    'feedback': json.loads(sys.argv[3]),
+    'qa_rejection_reason': sys.argv[4][:500] if sys.argv[4] else None,
+    'feedback_injected': False,
+}))
+" "$TASK_ID" "$ATTEMPT_NUMBER" "$RL2F_FEEDBACK_JSON" "$QA_REASON" 2>/dev/null || echo "")
+
+    RL2F_FEEDBACK_ID=""
+    if [ -n "$TASK_FEEDBACK_PAYLOAD" ]; then
+        FEEDBACK_RECORD=$(curl -sf -X POST "${API}/rl2f/task-feedback" \
+            -H 'Content-Type: application/json' \
+            -d "$TASK_FEEDBACK_PAYLOAD" 2>/dev/null || echo "")
+        RL2F_FEEDBACK_ID=$(echo "$FEEDBACK_RECORD" | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    print(d.get('id', ''))
+except Exception:
+    print('')
+" 2>/dev/null || echo "")
+        if [ -n "$RL2F_FEEDBACK_ID" ]; then
+            qa_log "RL2F Phase 2: feedback turn stored (id=${RL2F_FEEDBACK_ID:0:8}, attempt=${ATTEMPT_NUMBER})"
+        else
+            qa_log "RL2F Phase 2: WARNING — failed to store feedback turn (API error or non-JSON response)"
+        fi
+    fi
+    # ── End RL2F Phase 2 persistence ──────────────────────────────────────────
+
     UPDATE_JSON=$(python3 -c "
+import json, sys
+# Include rl2f_feedback_id in task metadata so heartbeat can pass it to retry task
+metadata_update = {}
+if sys.argv[3]:
+    metadata_update['rl2f_feedback_id'] = sys.argv[3]
+    metadata_update['rl2f_attempt_number'] = int(sys.argv[4])
+print(json.dumps({
+    'qa_status': 'rejected',
+    'qa_reviewer': sys.argv[1],
+    'qa_output': sys.argv[2],
+    'metadata_update': metadata_update,
+}))
+" "$QA_CLI" "$QA_OUTPUT_FULL" "$RL2F_FEEDBACK_ID" "$ATTEMPT_NUMBER" 2>/dev/null)
+
+    # Use standard qa-update if metadata_update payload not supported (fallback)
+    STANDARD_UPDATE=$(python3 -c "
 import json, sys
 print(json.dumps({
     'qa_status': 'rejected',
     'qa_reviewer': sys.argv[1],
     'qa_output': sys.argv[2],
 }))
-" "$QA_CLI" "$QA_OUTPUT_FULL")
+" "$QA_CLI" "$QA_OUTPUT_FULL" 2>/dev/null)
 
     curl -sf -X POST "${API}/tasks/${TASK_ID}/qa-update" \
         -H 'Content-Type: application/json' \
-        -d "$UPDATE_JSON" >> "$PARENT_LOG" 2>&1 || true
+        -d "$STANDARD_UPDATE" >> "$PARENT_LOG" 2>&1 || true
+
+    # Store rl2f_feedback_id in task metadata for heartbeat to use when creating retry
+    if [ -n "$RL2F_FEEDBACK_ID" ]; then
+        META_PATCH=$(python3 -c "
+import json, sys
+print(json.dumps({'rl2f_feedback_id': sys.argv[1], 'rl2f_attempt_number': int(sys.argv[2])}))
+" "$RL2F_FEEDBACK_ID" "$ATTEMPT_NUMBER" 2>/dev/null || echo "")
+        if [ -n "$META_PATCH" ]; then
+            curl -sf -X PATCH "${API}/tasks/${TASK_ID}/metadata" \
+                -H 'Content-Type: application/json' \
+                -d "$META_PATCH" >> "$PARENT_LOG" 2>&1 || true
+        fi
+    fi
 
     qa_log "QA: task ${TASK_ID:0:8} REJECTED — structured RL2F feedback stored, heartbeat will handle retry"
     qa_log "RL2F failure_points: $(echo "$QA_PARSED" | python3 -c "import json,sys; d=json.load(sys.stdin); print('; '.join(d.get('failure_points', [])[:3]))" 2>/dev/null || echo "none")"
