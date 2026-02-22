@@ -9,12 +9,59 @@ Sources:
 import httpx
 import time
 import json
+import random
+import os
 from datetime import datetime, timezone
 from typing import Optional
 
 DEXSCREENER_BASE = "https://api.dexscreener.com"
 GECKOTERMINAL_BASE = "https://api.geckoterminal.com/api/v2"
 JUPITER_PRICE_BASE = "https://api.jup.ag/price/v2"
+
+# ── GeckoTerminal rate limiting ───────────────────────────────────────────────
+# Free tier: ~30 req/min → 1 req/2s to be safe
+GECKO_MIN_INTERVAL = 2.0        # seconds between calls
+GECKO_CACHE_TTL = 60            # seconds to cache responses on disk
+_last_gecko_call: float = 0.0   # module-level timestamp of last call
+
+# Disk cache path (persists across subprocess restarts)
+_GECKO_DISK_CACHE_PATH = os.path.join(os.path.dirname(__file__), ".gecko_cache.json")
+_gecko_disk_cache: dict = {}    # loaded on first use
+
+
+def _load_gecko_disk_cache() -> None:
+    """Load the on-disk OHLCV cache into memory (called once per process)."""
+    global _gecko_disk_cache
+    try:
+        if os.path.exists(_GECKO_DISK_CACHE_PATH):
+            with open(_GECKO_DISK_CACHE_PATH) as f:
+                _gecko_disk_cache = json.load(f)
+    except Exception:
+        _gecko_disk_cache = {}
+
+
+def _save_gecko_disk_cache() -> None:
+    """Persist current disk cache to JSON file."""
+    try:
+        # Prune expired entries before saving
+        now = time.time()
+        pruned = {k: v for k, v in _gecko_disk_cache.items()
+                  if v.get("expires_at", 0) > now}
+        _gecko_disk_cache.clear()
+        _gecko_disk_cache.update(pruned)
+        with open(_GECKO_DISK_CACHE_PATH, "w") as f:
+            json.dump(_gecko_disk_cache, f)
+    except Exception:
+        pass
+
+
+def _gecko_rate_limit() -> None:
+    """Enforce minimum interval between GeckoTerminal API calls."""
+    global _last_gecko_call
+    elapsed = time.time() - _last_gecko_call
+    if elapsed < GECKO_MIN_INTERVAL:
+        time.sleep(GECKO_MIN_INTERVAL - elapsed)
+    _last_gecko_call = time.time()
 
 # Base tokens to exclude from trading signals (not alpha signals)
 # These are stablecoins, wrapped assets, major protocol tokens, or large-caps
@@ -52,9 +99,9 @@ BASE_TOKENS = {
     "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4", # large-cap DeFi token (identified in audit)
 }
 
-# Cache for pool lookups (avoids repeated API calls)
+# Cache for pool lookups (avoids repeated API calls — in-memory only, fast)
 _pool_cache: dict[str, Optional[str]] = {}
-_ohlcv_cache: dict[str, list] = {}
+_ohlcv_cache: dict[str, list] = {}  # in-memory shortcut cache (per-process)
 
 
 def get_solana_pool_for_token(token_address: str, timeout: int = 10) -> Optional[str]:
@@ -98,11 +145,27 @@ def fetch_ohlcv_geckoterminal(
     """
     Fetch OHLCV from GeckoTerminal for a Solana pool.
     Returns list of candles: [{timestamp, open, high, low, close, volume}, ...]
-    Retries on 429 with exponential backoff: 15s → 30s → 60s (max 4 attempts).
+
+    Rate limiting:
+    - Enforces GECKO_MIN_INTERVAL (2s) between calls to stay under 30 req/min
+    - 60s disk cache shared across subprocess restarts
+    - Exponential backoff with jitter on 429: 15→30→60s + random 0-5s jitter
+    - Returns [] gracefully after 4 failed attempts
     """
     cache_key = f"{pool_address}:{timeframe}:{limit}:{before_timestamp}"
+
+    # 1. In-memory cache (fast path — same process)
     if cache_key in _ohlcv_cache:
         return _ohlcv_cache[cache_key]
+
+    # 2. Disk cache (persists across subprocess restarts)
+    if not _gecko_disk_cache:
+        _load_gecko_disk_cache()
+    entry = _gecko_disk_cache.get(cache_key)
+    if entry and entry.get("expires_at", 0) > time.time():
+        candles = entry["candles"]
+        _ohlcv_cache[cache_key] = candles  # warm in-memory cache too
+        return candles
 
     url = f"{GECKOTERMINAL_BASE}/networks/solana/pools/{pool_address}/ohlcv/{timeframe}"
     params = {"limit": limit}
@@ -112,12 +175,17 @@ def fetch_ohlcv_geckoterminal(
     backoff = 15
     for attempt in range(4):
         try:
+            # Rate limit: enforce minimum interval before each call
+            _gecko_rate_limit()
+
             with httpx.Client(timeout=timeout) as client:
                 r = client.get(url, params=params, headers={"Accept": "application/json"})
                 if r.status_code == 429:
                     if attempt < 3:
-                        print(f"  [GeckoTerminal] 429 rate limit — sleeping {backoff}s (attempt {attempt+1}/4)")
-                        time.sleep(backoff)
+                        jitter = random.uniform(0, 5)
+                        sleep_time = backoff + jitter
+                        print(f"  [GeckoTerminal] 429 rate limit — sleeping {sleep_time:.1f}s (attempt {attempt+1}/4)")
+                        time.sleep(sleep_time)
                         backoff = min(backoff * 2, 60)
                         continue
                     print(f"  [GeckoTerminal] 429 rate limit — giving up after 4 attempts for {pool_address[:12]}")
@@ -140,13 +208,22 @@ def fetch_ohlcv_geckoterminal(
                     })
 
             candles.sort(key=lambda c: c["timestamp"])
+
+            # Cache in memory and on disk
             _ohlcv_cache[cache_key] = candles
+            _gecko_disk_cache[cache_key] = {
+                "candles": candles,
+                "expires_at": time.time() + GECKO_CACHE_TTL,
+            }
+            _save_gecko_disk_cache()
             return candles
 
         except Exception as e:
             if attempt < 3:
-                print(f"  [GeckoTerminal] Error (attempt {attempt+1}/4) for {pool_address[:12]}: {e} — retrying in {backoff}s")
-                time.sleep(backoff)
+                jitter = random.uniform(0, 5)
+                sleep_time = backoff + jitter
+                print(f"  [GeckoTerminal] Error (attempt {attempt+1}/4) for {pool_address[:12]}: {e} — retrying in {sleep_time:.1f}s")
+                time.sleep(sleep_time)
                 backoff = min(backoff * 2, 60)
             else:
                 print(f"  [GeckoTerminal] Error for pool {pool_address[:12]}: {e}")
