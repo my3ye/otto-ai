@@ -7,7 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
 
 from .db import get_pool, close_pool
-from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f
+from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl
 from .routes.maintenance import run_maintenance_job
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,7 @@ app.include_router(eval.router)
 app.include_router(plans.router)
 app.include_router(evaluator.router)
 app.include_router(rl2f.router)
+app.include_router(jitrl.router)
 
 
 @app.get("/health")

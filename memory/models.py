@@ -619,6 +619,64 @@ class RetryMetrics(BaseModel):
     pending_outcomes: int
 
 
+# ── JitRL: Just-In-Time Reinforcement Learning ─────────────────────
+# arXiv:2601.18510 — Yibo Li et al., Jan 2026
+# Non-parametric experience buffer for training-free test-time policy optimization
+
+class JitRLExperienceCreate(BaseModel):
+    state_description: str
+    context_tags: list[str] = Field(default_factory=list)
+    action: str
+    action_type: str = "generic"
+    reward: float = Field(default=0.0, ge=-1.0, le=1.0)
+    outcome_label: str = "unknown"  # succeeded/failed/partial/timeout
+    outcome_details: str | None = None
+    policy_logit: float | None = None
+    source: str = "task"
+    source_id: UUID | None = None
+
+
+class JitRLExperienceOut(BaseModel):
+    id: UUID
+    state_description: str
+    context_tags: list[str]
+    action: str
+    action_type: str
+    reward: float
+    outcome_label: str
+    outcome_details: str | None = None
+    policy_logit: float | None = None
+    advantage: float | None = None
+    source: str
+    source_id: UUID | None = None
+    created_at: datetime
+
+
+class JitRLOptimizeRequest(BaseModel):
+    """Given current context, retrieve similar experiences and recommend optimal action."""
+    context: str
+    top_k: int = Field(default=20, ge=1, le=100)
+    beta: float = Field(default=1.0, ge=0.1, le=10.0)  # KL constraint temperature
+    action_type_filter: str | None = None
+
+
+class JitRLRecommendation(BaseModel):
+    action_type: str
+    representative_action: str   # best-performing example action
+    advantage: float             # estimated advantage = avg_reward - baseline
+    policy_weight: float         # exp(advantage / beta), unnormalized
+    support_count: int           # experiences supporting this action type
+    avg_reward: float
+    success_rate: float
+
+
+class JitRLOptimizeResponse(BaseModel):
+    context: str
+    recommendations: list[JitRLRecommendation]
+    retrieved_count: int
+    baseline_reward: float       # mean reward across all retrieved experiences
+
+
 # ── WhatsApp ───────────────────────────────────────────────────────
 class WhatsAppIncoming(BaseModel):
     from_jid: str
