@@ -142,9 +142,7 @@ else:
         # This records that structured teacher feedback was used (vs blind retry).
         # Enables success rate comparison: with-feedback vs without-feedback.
         if [ -n "$RL2F_FEEDBACK_ID" ]; then
-            curl -sf -X PATCH "${API}/rl2f/task-feedback/${RL2F_FEEDBACK_ID}/mark-injected" \
-                -H 'Content-Type: application/json' \
-                -d "{\"retry_task_id\": \"${TASK_ID}\"}" \
+            curl -sf -X PATCH "${API}/rl2f/task-feedback/${RL2F_FEEDBACK_ID}/mark-injected?retry_task_id=${TASK_ID}" \
                 >> "$LOG_FILE" 2>&1 && \
                 log "RL2F Phase 2: marked feedback ${RL2F_FEEDBACK_ID:0:8} as injected (retry_task=${TASK_ID:0:8})" || \
                 log "RL2F Phase 2: WARNING — could not mark feedback as injected (non-fatal)"

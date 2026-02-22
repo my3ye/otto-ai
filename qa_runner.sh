@@ -181,10 +181,60 @@ $(head -80 "$FULL_PATH" 2>/dev/null || echo "(binary or unreadable)")
     fi
 fi
 
+# ── For research/sweep tasks: also verify semantic memory storage ──────────
+# Research tasks store deliverables via POST /semantic/remember (no git diff).
+# Git-diff-only QA causes false rejections for these task types.
+IS_RESEARCH_TASK=false
+SEMANTIC_EVIDENCE=""
+if echo "$TITLE" | grep -qiE '(research|sweep)'; then
+    IS_RESEARCH_TASK=true
+    qa_log "Research/sweep task detected — querying semantic memory for recent storage"
+    SEMANTIC_RESULTS=$(curl -sf -X POST "${API}/semantic/search" \
+        -H 'Content-Type: application/json' \
+        -d '{"query": "research papers", "limit": 5}' 2>/dev/null || echo "")
+    SEMANTIC_EVIDENCE=$(echo "$SEMANTIC_RESULTS" | python3 -c "
+import json, sys
+from datetime import datetime, timezone, timedelta
+try:
+    results = json.load(sys.stdin)
+    if not isinstance(results, list):
+        results = results.get('results', [])
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+    recent = []
+    for r in results:
+        created = r.get('created_at', '')
+        try:
+            dt = datetime.fromisoformat(created.replace('Z', '+00:00'))
+            if dt > cutoff:
+                recent.append(r.get('content', '')[:200])
+        except Exception:
+            pass
+    if recent:
+        print('VERIFIED: {} fact(s) stored in semantic memory in last hour:'.format(len(recent)))
+        for i, f in enumerate(recent, 1):
+            print('  {}. {}'.format(i, f[:150]))
+    else:
+        total = len(results)
+        print('UNVERIFIED: 0 facts stored in last hour (query returned {} older results).'.format(total))
+except Exception as e:
+    print('ERROR querying semantic memory: {}'.format(e))
+" 2>/dev/null || echo "Semantic memory query failed")
+    qa_log "Semantic evidence: ${SEMANTIC_EVIDENCE:0:200}"
+fi
+
 # ── Run QA agent ─────────────────────────────────────────────────────────────
 OUTPUT_EXCERPT="${OUTPUT:0:2000}"
 PROMPT_EXCERPT="${PROMPT:0:800}"
 DIFF_EXCERPT="${DIFF_SUMMARY:0:3000}"
+
+# Build semantic evidence section (only shown for research/sweep tasks)
+SEMANTIC_SECTION=""
+if [ "$IS_RESEARCH_TASK" = "true" ]; then
+    SEMANTIC_SECTION="
+SEMANTIC MEMORY STORAGE (research task — primary deliverable):
+${SEMANTIC_EVIDENCE}
+"
+fi
 
 QA_PROMPT="You are Otto's QA reviewer. A task just completed and you must decide: APPROVE or REJECT.
 
@@ -201,7 +251,7 @@ ${CHANGED_FILES}
 
 GIT DIFF (truncated):
 ${DIFF_EXCERPT}
-
+${SEMANTIC_SECTION}
 YOUR JOB:
 1. Check that the changes align with what was requested
 2. Look for obvious issues: broken syntax, missing files, incomplete implementation, security problems
@@ -212,6 +262,7 @@ Rules:
 - APPROVE if: work is complete, changes match the request, no obvious bugs or missing pieces
 - REJECT if: major missing functionality, broken code, wrong files changed, dangerous changes
 - Be lenient on style/minor issues — this is a sanity check, not a full code review
+- IMPORTANT: For research/sweep tasks, the primary deliverable is semantic memory storage via API calls — NOT git diff. If 'SEMANTIC MEMORY STORAGE' section shows 'VERIFIED: N fact(s) stored in last hour', treat this as strong evidence of completion. Do NOT reject a research task solely because git diff is empty.
 - IMPORTANT: Files listed under 'UNTRACKED NEW FILES' are valid deliverables that exist on the filesystem. Do NOT reject because they are missing from git diff — git only diffs tracked files. New files in projects/ or other untracked directories are expected.
 - If the task output reports creating files AND those files appear in CHANGED FILES or UNTRACKED NEW FILES, treat the deliverable as present.
 - IMPORTANT: Multiple tasks run CONCURRENTLY in the same working directory. The changed files list may include files modified by OTHER parallel tasks — not this one. Only evaluate files that are directly relevant to THIS task's prompt and deliverables. If you see unrelated files (e.g. Alpha wallet files in a research sweep, or training data files in an Alpha fix), IGNORE them — they belong to a concurrent task. Do NOT reject for unrelated file changes.
