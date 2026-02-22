@@ -22,6 +22,9 @@ router = APIRouter(prefix="/whatsapp", tags=["whatsapp"])
 
 OWNER_JID = "94743806705@s.whatsapp.net"
 
+# Gemini error codes that indicate quota/auth exhaustion
+_GEMINI_QUOTA_ERRORS = (401, 403, 429)
+
 
 def _gemini_client() -> AsyncOpenAI:
     """Shared Gemini client constructor."""
@@ -29,6 +32,61 @@ def _gemini_client() -> AsyncOpenAI:
         api_key=settings.gemini_api_key,
         base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
     )
+
+
+def _is_quota_error(exc: Exception) -> bool:
+    """Check if an exception is a Gemini quota/auth error worth falling back from."""
+    exc_str = str(exc).lower()
+    for code in _GEMINI_QUOTA_ERRORS:
+        if str(code) in exc_str:
+            return True
+    for phrase in ("quota", "resource_exhausted", "rate_limit", "billing", "api key"):
+        if phrase in exc_str:
+            return True
+    return False
+
+
+async def _claude_chat(messages: list[dict], max_tokens: int = 500, temperature: float = 0.0) -> str:
+    """Call Claude haiku via CLI as a fallback for Gemini.
+
+    Converts OpenAI-style messages to a single prompt for the Claude CLI.
+    Returns the raw text response.
+    """
+    # Build a single prompt from the messages
+    parts = []
+    for msg in messages:
+        role = msg.get("role", "user")
+        content = msg.get("content", "")
+        if role == "system":
+            parts.append(f"<system>\n{content}\n</system>")
+        else:
+            parts.append(content)
+    prompt = "\n\n".join(parts)
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            CLAUDE_CLI, "-p", "-m", "haiku", "--max-turns", "1",
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(prompt.encode()),
+            timeout=CLAUDE_TIMEOUT,
+        )
+        if proc.returncode == 0 and stdout:
+            return stdout.decode().strip()
+        log.warning(f"Claude chat fallback returned code {proc.returncode}: {stderr.decode()[:200]}")
+    except asyncio.TimeoutError:
+        log.warning("Claude chat fallback timed out")
+        try:
+            proc.kill()
+        except Exception:
+            pass
+    except Exception as e:
+        log.warning(f"Claude chat fallback error: {e}")
+
+    return ""
 
 
 def _strip_json_fences(text: str) -> str:
@@ -112,14 +170,9 @@ async def _needs_claude_help(user_message: str, recent_events: list[str]) -> dic
 
     Returns {"task": str, "file_paths": list, "question": str} if delegation needed.
     """
-    client = _gemini_client()
     events_context = "\n".join(f"- {e}" for e in recent_events[:10])
 
-    try:
-        completion = await client.chat.completions.create(
-            model="gemini-2.0-flash",
-            messages=[
-                {"role": "system", "content": """You determine if a user message requires reading files or accessing the filesystem.
+    system_msg = """You determine if a user message requires reading files or accessing the filesystem.
 
 Otto has two brains:
 - Gemini (WhatsApp) — conversational, has memory access only
@@ -136,9 +189,16 @@ Determine if the user is asking about:
 Return ONLY valid JSON (no markdown, no code fences):
 {"needs_claude": true/false, "task": "brief description of what Claude should do", "file_paths": ["path1"] or [], "question": "the specific question for Claude"}
 
-If needs_claude is false, set other fields to null."""},
-                {"role": "user", "content": f"Recent events (may contain file paths):\n{events_context}\n\nUser message: {user_message}"},
-            ],
+If needs_claude is false, set other fields to null."""
+    user_msg = f"Recent events (may contain file paths):\n{events_context}\n\nUser message: {user_message}"
+    messages = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}]
+
+    # Try Gemini first
+    try:
+        client = _gemini_client()
+        completion = await client.chat.completions.create(
+            model="gemini-2.0-flash",
+            messages=messages,
             max_tokens=300,
             temperature=0.0,
         )
@@ -149,8 +209,23 @@ If needs_claude is false, set other fields to null."""},
                 "file_paths": parsed.get("file_paths", []),
                 "question": parsed.get("question", user_message),
             }
+        if parsed:
+            return None
     except Exception as e:
-        log.warning(f"Claude delegation classifier error: {e}")
+        log.warning(f"Claude delegation classifier (Gemini) error: {e}")
+        if _is_quota_error(e):
+            # Fallback to Claude haiku
+            try:
+                response = await _claude_chat(messages, max_tokens=300)
+                parsed = _extract_json(response)
+                if parsed and parsed.get("needs_claude"):
+                    return {
+                        "task": parsed.get("task", ""),
+                        "file_paths": parsed.get("file_paths", []),
+                        "question": parsed.get("question", user_message),
+                    }
+            except Exception as e2:
+                log.warning(f"Claude delegation classifier (Claude fallback) error: {e2}")
 
     return None
 
@@ -290,7 +365,7 @@ Your persona and voice are defined in your system context above (the "persona" s
 
 async def _match_pending_question(message: str, pending_questions: list) -> dict | None:
     """Determine if this message answers a pending question.
-    Uses Gemini for smart matching with a simple fallback."""
+    Uses Gemini for smart matching with Claude fallback, then simple heuristic fallback."""
     if not pending_questions:
         return None
 
@@ -299,27 +374,44 @@ async def _match_pending_question(message: str, pending_questions: list) -> dict
         for q in pending_questions
     ])
 
-    client = _gemini_client()
-    try:
-        completion = await client.chat.completions.create(
-            model="gemini-3-flash-preview",
-            messages=[
-                {"role": "system", "content": """You determine if a user message answers or relates to a pending question.
+    system_msg = """You determine if a user message answers or relates to a pending question.
 Return ONLY valid JSON (no markdown, no code fences): {"matched_id": "<question id>" or null, "extracted_answer": "<the actionable answer>" or null}
 Be generous in matching — if the message is clearly related to the topic of a pending question, it counts as an answer.
-If the message clearly answers one of the pending questions, extract the core answer. If not, return nulls."""},
-                {"role": "user", "content": f"Pending questions:\n{questions_json}\n\nUser message:\n{message}"},
-            ],
-            max_tokens=200,
-            temperature=0.0,
-        )
-        parsed = _extract_json(completion.choices[0].message.content)
+If the message clearly answers one of the pending questions, extract the core answer. If not, return nulls."""
+    user_msg = f"Pending questions:\n{questions_json}\n\nUser message:\n{message}"
+    messages = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}]
+
+    def _check_match(parsed):
         if parsed and parsed.get("matched_id"):
             for q in pending_questions:
                 if str(q["id"]) == parsed["matched_id"]:
                     return {"question": q, "extracted_answer": parsed.get("extracted_answer", message)}
+        return None
+
+    # Try Gemini first
+    try:
+        client = _gemini_client()
+        completion = await client.chat.completions.create(
+            model="gemini-3-flash-preview",
+            messages=messages,
+            max_tokens=200,
+            temperature=0.0,
+        )
+        parsed = _extract_json(completion.choices[0].message.content)
+        result = _check_match(parsed)
+        if result:
+            return result
     except Exception as e:
-        log.warning(f"Pending question matcher error: {e}")
+        log.warning(f"Pending question matcher (Gemini) error: {e}")
+        if _is_quota_error(e):
+            try:
+                response = await _claude_chat(messages, max_tokens=200)
+                parsed = _extract_json(response)
+                result = _check_match(parsed)
+                if result:
+                    return result
+            except Exception as e2:
+                log.warning(f"Pending question matcher (Claude fallback) error: {e2}")
 
     # Fallback: if there's exactly one pending question and the message is
     # substantive (>20 chars), assume it's a reply — regardless of intent type
@@ -335,12 +427,7 @@ async def _classify_for_heartbeat(user_message: str, otto_reply: str) -> dict | 
     Returns {"note_type": str, "urgency": str, "content": str, "source_summary": str}
     if flagged, or None if nothing to relay.
     """
-    client = _gemini_client()
-    try:
-        completion = await client.chat.completions.create(
-            model="gemini-2.0-flash",
-            messages=[
-                {"role": "system", "content": """You classify WhatsApp conversations between Mev (admin) and Otto (AI agent).
+    system_msg = """You classify WhatsApp conversations between Mev (admin) and Otto (AI agent).
 Otto has two brains: Gemini (WhatsApp, real-time) and Claude (hourly heartbeat, builds things).
 Determine if Mev said anything that Claude's heartbeat needs to know about.
 
@@ -356,6 +443,7 @@ ALWAYS FLAG these (Claude MUST know — err on the side of flagging):
 - Approvals or go-aheads for pending actions ("yes do it", "approved", "go ahead", "sounds good")
 - Self-improvement directives ("build yourself up", "improve yourself", "find research")
 - Strategic direction (anything about what Otto should become, how to evolve)
+- Descriptions of characters, products, features, or things to create ("PiPi is a...", "the character looks like...", "build a landing page that...")
 
 DO NOT FLAG these (Claude doesn't need to know):
 - Casual chat, greetings, banter with NO substance
@@ -366,17 +454,16 @@ DO NOT FLAG these (Claude doesn't need to know):
 IMPORTANT: When in doubt, FLAG IT. It's better for Claude to receive a note it doesn't need than to miss a directive from Mev. Mev's words are the highest-priority signal in the system.
 
 For note_type, use "mission" for purpose-level statements about what Otto is or should become.
+When Mev describes something to build/create (a character, product, feature), classify as "task" not "context".
 
 Return ONLY valid JSON (no markdown, no code fences):
 {"flag": true/false, "note_type": "mission|directive|task|goal|decision|context|priority_change|approval", "urgency": "normal|high|critical", "content": "concise summary of what Claude needs to know — preserve Mev's exact words for mission/directive types", "source_summary": "brief WhatsApp context"}
 
-If flag is false, still include the other fields as null."""},
-                {"role": "user", "content": f"Mev said: {user_message}\n\nOtto replied: {otto_reply}"},
-            ],
-            max_tokens=300,
-            temperature=0.0,
-        )
-        parsed = _extract_json(completion.choices[0].message.content)
+If flag is false, still include the other fields as null."""
+    user_msg = f"Mev said: {user_message}\n\nOtto replied: {otto_reply}"
+    messages = [{"role": "system", "content": system_msg}, {"role": "user", "content": user_msg}]
+
+    def _extract_result(parsed):
         if parsed and parsed.get("flag"):
             return {
                 "note_type": parsed.get("note_type", "context"),
@@ -384,8 +471,28 @@ If flag is false, still include the other fields as null."""},
                 "content": parsed.get("content", user_message),
                 "source_summary": parsed.get("source_summary"),
             }
+        return None
+
+    # Try Gemini first
+    try:
+        client = _gemini_client()
+        completion = await client.chat.completions.create(
+            model="gemini-2.0-flash",
+            messages=messages,
+            max_tokens=300,
+            temperature=0.0,
+        )
+        parsed = _extract_json(completion.choices[0].message.content)
+        return _extract_result(parsed)
     except Exception as e:
-        log.warning(f"Cross-brain classifier error: {e}")
+        log.warning(f"Cross-brain classifier (Gemini) error: {e}")
+        if _is_quota_error(e):
+            try:
+                response = await _claude_chat(messages, max_tokens=300)
+                parsed = _extract_json(response)
+                return _extract_result(parsed)
+            except Exception as e2:
+                log.warning(f"Cross-brain classifier (Claude fallback) error: {e2}")
 
     return None
 
@@ -502,15 +609,25 @@ async def handle_incoming(req: WhatsAppIncoming):
     # Build context-aware prompt (includes pending questions + Claude response)
     messages = await _build_otto_prompt(pool, req.message, pending_questions, recent_events, claude_response)
 
-    # Generate response via Gemini 3 Flash
-    client = _gemini_client()
-    completion = await client.chat.completions.create(
-        model="gemini-3-flash-preview",
-        messages=messages,
-        max_tokens=1500,
-        temperature=0.7,
-    )
-    reply = completion.choices[0].message.content
+    # Generate response — try Gemini first, fall back to Claude haiku
+    reply = None
+    try:
+        client = _gemini_client()
+        completion = await client.chat.completions.create(
+            model="gemini-3-flash-preview",
+            messages=messages,
+            max_tokens=1500,
+            temperature=0.7,
+        )
+        reply = completion.choices[0].message.content
+    except Exception as e:
+        log.warning(f"Gemini response generation failed: {e}")
+        if _is_quota_error(e):
+            log.info("Falling back to Claude haiku for WhatsApp response")
+            reply = await _claude_chat(messages, max_tokens=1500)
+
+    if not reply:
+        reply = "Hey Mev — my LLM backends are having issues right now. I got your message and will process it on the next heartbeat."
 
     # Check if this message answers a pending question
     match = await _match_pending_question(req.message, pending_questions)

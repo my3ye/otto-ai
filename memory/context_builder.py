@@ -378,6 +378,22 @@ async def build_context_text(
                     break
             _add("")
 
+    # ── Tier 5b: Procedures (promoted from Tier 8 — shape behavior) ─────
+    if used < max_tokens * 0.55:
+        proc_rows = await pool.fetch(
+            """SELECT name, success_count, failure_count, trust_score FROM procedures
+               ORDER BY trust_score DESC, last_used DESC NULLS LAST LIMIT 10""",
+        )
+        if proc_rows:
+            _add("[Otto] Procedures (by trust score):")
+            for r in proc_rows:
+                total = r["success_count"] + r["failure_count"]
+                rate = f" ({r['success_count']}/{total})" if total > 0 else ""
+                trust = f" [trust={r['trust_score']:.2f}]" if r["trust_score"] is not None else ""
+                if not _add(f"  - {r['name']}{rate}{trust}"):
+                    break
+            _add("")
+
     # ── Tier 6: High-confidence semantic facts via A-RAG (fill budget) ──────
     # A-RAG surfaces broader, more diverse facts than static SQL ordering:
     # semantic strategy finds conceptually relevant items,
@@ -505,21 +521,6 @@ async def build_context_text(
             _add("[Otto] Knowledge graph:")
             for f in unique:
                 if not _add(f"  - {f['fact']}"):
-                    break
-            _add("")
-
-    # ── Tier 8: Procedures (fill budget) ─────────────────────────────────
-    if used < max_tokens * 0.9:
-        proc_rows = await pool.fetch(
-            """SELECT name, success_count, failure_count FROM procedures
-               ORDER BY last_used DESC NULLS LAST LIMIT 10""",
-        )
-        if proc_rows:
-            _add("[Otto] Procedures:")
-            for r in proc_rows:
-                total = r["success_count"] + r["failure_count"]
-                rate = f" ({r['success_count']}/{total})" if total > 0 else ""
-                if not _add(f"  - {r['name']}{rate}"):
                     break
             _add("")
 

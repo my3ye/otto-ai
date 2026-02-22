@@ -46,6 +46,9 @@ ORIENT: What changed? What matters most right now?
 - What completed since last cycle that unblocks something?
 - What has Mev asked for that is still undone?
 - Am I stuck in a loop doing the same thing every cycle?
+- Are any tasks failing with exit code None? If so, check the task queue status and retry.
+- CLI performance: which CLIs have been succeeding/failing recently? Adjust routing.
+- Alpha check: if Alpha paper trading has 0% win rate after 5+ trades, create a task to investigate and adjust parameters.
 
 ANTICIPATE: What will Mev need next that he hasn't asked for yet?
 - Look at what Mev has been talking about recently (WhatsApp history, cross-brain notes, episodic events)
@@ -133,11 +136,22 @@ For each completed/failed task:
    - **`pending_qa`**: QA still running — check again next heartbeat
    - **`null`**: QA not run (pre-QA task) — review manually and commit if needed
 4. **Mark reviewed**: `curl -sf -X POST http://localhost:8100/tasks/<id>/review`
-5. **Extract learnings** — if the task taught something new, store it as a procedural memory:
+5. **Record procedure outcome** — if the task prompt referenced a procedure, record whether it succeeded or failed:
+```bash
+curl -s -X PUT http://localhost:8100/procedural/<procedure_name>/outcome \
+  -H 'Content-Type: application/json' \
+  -d '{"success": true}'
+```
+6. **Extract learnings** — if the task taught something new, store it as a procedural memory:
 ```bash
 curl -s -X POST http://localhost:8100/procedural \
   -H 'Content-Type: application/json' \
   -d '{"name": "skill_name", "description": "what this skill does", "steps": ["step1", "step2"]}'
+```
+7. **Note CLI performance** — record which CLI (claude/gemini/kimi) ran the task and whether it succeeded. When creating tasks in Step 4, check recent completions and prefer CLIs with better track records for similar task types:
+```bash
+curl -sf 'http://localhost:8100/tasks?status=completed&limit=20'
+# Review cli field + exit_code to track per-CLI success rates
 ```
 
 ### 3. Process cross-brain notes (Gemini → Claude)
@@ -148,7 +162,8 @@ For each note:
 - `directive` / `goal` / `priority_change` → **Update the priorities slot** if it changes the priority order. Store as semantic memory. Create tasks if action is needed.
 - `mission` → This is a PURPOSE-level statement. Store with maximum importance. If it changes the purpose, flag for Mev confirmation.
 - `task` → Create a task in the queue (do NOT do it inline)
-- `decision` / `context` → Store as semantic memory
+- `decision` → Store as semantic memory
+- `context` → Read carefully. If it contains something actionable (a description to build, info to research, a reference to act on, credentials to store), **create a task**. If it's purely informational, store as semantic memory. When in doubt, create a task — it's better to have an unnecessary task than to lose a directive from Mev.
 
 Acknowledge each note:
 ```bash
@@ -162,6 +177,12 @@ curl -s -X POST http://localhost:8100/pending/<id>/resolve \
 **Before creating any task, explicitly state which priority (1-6) it serves.**
 
 If you cannot map a task to a priority, do not create it unless it's critical infrastructure maintenance.
+
+**Check for relevant procedures** before writing a task prompt:
+```bash
+curl -sf 'http://localhost:8100/procedural/suggest?task_description=URL_ENCODED_DESCRIPTION'
+```
+If a matching procedure is found, incorporate its steps into the task prompt. This ensures proven approaches are reused rather than reinvented.
 
 #### 4a. LATS Planning (required for P1-P2 tasks)
 

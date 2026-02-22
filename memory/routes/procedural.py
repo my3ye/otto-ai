@@ -82,10 +82,14 @@ async def suggest_procedures(
 
     procedures = [dict(r) for r in rows]
 
-    if not settings.gemini_api_key or len(procedures) <= 3:
-        return [ProcedureOut(**p) for p in procedures[:3]]
+    # Primary path: trust_score-based top 3 (no external API dependency)
+    # This ensures suggest always works even when Gemini is down
+    trust_based = [ProcedureOut(**p) for p in procedures[:3]]
 
-    # Build compact procedure list for Gemini ranking
+    if not settings.gemini_api_key or len(procedures) <= 3:
+        return trust_based
+
+    # Optional: use Gemini for smarter semantic ranking
     proc_lines = "\n".join(
         f"{i+1}. name={p['name']}: {p['description'] or 'no description'} (trust={p['trust_score']:.2f})"
         for i, p in enumerate(procedures)
@@ -117,8 +121,8 @@ async def suggest_procedures(
         if isinstance(parsed, list):
             top_names = [str(n) for n in parsed[:3]]
     except Exception as e:
-        log.warning(f"Gemini ranking failed for suggest: {e}")
-        return [ProcedureOut(**p) for p in procedures[:3]]
+        log.warning(f"Gemini ranking failed for suggest (using trust_score fallback): {e}")
+        return trust_based
 
     # Map names back to full procedure objects
     proc_by_name = {p["name"]: p for p in procedures}
@@ -127,11 +131,7 @@ async def suggest_procedures(
         if name in proc_by_name:
             result.append(ProcedureOut(**proc_by_name[name]))
 
-    # If Gemini returned nothing useful, fall back
-    if not result:
-        return [ProcedureOut(**p) for p in procedures[:3]]
-
-    return result
+    return result if result else trust_based
 
 
 @router.get("", response_model=list[ProcedureOut])
