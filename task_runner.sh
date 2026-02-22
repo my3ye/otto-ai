@@ -81,6 +81,64 @@ else
     log "AdaptOrch routing unavailable — using original task params"
 fi
 
+# ── RL2F Phase 1: Inject feedback from previous QA rejection ─────────────────
+# When the heartbeat creates a retry task, it sets metadata.retry_feedback (structured
+# JSON from qa_runner.sh) and metadata.retry_count so we know this is an attempt N retry.
+# The feedback is prepended to the prompt so the agent learns from the specific failure.
+RETRY_COUNT=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('metadata', {}).get('retry_count', 0))" 2>/dev/null || echo "0")
+RETRY_FEEDBACK_RAW=$(echo "$TASK_JSON" | python3 -c "import json,sys; m=json.load(sys.stdin).get('metadata', {}); fb=m.get('retry_feedback', ''); print(fb if isinstance(fb, str) else '')" 2>/dev/null || echo "")
+
+RL2F_BLOCK=""
+if [ "$RETRY_COUNT" != "0" ] && [ -n "$RETRY_FEEDBACK_RAW" ]; then
+    RL2F_BLOCK=$(python3 -c "
+import json, sys, re
+
+raw = sys.argv[1].strip()
+retry_count = sys.argv[2]
+
+# Try to parse structured RL2F feedback from the qa_output format:
+# 'REJECTED: <reason>\n{\"rl2f_feedback\": {...}}'
+fb_data = {}
+json_match = re.search(r'\{\"rl2f_feedback\":.+\}', raw, re.DOTALL)
+if json_match:
+    try:
+        fb_data = json.loads(json_match.group()).get('rl2f_feedback', {})
+    except Exception:
+        pass
+
+if fb_data:
+    lines = [f'=== RL2F FEEDBACK (Attempt #{retry_count} — previous attempt was rejected) ===']
+    if fb_data.get('expected'):
+        lines.append(f'EXPECTED: {fb_data[\"expected\"]}')
+    if fb_data.get('actual'):
+        lines.append(f'ACTUAL: {fb_data[\"actual\"]}')
+    if fb_data.get('failure_points'):
+        lines.append('FAILURE POINTS (must address in this retry):')
+        for fp in fb_data['failure_points']:
+            lines.append(f'  - {fp}')
+    if fb_data.get('suggestions'):
+        lines.append('SUGGESTIONS:')
+        for s in fb_data['suggestions']:
+            lines.append(f'  - {s}')
+    if fb_data.get('issues'):
+        lines.append(f'QA ISSUES: {chr(10).join(\"  - \" + i for i in fb_data[\"issues\"])}')
+    lines.append('=== Address ALL failure points above before considering the task complete ===')
+    print(chr(10).join(lines))
+else:
+    # Plain text fallback: just show the raw rejection message
+    reason_line = raw.split(chr(10))[0] if chr(10) in raw else raw
+    reason_line = reason_line[:300]
+    print(f'=== RL2F FEEDBACK (Attempt #{retry_count} — previous attempt was rejected) ===')
+    print(f'Previous rejection reason: {reason_line}')
+    print('=== Address this feedback before considering the task complete ===')
+" "$RETRY_FEEDBACK_RAW" "$RETRY_COUNT" 2>/dev/null || echo "")
+
+    if [ -n "$RL2F_BLOCK" ]; then
+        log "RL2F: retry attempt #${RETRY_COUNT} — injecting QA rejection feedback into prompt"
+    fi
+fi
+# ── End RL2F Feedback Injection ────────────────────────────────────────────────
+
 # Chain-of-Hindsight: fetch similar past task outcomes before building prompt
 TITLE_ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$TITLE" 2>/dev/null || echo "")
 HINDSIGHT_BLOCK=""
@@ -118,6 +176,17 @@ Task: ${TITLE}
 
 ${PROMPT}"
 
+# RL2F: Inject rejection feedback at the top if this is a retry
+if [ -n "$RL2F_BLOCK" ]; then
+    FULL_PROMPT="You are Otto, executing a task from the task queue.
+
+${RL2F_BLOCK}
+
+Task: ${TITLE}
+
+${PROMPT}"
+fi
+
 if [ -n "$HINDSIGHT_BLOCK" ]; then
     FULL_PROMPT="${FULL_PROMPT}
 
@@ -144,6 +213,12 @@ Instructions:
 log "Starting ${CLI_BACKEND} CLI..."
 cd "$WORK_DIR"
 TASK_START_TS=$(date +%s)
+
+# Create a per-task filesystem timestamp marker immediately before the CLI runs.
+# qa_runner.sh uses this to isolate changes made by THIS task specifically,
+# ignoring changes from concurrently running tasks.
+TASK_MARKER_FILE=$(mktemp /tmp/otto_task_marker_XXXXXX)
+log "QA marker file: ${TASK_MARKER_FILE}"
 
 set +e
 case "$CLI_BACKEND" in
@@ -209,6 +284,30 @@ STDERR=$(cat "${LOG_FILE}.stderr" 2>/dev/null || echo "")
 rm -f "${LOG_FILE}.stderr"
 
 log "${CLI_BACKEND} CLI exited with code ${EXIT_CODE}"
+
+# ── CLI Quota Fallback ────────────────────────────────────────────────────────
+# If gemini/kimi failed with 429 (quota exhausted), retry on claude as fallback.
+# This prevents tasks from failing purely due to API quota limits on non-Claude CLIs.
+if [ "$EXIT_CODE" -ne 0 ] && [ "$CLI_BACKEND" != "claude" ]; then
+    if echo "$STDERR$OUTPUT" | grep -qiE "429|RESOURCE_EXHAUSTED|quota|rate.limit"; then
+        log "QUOTA FALLBACK: ${CLI_BACKEND} hit quota limit — retrying on claude..."
+        CLI_BACKEND="claude"
+        set +e
+        OUTPUT=$(timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
+            --print \
+            --dangerously-skip-permissions \
+            --model "$MODEL" \
+            --max-turns "$MAX_TURNS" \
+            --max-budget-usd "$BUDGET" \
+            -p "$FULL_PROMPT" \
+            2>"${LOG_FILE}.stderr")
+        EXIT_CODE=$?
+        set -e
+        STDERR=$(cat "${LOG_FILE}.stderr" 2>/dev/null || echo "")
+        rm -f "${LOG_FILE}.stderr"
+        log "Fallback claude CLI exited with code ${EXIT_CODE}"
+    fi
+fi
 
 # Detect max-turns/max-steps hit
 # Claude: "Error: Reached max turns" | Kimi: may vary | Gemini: no turn limit
@@ -360,14 +459,17 @@ if [ "$OTTO_QA" = "1" ] && [ "$EXIT_CODE" -eq 0 ] && [ -x "$QA_RUNNER" ]; then
     log "QA: launching qa_runner for task ${TASK_ID}..."
     # Determine which CLI ran this task (read from task JSON cli field, default claude)
     TASK_CLI=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('cli', 'claude'))" 2>/dev/null || echo "claude")
-    bash "$QA_RUNNER" "$TASK_ID" "$TASK_CLI" "$LOG_FILE" 2>>"$LOG_FILE" || \
+    # Pass TASK_MARKER_FILE as 4th arg so QA can isolate this task's changes
+    bash "$QA_RUNNER" "$TASK_ID" "$TASK_CLI" "$LOG_FILE" "$TASK_MARKER_FILE" 2>>"$LOG_FILE" || \
         log "QA: qa_runner exited with error (non-fatal, task still marked complete)"
+    rm -f "$TASK_MARKER_FILE"
 else
     if [ "$OTTO_QA" != "1" ]; then
         log "QA: disabled (OTTO_QA=0)"
     elif [ "$EXIT_CODE" -ne 0 ]; then
         log "QA: skipped (task failed, exit_code=${EXIT_CODE})"
     fi
+    rm -f "$TASK_MARKER_FILE" 2>/dev/null || true
 fi
 # ── End QA Runner ──────────────────────────────────────────────────────────────
 
