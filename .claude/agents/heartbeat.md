@@ -132,9 +132,42 @@ For each completed/failed task:
    # Returns: qa_status (approved/rejected/pending_qa/null), qa_reviewer, commit_hash
    ```
    - **`approved`**: work was committed automatically by qa_runner.sh — no commit action needed
-   - **`rejected`**: QA found issues — read `qa_output` for details, create a fix task
+   - **`rejected`**: QA found issues — read `qa_output` for structured RL2F feedback, create a retry task (see RL2F retry protocol below)
    - **`pending_qa`**: QA still running — check again next heartbeat
    - **`null`**: QA not run (pre-QA task) — review manually and commit if needed
+
+   **RL2F Retry Protocol** (when `qa_status = rejected`):
+   When creating a retry task for a QA-rejected task, you MUST pass the rejection feedback in the new task's metadata. This enables the RL2F feedback loop — the retrying agent will receive structured context about exactly what failed and what to fix.
+   ```bash
+   # Get the rejected task's qa_output (contains structured RL2F feedback JSON)
+   REJECTED_QA_OUTPUT=$(curl -sf http://localhost:8100/tasks/<rejected_id>/qa-status | python3 -c "import json,sys; print(json.load(sys.stdin).get('qa_output', ''))")
+   PREV_RETRY_COUNT=$(curl -sf http://localhost:8100/tasks/<rejected_id> | python3 -c "import json,sys; print(json.load(sys.stdin).get('metadata', {}).get('retry_count', 0))")
+
+   # Create retry task with RL2F feedback in metadata
+   curl -s -X POST http://localhost:8100/tasks \
+     -H 'Content-Type: application/json' \
+     -d "$(python3 -c "
+   import json, sys
+   prev_qa_output = sys.argv[1]
+   prev_count = int(sys.argv[2])
+   new_count = prev_count + 1
+   print(json.dumps({
+     'title': '[RETRY-' + str(new_count) + '] <original_title>',
+     'prompt': '<original task prompt — copy verbatim>',
+     'priority': <original_priority>,
+     'model': 'sonnet',
+     'max_budget_usd': 5.0,
+     'timeout_seconds': 900,
+     'created_by': 'heartbeat',
+     'metadata': {
+       'retry_count': new_count,
+       'retry_feedback': prev_qa_output,
+       'parent_task_id': '<rejected_task_id>',
+     }
+   }))
+   " "$REJECTED_QA_OUTPUT" "$PREV_RETRY_COUNT")"
+   ```
+   The `retry_feedback` metadata field is automatically read by `task_runner.sh` and injected into the prompt as a structured feedback block. Max 3 retries per task — if still failing after 3, flag for Mev.
 4. **Mark reviewed**: `curl -sf -X POST http://localhost:8100/tasks/<id>/review`
 5. **Record procedure outcome** — if the task prompt referenced a procedure, record whether it succeeded or failed:
 ```bash
