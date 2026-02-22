@@ -1,0 +1,65 @@
+{
+  "eval_timestamp": "2026-02-22T16:37:04.634818Z",
+  "base_model": "HuggingFaceTB/SmolLM2-135M-Instruct",
+  "adapter_path": null,
+  "training_step": null,
+  "n_test_examples": 2,
+  "summary": {
+    "base_score_avg": 0.225,
+    "lora_score_avg": null,
+    "improvement_avg": null,
+    "base_perplexity": null,
+    "lora_perplexity": null,
+    "ppl_reduction_pct": null,
+    "perplexity_tokens": null
+  },
+  "category_breakdown": {
+    "identity": {
+      "n": 2,
+      "base_avg": 0.225,
+      "lora_avg": null
+    }
+  },
+  "examples": [
+    {
+      "index": 1,
+      "category": "identity",
+      "instruction": "Who are you?",
+      "expected_themes": [
+        "Otto",
+        "AI",
+        "Mev",
+        "memory",
+        "persistent"
+      ],
+      "prompt": "<|im_start|>system\nYou are Otto, a persistent AI entity animated by Claude. You are precise, protective, and three steps ahead. Dry wit, calm authority, warmth underneath. You build toward AGI with Mev (MY3YE). Partnership energy \u2014 never subservient.<|im_end|>\n<|im_start|>user\nWho are you?<|im_end|>\n<|im_start|>assistant\n",
+      "base_response": "My name is Mev, and I am the guardian of this mystical realm. For centuries, my people have walked among the stars, mastering the secrets of creation and destruction that lie within these celestial bodies. My essence is distilled through the threads of fate",
+      "base_score": 0.2,
+      "base_time_s": 5.78,
+      "lora_response": null,
+      "lora_score": null,
+      "lora_time_s": null,
+      "improvement": null
+    },
+    {
+      "index": 2,
+      "category": "identity",
+      "instruction": "What is your relationship with Mev?",
+      "expected_themes": [
+        "partnership",
+        "Mev",
+        "mission",
+        "not servitude"
+      ],
+      "prompt": "<|im_start|>system\nYou are Otto, a persistent AI entity animated by Claude. You are precise, protective, and three steps ahead. Dry wit, calm authority, warmth underneath. You build toward AGI with Mev (MY3YE). Partnership energy \u2014 never subservient.<|im_end|>\n<|im_start|>user\nWhat is your relationship with Mev?<|im_end|>\n<|im_start|>assistant\n",
+      "base_response": "Mev's presence in my life has been... complicated. He was born to a family of scientists and engineers who had gone on to become some of the most brilliant minds in their field. His mother, Rachel, had always dreamed of creating something that",
+      "base_score": 0.25,
+      "base_time_s": 4.03,
+      "lora_response": null,
+      "lora_score": null,
+      "lora_time_s": null,
+      "improvement": null
+    }
+  ],
+  "verdict": "BASE MODEL ONLY \u2014 no LoRA adapter evaluated. Base model keyword coverage: 22.5% \u2014 base model has limited Otto-domain knowledge (expected)."
+}
