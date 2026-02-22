@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Web Assist Lead Scraper
-Scrapes potential web design/development clients in Sri Lanka using Google Places API.
+Scrapes potential web design/development clients using Google Places API.
+Currently targeting Dubai/UAE (pivoted from Australia 2026-02-21 per Mev directive).
 Runs hourly via systemd timer (otto-lead-scraper.timer).
 
 Usage:
@@ -40,131 +41,161 @@ LOG_FORMAT = "%(asctime)s [lead_scraper] %(levelname)s: %(message)s"
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 log = logging.getLogger("lead_scraper")
 
-# --- Sri Lanka search queries ---
-# Broad mix of business types that are likely to need websites
-# but may not have good ones yet. Target: SMBs, local businesses.
-SL_QUERIES = [
-    # Hospitality
-    "hotels in Colombo Sri Lanka",
-    "guesthouses in Colombo Sri Lanka",
-    "restaurants in Colombo Sri Lanka",
-    "restaurants in Galle Sri Lanka",
-    "hotels in Kandy Sri Lanka",
-    # Retail & services
-    "boutiques in Colombo Sri Lanka",
-    "clothing stores in Colombo Sri Lanka",
-    "beauty salons in Colombo Sri Lanka",
-    "gyms in Colombo Sri Lanka",
-    # Professional services
-    "law firms in Colombo Sri Lanka",
-    "accounting firms in Colombo Sri Lanka",
-    "real estate agencies in Colombo Sri Lanka",
-    "event planners in Colombo Sri Lanka",
-    "wedding planners in Sri Lanka",
-    # Healthcare
-    "private clinics in Colombo Sri Lanka",
-    "dental clinics in Colombo Sri Lanka",
-    "physiotherapy in Colombo Sri Lanka",
-    # Education
-    "tutoring centers in Colombo Sri Lanka",
-    "private schools in Sri Lanka",
-    "language schools in Colombo Sri Lanka",
-    # Construction & trade
-    "construction companies in Colombo Sri Lanka",
-    "interior designers in Colombo Sri Lanka",
-    "architects in Colombo Sri Lanka",
-    # Tech & digital
-    "IT companies in Colombo Sri Lanka",
-    "software companies in Colombo Sri Lanka",
-    "digital marketing agencies in Colombo Sri Lanka",
-    # F&B
-    "cafes in Colombo Sri Lanka",
-    "bakeries in Colombo Sri Lanka",
-    "food delivery in Colombo Sri Lanka",
-    # More Colombo verticals
-    "travel agencies in Colombo Sri Lanka",
-    "logistics companies in Colombo Sri Lanka",
-    "pharmacies in Colombo Sri Lanka",
-    "car dealerships in Colombo Sri Lanka",
-    "auto repair shops in Colombo Sri Lanka",
-    "printing companies in Colombo Sri Lanka",
-    "advertising agencies in Colombo Sri Lanka",
-    "catering services in Colombo Sri Lanka",
-    "florists in Colombo Sri Lanka",
-    "pet shops in Colombo Sri Lanka",
-    "furniture stores in Colombo Sri Lanka",
-    "hardware stores in Colombo Sri Lanka",
-    # Negombo
-    "restaurants in Negombo Sri Lanka",
-    "hotels in Negombo Sri Lanka",
-    "guesthouses in Negombo Sri Lanka",
-    "businesses in Negombo Sri Lanka",
-    # Kandy expanded
-    "restaurants in Kandy Sri Lanka",
-    "beauty salons in Kandy Sri Lanka",
-    "real estate agencies in Kandy Sri Lanka",
-    # Matara
-    "restaurants in Matara Sri Lanka",
-    "hotels in Matara Sri Lanka",
-    "businesses in Matara Sri Lanka",
-    # Galle expanded
-    "hotels in Galle Sri Lanka",
-    "boutiques in Galle Sri Lanka",
-    "guesthouses in Galle Sri Lanka",
-    "cafes in Galle Sri Lanka",
-    # Jaffna
-    "restaurants in Jaffna Sri Lanka",
-    "hotels in Jaffna Sri Lanka",
-    "businesses in Jaffna Sri Lanka",
-    # Kurunegala
-    "businesses in Kurunegala Sri Lanka",
-    "restaurants in Kurunegala Sri Lanka",
-    # Colombo suburbs
-    "restaurants in Nugegoda Sri Lanka",
-    "restaurants in Dehiwala Sri Lanka",
-    "restaurants in Mount Lavinia Sri Lanka",
-    "businesses in Battaramulla Sri Lanka",
-    "businesses in Malabe Sri Lanka",
-    # South coast tourist corridor (high-value: tourist-facing SMBs, surf schools, guesthouses)
-    "hotels in Weligama Sri Lanka",
-    "guesthouses in Weligama Sri Lanka",
-    "restaurants in Weligama Sri Lanka",
-    "surf schools in Weligama Sri Lanka",
-    "hotels in Mirissa Sri Lanka",
-    "restaurants in Mirissa Sri Lanka",
-    "guesthouses in Mirissa Sri Lanka",
-    "hotels in Tangalle Sri Lanka",
-    "restaurants in Tangalle Sri Lanka",
-    "businesses in Tangalle Sri Lanka",
-    "hotels in Unawatuna Sri Lanka",
-    "restaurants in Unawatuna Sri Lanka",
-    "dive shops in Unawatuna Sri Lanka",
-    "hotels in Arugam Bay Sri Lanka",
-    "guesthouses in Arugam Bay Sri Lanka",
-    "surf schools in Arugam Bay Sri Lanka",
-    "restaurants in Arugam Bay Sri Lanka",
-    "hotels in Hikkaduwa Sri Lanka",
-    "restaurants in Hikkaduwa Sri Lanka",
-    "dive shops in Hikkaduwa Sri Lanka",
-    # Cultural triangle (heritage tourism, boutique hotels, tour operators)
-    "hotels in Sigiriya Sri Lanka",
-    "guesthouses in Sigiriya Sri Lanka",
-    "tour operators in Sigiriya Sri Lanka",
-    "hotels in Dambulla Sri Lanka",
-    "restaurants in Dambulla Sri Lanka",
-    "businesses in Habarana Sri Lanka",
-    "hotels in Polonnaruwa Sri Lanka",
-    "restaurants in Polonnaruwa Sri Lanka",
-    "hotels in Anuradhapura Sri Lanka",
-    "restaurants in Anuradhapura Sri Lanka",
-    # Hill country (tea estate tourism, trekking, boutique stays)
-    "hotels in Ella Sri Lanka",
-    "guesthouses in Ella Sri Lanka",
-    "restaurants in Ella Sri Lanka",
-    "hotels in Nuwara Eliya Sri Lanka",
-    "restaurants in Nuwara Eliya Sri Lanka",
-    "tea estates in Nuwara Eliya Sri Lanka",
-    "businesses in Hatton Sri Lanka",
+# --- Dubai/UAE search queries ---
+# Pivoted from Australia 2026-02-21 per Mev directive.
+# Target: SMBs in Dubai and UAE cities likely to need websites.
+# UAE is heavily service-oriented — hospitality, retail, real estate, F&B dominate.
+UAE_QUERIES = [
+    # === Dubai — Food & Beverage ===
+    "restaurants in Deira Dubai",
+    "restaurants in Bur Dubai",
+    "restaurants in Jumeirah Dubai",
+    "restaurants in Business Bay Dubai",
+    "restaurants in Downtown Dubai",
+    "restaurants in Dubai Marina",
+    "restaurants in JLT Dubai",
+    "restaurants in Al Quoz Dubai",
+    "cafes in Dubai Marina",
+    "cafes in Jumeirah Dubai",
+    "cafes in Downtown Dubai",
+    "cafes in Business Bay Dubai",
+    "cafes in JLT Dubai",
+    "cafes in Deira Dubai",
+    "bakeries in Dubai",
+    "juice bars in Dubai",
+    "dessert shops in Dubai",
+    "Indian restaurants in Dubai",
+    "Pakistani restaurants in Dubai",
+    "Lebanese restaurants in Dubai",
+    # === Dubai — Beauty & Wellness ===
+    "beauty salons in Dubai",
+    "beauty salons in Deira Dubai",
+    "beauty salons in Jumeirah Dubai",
+    "beauty salons in Al Barsha Dubai",
+    "nail salons in Dubai",
+    "nail salons in Jumeirah Dubai",
+    "barber shops in Dubai",
+    "barber shops in Deira Dubai",
+    "spas in Dubai",
+    "spas in Jumeirah Dubai",
+    "massage centers in Dubai",
+    "yoga studios in Dubai",
+    "pilates studios in Dubai",
+    "gyms in Dubai",
+    "gyms in Dubai Marina",
+    "gyms in Al Barsha Dubai",
+    "fitness centers in Deira Dubai",
+    # === Dubai — Medical & Health ===
+    "dental clinics in Dubai",
+    "dental clinics in Deira Dubai",
+    "dental clinics in Jumeirah Dubai",
+    "physiotherapy clinics in Dubai",
+    "medical clinics in Dubai",
+    "medical clinics in Deira Dubai",
+    "opticians in Dubai",
+    "pharmacies in Dubai",
+    # === Dubai — Professional Services ===
+    "accounting firms in Dubai",
+    "auditing firms in Dubai",
+    "legal consultants in Dubai",
+    "business setup consultants in Dubai",
+    "PRO services in Dubai",
+    "HR consultants in Dubai",
+    "marketing agencies in Dubai",
+    "event management companies in Dubai",
+    "photography studios in Dubai",
+    "videography services in Dubai",
+    "interior design firms in Dubai",
+    "architecture firms in Dubai",
+    # === Dubai — Real Estate & Property ===
+    "real estate agents in Dubai",
+    "real estate agents in Downtown Dubai",
+    "property management companies in Dubai",
+    "real estate brokers in Dubai Marina",
+    "real estate brokers in Business Bay Dubai",
+    # === Dubai — Retail & Boutiques ===
+    "boutique clothing stores in Dubai",
+    "jewellery shops in Dubai",
+    "jewellery shops in Deira Dubai",
+    "gift shops in Dubai",
+    "flower shops in Dubai",
+    "pet shops in Dubai",
+    "electronics shops in Dubai",
+    "tailoring shops in Dubai",
+    "tailoring shops in Deira Dubai",
+    # === Dubai — Hospitality & Tourism ===
+    "hotels in Dubai",
+    "hotels in Deira Dubai",
+    "hotel apartments in Dubai",
+    "guesthouses in Dubai",
+    "travel agencies in Dubai",
+    "tourism companies in Dubai",
+    "tour operators in Dubai",
+    "desert safari companies in Dubai",
+    "yacht rental in Dubai",
+    # === Dubai — Auto & Trades ===
+    "car repair shops in Dubai",
+    "auto service centers in Dubai",
+    "car wash services in Dubai",
+    "cleaning services in Dubai",
+    "pest control services in Dubai",
+    "painting services in Dubai",
+    "AC maintenance in Dubai",
+    "AC repair services in Dubai",
+    "furniture shops in Dubai",
+    "home maintenance services in Dubai",
+    # === Dubai — Food Delivery & Catering ===
+    "catering companies in Dubai",
+    "cloud kitchens in Dubai",
+    "food trucks in Dubai",
+    # === Abu Dhabi ===
+    "restaurants in Abu Dhabi",
+    "cafes in Abu Dhabi",
+    "beauty salons in Abu Dhabi",
+    "dental clinics in Abu Dhabi",
+    "gyms in Abu Dhabi",
+    "real estate agents in Abu Dhabi",
+    "hotels in Abu Dhabi",
+    "cleaning services in Abu Dhabi",
+    "medical clinics in Abu Dhabi",
+    "event management companies in Abu Dhabi",
+    "interior design firms in Abu Dhabi",
+    "accounting firms in Abu Dhabi",
+    "legal consultants in Abu Dhabi",
+    "tailoring shops in Abu Dhabi",
+    "travel agencies in Abu Dhabi",
+    # === Sharjah ===
+    "restaurants in Sharjah",
+    "cafes in Sharjah",
+    "beauty salons in Sharjah",
+    "dental clinics in Sharjah",
+    "gyms in Sharjah",
+    "real estate agents in Sharjah",
+    "cleaning services in Sharjah",
+    "tailoring shops in Sharjah",
+    "medical clinics in Sharjah",
+    "car repair shops in Sharjah",
+    # === Ajman ===
+    "restaurants in Ajman",
+    "cafes in Ajman",
+    "beauty salons in Ajman",
+    "dental clinics in Ajman",
+    "real estate agents in Ajman",
+    "cleaning services in Ajman",
+    # === Ras Al Khaimah ===
+    "restaurants in Ras Al Khaimah",
+    "cafes in Ras Al Khaimah",
+    "hotels in Ras Al Khaimah",
+    "real estate agents in Ras Al Khaimah",
+    "beauty salons in Ras Al Khaimah",
+    # === Fujairah ===
+    "restaurants in Fujairah",
+    "cafes in Fujairah",
+    "hotels in Fujairah",
+    "beauty salons in Fujairah",
+    # === Umm Al Quwain ===
+    "restaurants in Umm Al Quwain",
+    "cafes in Umm Al Quwain",
 ]
 
 
@@ -304,40 +335,36 @@ async def upsert_lead(conn: asyncpg.Connection, place: dict, query: str) -> str:
     score, notes, lead_type = compute_lead_score(place)
 
     # Determine city from address
-    # SL address format: "123 Street, Area, CityCode, Province, Sri Lanka"
-    # We identify city by matching known SL city names in the address parts.
-    SL_CITIES = [
-        "Colombo", "Kandy", "Galle", "Jaffna", "Negombo", "Trincomalee",
-        "Batticaloa", "Matara", "Kurunegala", "Ratnapura", "Badulla",
-        "Anuradhapura", "Polonnaruwa", "Hambantota", "Vavuniya", "Mannar",
-        "Ampara", "Monaragala", "Nuwara Eliya", "Puttalam", "Kegalle",
-        "Kalutara", "Gampaha", "Matale", "Mullativu", "Kilinochchi",
-        "Wattala", "Dehiwala", "Moratuwa", "Panadura", "Piliyandala",
-        "Kaduwela", "Kelaniya", "Kotte", "Maharagama", "Nugegoda",
-        "Boralesgamuwa", "Homagama", "Avissawella", "Hanwella",
-        "Kadawatha", "Ragama", "Ja-Ela", "Seeduwa", "Katunayake",
-        "Minuwangoda", "Gampaha", "Veyangoda", "Mirigama", "Aluthgama",
-        "Bentota", "Ambalangoda", "Hikkaduwa", "Unawatuna", "Mirissa",
-        "Tangalle", "Tissamaharama", "Kataragama", "Ella", "Haputale",
-        "Bandarawela", "Diyatalawa", "Welimada", "Nawalapitiya", "Hatton",
-        "Dambulla", "Sigiriya", "Habarana", "Trinco", "Batticaloa"
-    ]
+    # UAE address format: "Street, District/Area, City/Emirate, United Arab Emirates"
+    # e.g. "Shop 12, Al Fahidi St, Bur Dubai, Dubai, United Arab Emirates" -> city = "Dubai"
+    UAE_SKIP = {"united arab emirates", "uae", "u.a.e."}
+    UAE_EMIRATES = {"dubai", "abu dhabi", "sharjah", "ajman", "ras al khaimah", "fujairah", "umm al quwain"}
     city = None
     if address:
         parts = [p.strip() for p in address.split(",")]
-        # Try to match a known SL city in the parts (skip first part = street)
-        for part in parts[1:]:
+        # Work backwards: skip "United Arab Emirates", find the emirate name
+        for part in reversed(parts):
             clean = part.strip()
-            # Strip postal codes like "Colombo 03" → "Colombo"
-            city_candidate = clean.split()[0] if clean else ""
-            if any(city_candidate.lower() == c.lower() or clean.lower().startswith(c.lower()) for c in SL_CITIES):
-                city = city_candidate if city_candidate else clean
+            if not clean or clean.lower() in UAE_SKIP:
+                continue
+            # Direct emirate match
+            if clean.lower() in UAE_EMIRATES:
+                city = clean
                 break
-        # Fallback: second-to-last part (before "Sri Lanka"), skip country
-        if not city and len(parts) >= 3:
-            city = parts[-2].strip()
-        elif not city and len(parts) == 2:
-            city = parts[-1].strip() if parts[-1].strip().lower() != "sri lanka" else None
+            # Partial match (e.g. "Dubai - JBR" or "Dubai Marina")
+            for emirate in UAE_EMIRATES:
+                if emirate in clean.lower():
+                    city = emirate.title()
+                    break
+            if city:
+                break
+        # Fallback: second-to-last non-UAE part
+        if not city and len(parts) >= 2:
+            for part in reversed(parts):
+                clean = part.strip()
+                if clean and clean.lower() not in UAE_SKIP:
+                    city = clean
+                    break
 
     existing = await conn.fetchrow(
         "SELECT id FROM web_assist_leads WHERE place_id = $1", place_id
@@ -375,7 +402,7 @@ async def upsert_lead(conn: asyncpg.Connection, place: dict, query: str) -> str:
                 google_maps_url, city, country, latitude, longitude,
                 rating, user_ratings_total, price_level, lead_score, lead_notes, search_query,
                 lead_type
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'LK',$10,$11,$12,$13,$14,$15,$16,$17,$18)
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'AE',$10,$11,$12,$13,$14,$15,$16,$17,$18)
         """, place_id, name, types, business_status, address, phone, website,
             maps_url, city, lat, lng, rating, user_ratings, price_level, score, notes, query,
             lead_type)
@@ -386,8 +413,8 @@ async def search_places_v1(client: httpx.AsyncClient, query: str, page_token: st
     """Google Places API v1 (new) text search."""
     body = {"textQuery": query, "maxResultCount": 20, "locationBias": {
         "rectangle": {
-            "low": {"latitude": 5.9, "longitude": 79.6},
-            "high": {"latitude": 9.9, "longitude": 81.9}
+            "low": {"latitude": 22.6, "longitude": 51.5},
+            "high": {"latitude": 26.1, "longitude": 56.4}
         }
     }}
     if page_token:
@@ -417,7 +444,7 @@ async def search_places_legacy(client: httpx.AsyncClient, query: str, page_token
     params = {
         "query": query,
         "key": PLACES_API_KEY,
-        "region": "lk",
+        "region": "ae",
     }
     if page_token:
         params["pagetoken"] = page_token
@@ -443,7 +470,7 @@ async def run_scrape(dry_run: bool = False, specific_query: str = None, max_page
             "INSERT INTO lead_scrape_runs DEFAULT VALUES RETURNING id"
         )
 
-    queries = [specific_query] if specific_query else SL_QUERIES
+    queries = [specific_query] if specific_query else UAE_QUERIES
     total_found = total_new = total_updated = 0
 
     async with httpx.AsyncClient() as client:

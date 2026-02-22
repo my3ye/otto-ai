@@ -1,0 +1,16 @@
+[Unit]
+Description=Otto Reflection Heartbeat (Self-Improvement)
+After=otto-memory.service
+Wants=otto-memory.service
+
+[Service]
+Type=oneshot
+User=web3relic
+Group=web3relic
+WorkingDirectory=/home/web3relic/otto
+ExecStart=/home/web3relic/otto/reflection.sh
+Environment=HOME=/home/web3relic
+Environment=PATH=/home/web3relic/.local/bin:/usr/local/bin:/usr/bin:/bin
+
+[Install]
+WantedBy=multi-user.target

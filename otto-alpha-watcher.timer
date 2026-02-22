@@ -1,0 +1,11 @@
+[Unit]
+Description=Otto Alpha Live Watcher Timer — runs every 5 minutes
+Requires=otto-alpha-watcher.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=10s
+
+[Install]
+WantedBy=timers.target

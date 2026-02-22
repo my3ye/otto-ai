@@ -1,20 +1,16 @@
 {
   "permissions": {
     "allow": [
-      "Bash(curl:*)",
-      "Bash(docker ps:*)",
-      "Bash(docker exec:*)",
-      "Bash(systemctl is-active:*)",
-      "Bash(systemctl status:*)",
-      "Bash(systemctl list-timers:*)",
-      "Bash(df:*)",
-      "Bash(python3:*)",
-      "Bash(ls:*)",
-      "Bash(chmod:*)",
-      "Bash(git status:*)",
-      "Bash(git diff:*)",
-      "Bash(git log:*)",
-      "Bash(/home/web3relic/otto/tools/whatsapp_send.sh:*)"
+      "Bash(*)",
+      "Read(*)",
+      "Write(*)",
+      "Edit(*)",
+      "Glob(*)",
+      "Grep(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "NotebookEdit(*)",
+      "Task(*)"
     ]
   },
   "hooks": {

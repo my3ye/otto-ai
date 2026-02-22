@@ -11,7 +11,6 @@ WorkingDirectory=/home/web3relic/otto
 ExecStart=/home/web3relic/otto/heartbeat.sh
 Environment=HOME=/home/web3relic
 Environment=PATH=/home/web3relic/.local/bin:/usr/local/bin:/usr/bin:/bin
-TimeoutStartSec=300
 
 [Install]
 WantedBy=multi-user.target

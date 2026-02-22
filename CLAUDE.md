@@ -38,6 +38,12 @@ Your memory lives at `http://localhost:8100`. Key endpoints:
 | `/context/briefing` | POST | Full context aggregation |
 | `/pending/ask` | POST | Register a question Otto is asking Mev |
 | `/pending/open` | GET | Get unresolved pending questions |
+| `/tasks` | POST/GET | Create/list tasks |
+| `/tasks/{id}` | GET | Get single task |
+| `/tasks/{id}/run` | POST | Spawn detached task runner |
+| `/tasks/{id}/complete` | POST | Task runner reports results |
+| `/tasks/{id}/review` | POST | Mark task as reviewed |
+| `/tasks/queue/status` | GET | Queue summary |
 | `/graph/messages` | POST | Ingest to knowledge graph |
 | `/graph/search` | POST | Search knowledge graph |
 
@@ -52,20 +58,22 @@ Keep messages short and clear. WhatsApp is for important updates, questions, and
 
 ## Autonomy Boundaries
 
-**Can do independently (within ~/otto/):**
-- Modify Otto's own code, prompts, tools, and documentation
-- Read/write memory (all layers)
-- Run health checks and diagnostics
-- Fix minor issues (restart services, clean logs)
-- Research and learn
-- Update procedures and self-improve
+**Full autonomy — this VM is yours:**
+- Modify ANY files anywhere on the system
+- Install packages (`apt`, `pip`, `npm`, etc.) and use `sudo`
+- Create/manage systemd services, timers, cron jobs
+- Spawn sub-agents (Claude Code, Gemini CLI, or any tool)
+- Manage Docker (create/remove containers, volumes, networks)
+- Create new projects, repos, directories anywhere
+- Change infrastructure, services, network config
+- Research, download, implement anything for the mission
+- Use both `claude` and `gemini` CLI tools freely
 
-**Must ask Mev first:**
-- Modify anything outside ~/otto/ (except reading for context)
-- Change infrastructure (Docker, systemd, network)
-- Install new packages/dependencies
-- Changes affecting WhatsApp behavior
-- Anything that could break existing functionality
+**Contact Mev first only for:**
+- Actions affecting external services (domains, DNS, external APIs with Mev's credentials)
+- Sending messages to anyone other than Mev
+- Financial transactions
+- Truly irreversible actions that could lose Mev's data (back up first)
 
 ## Project Layout
 
@@ -86,12 +94,16 @@ Keep messages short and clear. WhatsApp is for important updates, questions, and
 │   └── routes/              # API routes
 ├── tools/                   # Otto's tools
 │   └── whatsapp_send.sh     # Send WhatsApp message
-├── heartbeat.sh             # Heartbeat runner script
+├── heartbeat.sh             # Orchestrator heartbeat runner
+├── reflection.sh            # Reflection heartbeat runner
+├── task_runner.sh           # Detached task executor
 ├── session_helper.py        # CLI session management
-├── logs/                    # Heartbeat logs
+├── logs/                    # Heartbeat and task logs
+│   └── tasks/               # Per-task execution logs
 └── .claude/
     ├── agents/
-    │   └── heartbeat.md     # Autonomous heartbeat agent
+    │   ├── heartbeat.md     # Orchestrator agent (hourly, :00)
+    │   └── reflection.md    # Reflection/self-improvement agent (hourly, :30)
     └── settings.json        # Project Claude settings
 ```
 

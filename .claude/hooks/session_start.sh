@@ -33,8 +33,8 @@ case "$SOURCE" in
   resume)  MAX_TOKENS=10000 ;;  # Medium on resume
   *)       MAX_TOKENS=15000 ;;  # Full on startup
 esac
-if [ "$OTTO_SESSION_TYPE" = "heartbeat" ]; then
-  MAX_TOKENS=5000  # Keep heartbeat context lean — leaves budget for real work
+if [ "$OTTO_SESSION_TYPE" = "heartbeat" ] || [ "$OTTO_SESSION_TYPE" = "reflection" ] || [ "$OTTO_SESSION_TYPE" = "alpha_heartbeat" ]; then
+  MAX_TOKENS=5000  # Keep heartbeat/reflection/alpha context lean — leaves budget for real work
 fi
 # Never exceed 30% ceiling
 if [ "$MAX_TOKENS" -gt "$CONTEXT_CEILING" ]; then

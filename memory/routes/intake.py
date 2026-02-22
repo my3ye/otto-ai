@@ -33,10 +33,10 @@ async def receive_intake(data: IntakeSubmission):
 
     # Map need to lead_type
     lead_type_map = {
-        "new-website": "no-website",
-        "revamp": "revamp",
-        "landing": "no-website",
-        "ecommerce": "no-website",
+        "new-website": "no_website",
+        "revamp": "revamp_candidate",
+        "landing": "no_website",
+        "ecommerce": "no_website",
     }
     lead_type = lead_type_map.get(data.need or "", "unknown")
 

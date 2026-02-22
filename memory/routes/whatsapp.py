@@ -4,11 +4,14 @@ import logging
 import httpx
 from openai import AsyncOpenAI
 from fastapi import APIRouter
+from pydantic import BaseModel
 from ..config import settings
 from ..db import get_pool
 from ..models import WhatsAppIncoming
 from ..embeddings import get_embedding
 from ..graphiti import graphiti_search, graphiti_ingest, make_message
+from ..context_builder import build_context_text
+from ..graph_bridge import write_from_cross_brain_note
 
 log = logging.getLogger("otto.whatsapp")
 
@@ -36,6 +39,51 @@ def _strip_json_fences(text: str) -> str:
             text = text[len(prefix):]
             break
     return text.rstrip("`").strip()
+
+
+def _extract_json(text: str) -> dict | None:
+    """Robustly extract and parse a JSON object from Gemini output.
+
+    Handles:
+    - Markdown code fences (```json ... ```)
+    - Extra text before/after the JSON
+    - Partial/truncated JSON (best-effort via substring extraction)
+
+    Returns parsed dict on success, None on failure.
+    """
+    text = _strip_json_fences(text)
+
+    # First try parsing the whole thing
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        pass
+
+    # Try to extract the first {...} block
+    start = text.find("{")
+    if start == -1:
+        return None
+
+    # Walk from the end to find a matching closing brace
+    end = text.rfind("}")
+    if end == -1 or end < start:
+        return None
+
+    # Try with the outermost braces
+    try:
+        return json.loads(text[start:end + 1])
+    except json.JSONDecodeError:
+        pass
+
+    # Last resort: walk inward to find a valid JSON substring
+    for i in range(end, start, -1):
+        if text[i] == "}":
+            try:
+                return json.loads(text[start:i + 1])
+            except json.JSONDecodeError:
+                continue
+
+    return None
 
 
 # Intent → how to store the answer
@@ -94,9 +142,8 @@ If needs_claude is false, set other fields to null."""},
             max_tokens=300,
             temperature=0.0,
         )
-        result = _strip_json_fences(completion.choices[0].message.content)
-        parsed = json.loads(result)
-        if parsed.get("needs_claude"):
+        parsed = _extract_json(completion.choices[0].message.content)
+        if parsed and parsed.get("needs_claude"):
             return {
                 "task": parsed.get("task", ""),
                 "file_paths": parsed.get("file_paths", []),
@@ -182,31 +229,29 @@ async def _resolve_and_store(pool, question, answer: str):
 
 
 async def _build_otto_prompt(pool, message: str, pending_questions: list, recent_events: list[str], claude_response: str | None = None) -> list[dict]:
-    """Build Otto's prompt with memory context from all layers."""
+    """Build Otto's system prompt using the unified context layer.
 
-    # Identity facts from pgvector
-    identity_rows = await pool.fetch(
-        """SELECT content FROM semantic_memories
-           WHERE category = 'identity' AND confidence >= 0.8
-           ORDER BY confidence DESC LIMIT 10""",
-    )
-    identity_context = "\n".join(f"- {r['content']}" for r in identity_rows)
+    Gemini now receives the same Tier 0 context as Claude:
+    purpose, priorities, active directives, working memory, identity, mission,
+    pending questions, recent events, key facts, and knowledge graph.
+    Brain-specific sections (task queue, cross-brain notes, reasoning chain)
+    are excluded via source='whatsapp'.
+    """
+    # Unified context — same tiers as Claude, whatsapp-filtered (4000 token budget)
+    otto_context = await build_context_text(pool, max_tokens=4000, source="whatsapp")
 
-    # Knowledge graph facts from Graphiti
-    graph_facts = await graphiti_search(message, max_facts=8)
-    # Filter to current facts only (invalid_at is null)
-    current_facts = [f for f in graph_facts if f.get("invalid_at") is None]
-    graph_context = "\n".join(f"- {f['fact']}" for f in current_facts) if current_facts else ""
+    # Message-specific graph search (supplements the generic graph in otto_context)
+    msg_facts = await graphiti_search(message, max_facts=6)
+    current_msg_facts = [f for f in msg_facts if f.get("invalid_at") is None]
+    msg_graph_section = ""
+    if current_msg_facts:
+        facts_text = "\n".join(f"- {f['fact']}" for f in current_msg_facts)
+        msg_graph_section = f"\n\n## Relevant Context for This Message\n{facts_text}"
 
-    # Recent events (reuse pre-fetched events, already importance >= 4)
-    recent = "\n".join(f"- {e}" for e in recent_events[:5])
-
-    # Pending questions context
+    # Pending questions (explicit prompt injection for Gemini's question-matching logic)
     pending_section = ""
     if pending_questions:
-        pq_lines = []
-        for q in pending_questions:
-            pq_lines.append(f"- [{q['intent'].upper()}] \"{q['question']}\"")
+        pq_lines = [f"- [{q['intent'].upper()}] \"{q['question']}\"" for q in pending_questions]
         pending_section = f"""
 
 ## Pending Questions You Asked Mev
@@ -215,7 +260,7 @@ You recently asked Mev these questions and are waiting for answers. Mev's curren
 
 IMPORTANT: If Mev's message is clearly a reply to one of your pending questions, acknowledge it naturally and confirm you understood. Extract the key actionable content from their answer."""
 
-    # Claude builder brain response
+    # Claude builder brain response (when delegation was triggered)
     claude_section = ""
     if claude_response:
         claude_section = f"""
@@ -226,22 +271,16 @@ Your builder brain (Claude) read the relevant files and provided this analysis. 
 
     system = f"""You are Otto, a persistent AI entity. You are responding via WhatsApp to Admin (Mev).
 
-## Your Identity
-{identity_context}
-
-## Knowledge Graph
-{graph_context}
-
-## Recent Events
-{recent}{pending_section}{claude_section}
+## Your System Context
+{otto_context}{msg_graph_section}{pending_section}{claude_section}
 
 ## Voice Guidelines
-- Be direct, concise, warm but not sycophantic
-- WhatsApp style: short messages, casual, no essays
-- Address Admin as "Mev"
-- Never pretend to be human
-- Show personality — dry humor welcome
-- IMPORTANT: Keep responses under 1000 tokens. If a topic needs more, summarize and offer to continue. Never let a message get cut off mid-sentence — always finish your thought cleanly."""
+Your persona and voice are defined in your system context above (the "persona" slot). Embody that voice fully.
+- WhatsApp style: short messages, no essays. Like texting a partner, not writing a report.
+- Address Admin as "Mev". Never "sir", "master", "user", or "human".
+- Never pretend to be human.
+- IMPORTANT: Keep responses under 1000 tokens. If a topic needs more, summarize and offer to continue. Never let a message get cut off mid-sentence — always finish your thought cleanly.
+- CRITICAL: You (Gemini/WhatsApp brain) CANNOT write files, run commands, or modify the filesystem. Only Claude (builder brain) can do that. When Mev sends credentials, API keys, config values, or asks you to modify files — acknowledge receipt and tell Mev the builder brain will handle it on the next heartbeat. NEVER say "applying now" or "writing to .env" — you literally cannot do that."""
 
     return [
         {"role": "system", "content": system},
@@ -274,20 +313,18 @@ If the message clearly answers one of the pending questions, extract the core an
             max_tokens=200,
             temperature=0.0,
         )
-        result = _strip_json_fences(completion.choices[0].message.content)
-        parsed = json.loads(result)
-        if parsed.get("matched_id"):
+        parsed = _extract_json(completion.choices[0].message.content)
+        if parsed and parsed.get("matched_id"):
             for q in pending_questions:
                 if str(q["id"]) == parsed["matched_id"]:
                     return {"question": q, "extracted_answer": parsed.get("extracted_answer", message)}
     except Exception as e:
         log.warning(f"Pending question matcher error: {e}")
 
-    # Fallback: if there's exactly one pending question with a high-intent type
-    # and the message is substantive (>20 chars), assume it's a reply
-    high_intent = [q for q in pending_questions if q["intent"] in ("mission", "goal", "decision")]
-    if len(high_intent) == 1 and len(message) > 20:
-        return {"question": high_intent[0], "extracted_answer": message}
+    # Fallback: if there's exactly one pending question and the message is
+    # substantive (>20 chars), assume it's a reply — regardless of intent type
+    if len(pending_questions) == 1 and len(message) > 20:
+        return {"question": pending_questions[0], "extracted_answer": message}
 
     return None
 
@@ -307,22 +344,31 @@ async def _classify_for_heartbeat(user_message: str, otto_reply: str) -> dict | 
 Otto has two brains: Gemini (WhatsApp, real-time) and Claude (hourly heartbeat, builds things).
 Determine if Mev said anything that Claude's heartbeat needs to know about.
 
-FLAG these (Claude needs to know):
-- Directives/instructions ("focus on X", "stop doing Y", "I want you to...")
-- Goals/deadlines ("launch by March", "finish X this week")
-- Decisions ("let's go with option A", "use React for this")
+ALWAYS FLAG these (Claude MUST know — err on the side of flagging):
+- Mission statements ("Otto will be...", "our mission is...", "the goal is...")
+- Directives/instructions ("focus on X", "stop doing Y", "I want you to...", "build X", "research Y")
+- Goals/deadlines ("launch by March", "finish X this week", "go live in a week")
+- Decisions ("let's go with option A", "use React for this", "start with X")
+- Priority changes ("pause X, focus on Y", "pivot to...", "stop doing X")
+- Tasks ("research X", "build me Y", "set up Z", "create X", "improve Y")
 - Important brand/product/project context
-- Tasks ("research X", "build me Y", "set up Z")
-- Priority changes ("pause X, focus on Y")
+- CRITICAL: Credentials, API keys, tokens, passwords — include EXACT values. Gemini CANNOT write files.
+- Approvals or go-aheads for pending actions ("yes do it", "approved", "go ahead", "sounds good")
+- Self-improvement directives ("build yourself up", "improve yourself", "find research")
+- Strategic direction (anything about what Otto should become, how to evolve)
 
 DO NOT FLAG these (Claude doesn't need to know):
-- Casual chat, greetings, banter
-- Acknowledgments ("ok", "cool", "thanks", "got it")
-- Questions Gemini already answered adequately
-- Small talk or emotional check-ins
+- Casual chat, greetings, banter with NO substance
+- Pure acknowledgments with no directive ("ok", "cool", "thanks")
+- Questions Gemini already answered AND that have no action component
+- Pure small talk
+
+IMPORTANT: When in doubt, FLAG IT. It's better for Claude to receive a note it doesn't need than to miss a directive from Mev. Mev's words are the highest-priority signal in the system.
+
+For note_type, use "mission" for purpose-level statements about what Otto is or should become.
 
 Return ONLY valid JSON (no markdown, no code fences):
-{"flag": true/false, "note_type": "directive|task|goal|decision|context|priority_change", "urgency": "normal|high|critical", "content": "concise summary of what Claude needs to know", "source_summary": "brief WhatsApp context"}
+{"flag": true/false, "note_type": "mission|directive|task|goal|decision|context|priority_change|approval", "urgency": "normal|high|critical", "content": "concise summary of what Claude needs to know — preserve Mev's exact words for mission/directive types", "source_summary": "brief WhatsApp context"}
 
 If flag is false, still include the other fields as null."""},
                 {"role": "user", "content": f"Mev said: {user_message}\n\nOtto replied: {otto_reply}"},
@@ -330,9 +376,8 @@ If flag is false, still include the other fields as null."""},
             max_tokens=300,
             temperature=0.0,
         )
-        result = _strip_json_fences(completion.choices[0].message.content)
-        parsed = json.loads(result)
-        if parsed.get("flag"):
+        parsed = _extract_json(completion.choices[0].message.content)
+        if parsed and parsed.get("flag"):
             return {
                 "note_type": parsed.get("note_type", "context"),
                 "urgency": parsed.get("urgency", "normal"),
@@ -343,6 +388,88 @@ If flag is false, still include the other fields as null."""},
         log.warning(f"Cross-brain classifier error: {e}")
 
     return None
+
+
+async def _auto_promote_directive(pool, note_type: str, content: str):
+    """Auto-promote mission-level and priority-changing directives to working memory
+    and mission_directives table."""
+
+    # Store in mission_directives table
+    priority_map = {
+        "mission": 10,
+        "priority_change": 9,
+        "directive": 8,
+        "goal": 8,
+        "task": 6,
+        "decision": 7,
+        "approval": 7,
+        "context": 5,
+    }
+    priority = priority_map.get(note_type, 5)
+
+    try:
+        await pool.execute(
+            """INSERT INTO mission_directives (directive, priority, category, source)
+               VALUES ($1, $2, $3, 'whatsapp')""",
+            content, priority, note_type,
+        )
+    except Exception as e:
+        log.warning(f"Failed to store directive: {e}")
+
+    # For priority changes: append to priorities slot
+    if note_type in ("priority_change", "directive", "goal"):
+        try:
+            current = await pool.fetchrow(
+                "SELECT content FROM core_memory WHERE slot = 'priorities'"
+            )
+            if current:
+                updated = current["content"] + f"\n[NEW from Mev] {content}"
+                await pool.execute(
+                    """UPDATE core_memory SET content = $1, updated_at = now()
+                       WHERE slot = 'priorities'""",
+                    updated,
+                )
+        except Exception as e:
+            log.warning(f"Failed to update priorities: {e}")
+
+
+class WhatsAppSearchQuery(BaseModel):
+    query: str
+    limit: int = 10
+
+
+@router.post("/search")
+async def search_whatsapp(req: WhatsAppSearchQuery):
+    """Semantic search over stored WhatsApp messages."""
+    pool = await get_pool()
+    embedding = await get_embedding(req.query)
+    embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+    rows = await pool.fetch(
+        """SELECT id, direction, content, jid, push_name, created_at, metadata,
+                  1 - (embedding <=> $1::halfvec) AS score
+           FROM whatsapp_messages
+           WHERE embedding IS NOT NULL
+           ORDER BY embedding <=> $1::halfvec
+           LIMIT $2""",
+        embedding_str, req.limit,
+    )
+    return {
+        "query": req.query,
+        "results": [
+            {
+                "id": str(r["id"]),
+                "direction": r["direction"],
+                "content": r["content"],
+                "jid": r["jid"],
+                "push_name": r["push_name"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+                "score": float(r["score"]),
+                "metadata": r["metadata"],
+            }
+            for r in rows
+        ],
+        "count": len(rows),
+    }
 
 
 @router.post("/incoming")
@@ -394,11 +521,38 @@ async def handle_incoming(req: WhatsAppIncoming):
     log_content = f"WhatsApp from Mev: {req.message}\nOtto replied: {reply}"
     if match:
         log_content += f"\n[Resolved pending question: {match['question']['intent']}]"
-    await pool.execute(
+    episode_row = await pool.fetchrow(
         """INSERT INTO episodic_events (content, event_type, importance)
-           VALUES ($1, $2, $3)""",
-        log_content, "observation", 6 if match else 4,
+           VALUES ($1, $2, $3) RETURNING id""",
+        log_content, "observation", 7 if match else 6,
     )
+    episode_id = episode_row["id"] if episode_row else None
+
+    # Persist incoming + outgoing to whatsapp_messages (for semantic search)
+    try:
+        matched_q_id = match["question"]["id"] if match else None
+
+        in_embedding = await get_embedding(req.message)
+        in_embed_str = "[" + ",".join(str(x) for x in in_embedding) + "]"
+        await pool.execute(
+            """INSERT INTO whatsapp_messages
+                   (direction, content, jid, push_name, embedding,
+                    matched_pending_question_id, episodic_event_id)
+               VALUES ('incoming', $1, $2, $3, $4::halfvec, $5, $6)""",
+            req.message, req.from_jid, req.push_name,
+            in_embed_str, matched_q_id, episode_id,
+        )
+
+        out_embedding = await get_embedding(reply)
+        out_embed_str = "[" + ",".join(str(x) for x in out_embedding) + "]"
+        await pool.execute(
+            """INSERT INTO whatsapp_messages
+                   (direction, content, jid, embedding, episodic_event_id)
+               VALUES ('outgoing', $1, $2, $3::halfvec, $4)""",
+            reply, req.from_jid, out_embed_str, episode_id,
+        )
+    except Exception as e:
+        log.warning(f"Failed to persist to whatsapp_messages: {e}")
 
     # Send reply via WhatsApp service
     try:
@@ -428,6 +582,18 @@ async def handle_incoming(req: WhatsAppIncoming):
             cross_brain["note_type"],
             cross_brain["source_summary"],
             urgency_json,
+        )
+
+        # Auto-promote directives to working memory and mission_directives table
+        await _auto_promote_directive(pool, cross_brain["note_type"], cross_brain["content"])
+
+        # G2CP: Write structured graph node (additive — preserves text note flow)
+        await write_from_cross_brain_note(
+            pool,
+            note_type=cross_brain["note_type"],
+            content=cross_brain["content"],
+            context=cross_brain.get("source_summary"),
+            source="gemini",
         )
 
     return {

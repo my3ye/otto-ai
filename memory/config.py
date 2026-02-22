@@ -31,6 +31,12 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = ""
 
+    # Focus context compression (arXiv 2601.07190)
+    # If assembled context exceeds this token count, apply rule-based compression
+    context_compression_threshold: int = 4000
+    # Target token count after compression (hard ceiling)
+    context_max_tokens: int = 5000
+
     @property
     def dsn(self) -> str:
         return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"

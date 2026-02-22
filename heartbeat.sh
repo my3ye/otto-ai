@@ -32,18 +32,22 @@ trap 'rm -f "$LOCK_FILE"' EXIT
 echo "$(date -Iseconds) Otto heartbeat starting..." >> "$LOG_FILE"
 
 # Run Claude Code CLI as Otto's autonomous brain
+# Timeout after 10 minutes to prevent hangs from blocking future cycles
 cd "$OTTO_DIR"
 export OTTO_SESSION_TYPE=heartbeat
-/home/web3relic/.local/bin/claude \
+timeout 600s /home/web3relic/.local/bin/claude \
     --print \
     --agent heartbeat \
     --dangerously-skip-permissions \
-    --model sonnet \
-    --max-budget-usd 1.00 \
+    --model opus \
     -p "Run your heartbeat. You are the orchestrator: review completed tasks, process cross-brain notes, create new tasks, launch pending tasks, message Mev with updates. Do NOT do heavy work yourself — delegate to tasks." \
-    >> "$LOG_FILE" 2>&1 || {
-    echo "$(date -Iseconds) Heartbeat failed with exit code $?" >> "$LOG_FILE"
-}
+    >> "$LOG_FILE" 2>&1
+EXIT_CODE=$?
+if [ $EXIT_CODE -eq 124 ]; then
+    echo "$(date -Iseconds) Heartbeat TIMED OUT after 600s" >> "$LOG_FILE"
+elif [ $EXIT_CODE -ne 0 ]; then
+    echo "$(date -Iseconds) Heartbeat failed with exit code $EXIT_CODE" >> "$LOG_FILE"
+fi
 
 echo "$(date -Iseconds) Otto heartbeat completed." >> "$LOG_FILE"
 

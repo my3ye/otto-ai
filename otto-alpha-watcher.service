@@ -1,0 +1,12 @@
+[Unit]
+Description=Otto Alpha Live Watcher — 5-minute Solana wallet scanner
+After=network.target otto-memory.service
+
+[Service]
+Type=oneshot
+User=web3relic
+WorkingDirectory=/home/web3relic/projects/alpha
+ExecStart=/home/web3relic/projects/alpha/.venv/bin/python3 /home/web3relic/projects/alpha/live_watcher.py
+StandardOutput=append:/home/web3relic/otto/logs/alpha-watcher.log
+StandardError=append:/home/web3relic/otto/logs/alpha-watcher.log
+TimeoutStartSec=60
