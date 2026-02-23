@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     # Target token count after compression (hard ceiling)
     context_max_tokens: int = 5000
 
+    # SVC: Singular Value Calibration for embedding quality (sweep #13)
+    # Removes top-k principal components (bias directions) from query embeddings
+    # to reduce anisotropy and improve semantic retrieval accuracy.
+    svc_enabled: bool = True
+    svc_top_k: int = 3
+    svc_components_path: str = "/home/web3relic/otto/memory/svc_components.npz"
+
     @property
     def dsn(self) -> str:
         return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"

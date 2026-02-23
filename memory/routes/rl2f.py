@@ -24,7 +24,7 @@ from ..db import get_pool
 from ..models import (
     RL2FFeedbackCreate, RL2FFeedbackOut, RL2FTrainingBatch,
     TaskRetryFeedbackCreate, TaskRetryFeedbackOut, TaskRetryFeedbackResolve,
-    RetryMetrics,
+    RetryMetrics, QAFeedbackCreate,
 )
 
 router = APIRouter(prefix="/rl2f", tags=["rl2f-feedback"])
@@ -162,22 +162,19 @@ async def feedback_stats():
     return dict(row)
 
 
-@router.get("/{entry_id}", response_model=RL2FFeedbackOut)
-async def get_feedback_entry(entry_id: UUID):
-    pool = await get_pool()
-    row = await pool.fetchrow(
-        """SELECT id, cycle_ts, heartbeat_type, system_state, decision,
-                  teacher_feedback, root_condition_analysis, mental_factor_scores,
-                  outcome, outcome_match, used_in_training, created_at
-           FROM rl2f_feedback WHERE id = $1""",
-        entry_id,
-    )
-    if not row:
-        raise HTTPException(status_code=404, detail="Not found")
-    return RL2FFeedbackOut(**dict(row))
-
-
 # ── Phase 2: Task-level Retry Feedback Chain ──────────────────────
+# Note: All fixed-path Phase 2 routes registered BEFORE /{entry_id} to prevent
+# route shadowing (FastAPI matches in registration order).
+
+def _parse_trf_row(row) -> "TaskRetryFeedbackOut":
+    """Convert asyncpg row to TaskRetryFeedbackOut, parsing JSONB feedback field."""
+    import json as _json
+    d = dict(row)
+    # asyncpg returns JSONB columns as str; Pydantic expects dict
+    if isinstance(d.get("feedback"), str):
+        d["feedback"] = _json.loads(d["feedback"])
+    return TaskRetryFeedbackOut(**d)
+
 
 @router.post("/task-feedback", response_model=TaskRetryFeedbackOut, status_code=201)
 async def create_task_feedback(body: TaskRetryFeedbackCreate):
@@ -202,7 +199,7 @@ async def create_task_feedback(body: TaskRetryFeedbackCreate):
         body.qa_rejection_reason,
         body.feedback_injected,
     )
-    return TaskRetryFeedbackOut(**dict(row))
+    return _parse_trf_row(row)
 
 
 @router.patch("/task-feedback/{feedback_id}/resolve", response_model=TaskRetryFeedbackOut)
@@ -234,7 +231,7 @@ async def resolve_task_feedback(feedback_id: UUID, body: TaskRetryFeedbackResolv
     )
     if not row:
         raise HTTPException(status_code=404, detail="Feedback entry not found")
-    return TaskRetryFeedbackOut(**dict(row))
+    return _parse_trf_row(row)
 
 
 @router.patch("/task-feedback/{feedback_id}/mark-injected", response_model=TaskRetryFeedbackOut)
@@ -257,7 +254,7 @@ async def mark_feedback_injected(feedback_id: UUID, retry_task_id: UUID | None =
     )
     if not row:
         raise HTTPException(status_code=404, detail="Feedback entry not found")
-    return TaskRetryFeedbackOut(**dict(row))
+    return _parse_trf_row(row)
 
 
 @router.get("/feedback/{task_id}", response_model=list[TaskRetryFeedbackOut])
@@ -276,7 +273,7 @@ async def get_task_feedback_chain(task_id: UUID):
            ORDER BY attempt_number ASC""",
         task_id,
     )
-    return [TaskRetryFeedbackOut(**dict(r)) for r in rows]
+    return [_parse_trf_row(r) for r in rows]
 
 
 @router.get("/retry-metrics", response_model=RetryMetrics)
@@ -327,3 +324,74 @@ async def get_retry_metrics():
         improvement_delta=delta,
         pending_outcomes=d["pending_outcomes"],
     )
+
+
+# ── QA Feedback Bridge ──────────────────────────────────────────────────────
+# Simple endpoint for qa_runner.sh to log every QA decision as RL2F training signal.
+# Converts task QA outcomes (approve/reject) into rl2f_feedback table records.
+# This closes the learning loop: every QA decision becomes a teacher feedback entry.
+
+@router.post("/feedback", response_model=RL2FFeedbackOut, status_code=201)
+async def create_qa_feedback(body: QAFeedbackCreate):
+    """Store a QA decision as RL2F training signal.
+
+    Called by qa_runner.sh after every QA decision (APPROVE or REJECT).
+    Maps task QA outcomes into the rl2f_feedback table so they can be
+    used as training data for the model fine-tuning pipeline.
+
+    Mapping:
+      heartbeat_type = "qa"
+      system_state   = task_id + task_title + output excerpt
+      decision       = task_title (the action that was evaluated)
+      teacher_feedback = feedback_text (the QA reviewer's assessment)
+      outcome        = approved | rejected
+      outcome_match  = matched (if approved) | miss (if rejected)
+    """
+    now = datetime.now(timezone.utc)
+    outcome_match = "matched" if body.outcome == "approved" else "miss"
+
+    # Build system_state: task context for training record
+    state_parts = [f"task_id:{body.task_id}"]
+    if body.task_title:
+        state_parts.append(f"title:{body.task_title}")
+    if body.task_output:
+        state_parts.append(f"output_excerpt:{body.task_output[:300]}")
+    system_state = " | ".join(state_parts)
+
+    decision = body.task_title or f"task:{body.task_id[:8]}"
+
+    # Include QA reviewer in feedback text for provenance
+    reviewer_note = f"[qa_reviewer:{body.qa_reviewer}] " if body.qa_reviewer else ""
+    teacher_feedback = f"{reviewer_note}{body.feedback_text}"
+
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """INSERT INTO rl2f_feedback
+               (cycle_ts, heartbeat_type, system_state, decision,
+                teacher_feedback, outcome, outcome_match)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING id, cycle_ts, heartbeat_type, system_state, decision,
+                     teacher_feedback, root_condition_analysis, mental_factor_scores,
+                     outcome, outcome_match, used_in_training, created_at""",
+        now, "qa", system_state, decision,
+        teacher_feedback, body.outcome, outcome_match,
+    )
+    return RL2FFeedbackOut(**dict(row))
+
+
+# ── IMPORTANT: Wildcard route LAST — must come after all fixed-path routes ──
+# Moving /{entry_id} here prevents it from shadowing /retry-metrics, /feedback/*, etc.
+
+@router.get("/{entry_id}", response_model=RL2FFeedbackOut)
+async def get_feedback_entry(entry_id: UUID):
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """SELECT id, cycle_ts, heartbeat_type, system_state, decision,
+                  teacher_feedback, root_condition_analysis, mental_factor_scores,
+                  outcome, outcome_match, used_in_training, created_at
+           FROM rl2f_feedback WHERE id = $1""",
+        entry_id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Not found")
+    return RL2FFeedbackOut(**dict(row))

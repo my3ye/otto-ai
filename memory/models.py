@@ -69,6 +69,8 @@ class SemanticMemoryOut(BaseModel):
     created_at: datetime
     score: float | None = None  # similarity score for search results
     importance_score: float | None = None  # AgeMem importance weight
+    summary_content: str | None = None  # HyMem: summary tier content
+    tier_used: str | None = None  # HyMem: which tier was used for retrieval (summary|detailed)
 
 
 class SemanticSearchQuery(BaseModel):
@@ -76,6 +78,9 @@ class SemanticSearchQuery(BaseModel):
     limit: int = 10
     min_confidence: float = 0.0
     category: str | None = None
+    # HyMem: dual-granularity retrieval options
+    force_tier: str | None = Field(default=None, pattern="^(summary|detailed)$")  # force specific tier
+    complexity_threshold: int = Field(default=8, ge=3, le=20)  # word count threshold for detailed tier
 
 
 # ── AgeMem: explicit memory management ────────────────────────────
@@ -675,6 +680,19 @@ class JitRLOptimizeResponse(BaseModel):
     recommendations: list[JitRLRecommendation]
     retrieved_count: int
     baseline_reward: float       # mean reward across all retrieved experiences
+
+
+# ── RL2F: QA Feedback Bridge ────────────────────────────────────────
+# Simple schema for logging QA decisions (approve/reject) as RL2F training signal.
+# Wraps QA outcomes into rl2f_feedback table via POST /rl2f/feedback.
+
+class QAFeedbackCreate(BaseModel):
+    task_id: str                       # UUID of the reviewed task
+    outcome: str                       # "approved" | "rejected"
+    feedback_text: str                 # QA reviewer's reason/output
+    task_output: str | None = None     # first 1000 chars of task output
+    task_title: str | None = None      # task title for context
+    qa_reviewer: str | None = None     # which CLI did QA (claude/gemini/auto)
 
 
 # ── WhatsApp ───────────────────────────────────────────────────────
