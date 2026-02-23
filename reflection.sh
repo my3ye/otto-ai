@@ -10,6 +10,10 @@ LOG_DIR="${OTTO_DIR}/logs"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 LOG_FILE="${LOG_DIR}/reflection-${TIMESTAMP}.log"
 
+# MARS dual adversarial synthesis toggle (default: enabled)
+# Set MARS_ENABLED=false in environment to skip the dual critic pass
+MARS_ENABLED="${MARS_ENABLED:-true}"
+
 # Ensure log directory exists
 mkdir -p "$LOG_DIR"
 
@@ -40,7 +44,7 @@ timeout 600s /home/web3relic/.local/bin/claude \
     --agent reflection \
     --dangerously-skip-permissions \
     --model opus \
-    -p "Run your reflection cycle. Reconcile working memory against reality, consolidate memories, evaluate recent performance, identify and fix root causes, create improvement tasks if needed. Do NOT message Mev — the orchestrator handles communication." \
+    -p "Run your reflection cycle. MARS_ENABLED=${MARS_ENABLED}. Reconcile working memory against reality, consolidate memories, evaluate recent performance, identify and fix root causes, create improvement tasks if needed. Do NOT message Mev — the orchestrator handles communication." \
     >> "$LOG_FILE" 2>&1
 EXIT_CODE=$?
 if [ $EXIT_CODE -eq 124 ]; then

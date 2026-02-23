@@ -232,62 +232,56 @@ TASK_START_TS=$(date +%s)
 # ignoring changes from concurrently running tasks.
 TASK_MARKER_FILE=$(mktemp /tmp/otto_task_marker_XXXXXX)
 log "QA marker file: ${TASK_MARKER_FILE}"
+OUTFILE=$(mktemp /tmp/otto_task_output_XXXXXX)
+log "Output capture file: ${OUTFILE}"
 
 set +e
 case "$CLI_BACKEND" in
     claude)
-        OUTPUT=$(timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
+        timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
             --print \
             --dangerously-skip-permissions \
             --model "$MODEL" \
             --max-turns "$MAX_TURNS" \
             --max-budget-usd "$BUDGET" \
             -p "$FULL_PROMPT" \
-            2>"${LOG_FILE}.stderr")
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
         EXIT_CODE=$?
         ;;
     gemini)
         # Gemini CLI: no --max-turns or --budget flags. Use --yolo for auto-approval.
         # Output format json then extract .response for clean text capture.
-        GEMINI_RAW=$(timeout "${TIMEOUT}s" gemini \
+        # Raw JSON written to OUTFILE; extracted after esac.
+        timeout "${TIMEOUT}s" gemini \
             --yolo \
             --output-format json \
             --include-directories "$WORK_DIR" \
             -p "$FULL_PROMPT" \
-            2>"${LOG_FILE}.stderr")
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
         EXIT_CODE=$?
-        # Extract clean response text from JSON envelope
-        OUTPUT=$(echo "$GEMINI_RAW" | python3 -c "
-import json, sys
-try:
-    data = json.load(sys.stdin)
-    print(data.get('response') or data.get('text') or str(data))
-except Exception:
-    print(sys.stdin.read())
-" 2>/dev/null || echo "$GEMINI_RAW")
         ;;
     kimi)
         # Kimi CLI: --quiet = --print --output-format text --final-message-only
         # --yolo implied by --quiet/--print. --max-steps-per-turn instead of --max-turns.
-        OUTPUT=$(timeout "${TIMEOUT}s" /home/web3relic/.local/bin/kimi \
+        timeout "${TIMEOUT}s" /home/web3relic/.local/bin/kimi \
             --quiet \
             --yolo \
             --work-dir "$WORK_DIR" \
             --max-steps-per-turn "$MAX_TURNS" \
             -p "$FULL_PROMPT" \
-            2>"${LOG_FILE}.stderr")
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
         EXIT_CODE=$?
         ;;
     *)
         log "ERROR: Unknown CLI backend '${CLI_BACKEND}' — falling back to claude"
-        OUTPUT=$(timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
+        timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
             --print \
             --dangerously-skip-permissions \
             --model "$MODEL" \
             --max-turns "$MAX_TURNS" \
             --max-budget-usd "$BUDGET" \
             -p "$FULL_PROMPT" \
-            2>"${LOG_FILE}.stderr")
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
         EXIT_CODE=$?
         ;;
 esac
@@ -302,24 +296,47 @@ log "${CLI_BACKEND} CLI exited with code ${EXIT_CODE}"
 # If gemini/kimi failed with 429 (quota exhausted), retry on claude as fallback.
 # This prevents tasks from failing purely due to API quota limits on non-Claude CLIs.
 if [ "$EXIT_CODE" -ne 0 ] && [ "$CLI_BACKEND" != "claude" ]; then
-    if echo "$STDERR$OUTPUT" | grep -qiE "429|RESOURCE_EXHAUSTED|quota|rate.limit"; then
+    if echo "$STDERR$(cat "$OUTFILE" 2>/dev/null)" | grep -qiE "429|RESOURCE_EXHAUSTED|quota|rate.limit"; then
         log "QUOTA FALLBACK: ${CLI_BACKEND} hit quota limit — retrying on claude..."
         CLI_BACKEND="claude"
         set +e
-        OUTPUT=$(timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
+        timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
             --print \
             --dangerously-skip-permissions \
             --model "$MODEL" \
             --max-turns "$MAX_TURNS" \
             --max-budget-usd "$BUDGET" \
             -p "$FULL_PROMPT" \
-            2>"${LOG_FILE}.stderr")
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
         EXIT_CODE=$?
         set -e
         STDERR=$(cat "${LOG_FILE}.stderr" 2>/dev/null || echo "")
         rm -f "${LOG_FILE}.stderr"
         log "Fallback claude CLI exited with code ${EXIT_CODE}"
     fi
+fi
+
+# Read output from tempfile — captures partial output even on timeout (exit 124)
+OUTPUT=$(cat "$OUTFILE" 2>/dev/null || echo "")
+rm -f "$OUTFILE"
+
+# Gemini outputs JSON — extract clean response text from envelope
+if [ "$CLI_BACKEND" = "gemini" ] && [ -n "$OUTPUT" ]; then
+    OUTPUT=$(echo "$OUTPUT" | python3 -c "
+import json, sys
+raw = sys.stdin.read()
+try:
+    data = json.loads(raw)
+    print(data.get('response') or data.get('text') or str(data))
+except Exception:
+    print(raw)
+" 2>/dev/null || echo "$OUTPUT")
+fi
+
+# Exit 124 = timeout — log how much partial output was captured
+if [ "$EXIT_CODE" -eq 124 ]; then
+    OUTBYTES=${#OUTPUT}
+    log "TIMEOUT: CLI killed after ${TIMEOUT}s — partial output captured (${OUTBYTES} bytes)"
 fi
 
 # Detect max-turns/max-steps hit
@@ -363,19 +380,52 @@ Score these dimensions (1=poor, 10=excellent):
 
 Return ONLY: {\"accuracy\":N,\"completeness\":N,\"coherence\":N}"
 
-    META_RAW=$(timeout 30 gemini -m gemini-2.0-flash -p "$META_PROMPT" 2>/dev/null || echo "")
+    META_STDERR_FILE=$(mktemp /tmp/sofai_stderr.XXXXXX)
+    META_RAW=$(timeout 30 gemini -m gemini-2.0-flash -p "$META_PROMPT" 2>"$META_STDERR_FILE" || echo "")
+    META_GEMINI_EXIT=$?
 
-    # Parse JSON from response (handle markdown code block wrapping)
+    # Fallback: if gemini failed (rate limit / quota / timeout), try claude haiku
+    if [ -z "$META_RAW" ] || [ "$META_GEMINI_EXIT" -ne 0 ]; then
+        GEMINI_STDERR=$(cat "$META_STDERR_FILE" 2>/dev/null | head -3 || echo "")
+        log "SOFAI-LM: gemini failed (exit=${META_GEMINI_EXIT}, stderr: ${GEMINI_STDERR:0:100}) — trying claude haiku fallback"
+        META_RAW=$(timeout 30 "$CLAUDE_CLI" \
+            --print \
+            --dangerously-skip-permissions \
+            --model "claude-haiku-4-5-20251001" \
+            --max-turns 1 \
+            --max-budget-usd 0.05 \
+            -p "$META_PROMPT" 2>/dev/null || echo "")
+    fi
+    rm -f "$META_STDERR_FILE"
+
+    # Parse JSON from response (balanced brace extractor handles multi-line + nested JSON).
+    # Fixes 16% parse failure rate from the old [^}]+ regex that couldn't handle nested objects.
     META_JSON=$(echo "$META_RAW" | python3 -c "
 import json, sys, re
+
 raw = sys.stdin.read()
-# Strip markdown code block if present
-raw = re.sub(r'\`\`\`[a-z]*\n?', '', raw).strip()
-# Extract first JSON object
-match = re.search(r'\{[^}]+\}', raw, re.DOTALL)
-if match:
+# Strip markdown code block fences (opening and closing)
+raw = re.sub(r'\`\`\`(?:json|text|bash)?\n?', '', raw).strip()
+
+def extract_balanced_json(text):
+    '''Find the first balanced {...} block, handles nested objects.'''
+    start = text.find('{')
+    if start == -1:
+        return None
+    depth = 0
+    for i, ch in enumerate(text[start:], start):
+        if ch == '{':
+            depth += 1
+        elif ch == '}':
+            depth -= 1
+            if depth == 0:
+                return text[start:i+1]
+    return None
+
+blob = extract_balanced_json(raw)
+if blob:
     try:
-        data = json.loads(match.group())
+        data = json.loads(blob)
         required = {'accuracy', 'completeness', 'coherence'}
         if required.issubset(data.keys()):
             print(json.dumps(data))
@@ -481,6 +531,15 @@ else
         log "QA: disabled (OTTO_QA=0)"
     elif [ "$EXIT_CODE" -ne 0 ]; then
         log "QA: skipped (task failed, exit_code=${EXIT_CODE})"
+        # Timeout exit (124): explicitly mark qa_status so heartbeat knows to retry.
+        # Without this, timed-out tasks have qa_status=null and may be silently ignored.
+        if [ "$EXIT_CODE" -eq 124 ]; then
+            curl -sf -X POST "${API}/tasks/${TASK_ID}/qa-update" \
+                -H 'Content-Type: application/json' \
+                -d "{\"qa_status\": \"needs_manual_review\", \"qa_reviewer\": \"system\", \"qa_output\": \"Task timed out after ${TIMEOUT}s (exit 124). Retry with higher timeout or smaller scope.\"}" \
+                >> "$LOG_FILE" 2>&1 || true
+            log "Timeout: marked qa_status=needs_manual_review (timeout after ${TIMEOUT}s)"
+        fi
     fi
     rm -f "$TASK_MARKER_FILE" 2>/dev/null || true
 fi
