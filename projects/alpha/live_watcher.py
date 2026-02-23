@@ -62,7 +62,7 @@ DB_CONFIG = {
 
 # ── Config ───────────────────────────────────────────────────────────────────
 SCAN_WINDOW_SECONDS = 5 * 60       # 5 minutes — matches timer frequency
-QUALITY_A_THRESHOLD = 0.45         # Grade A: open paper trade (lowered from 0.65 — backtest win rates poisoned by stablecoin trades, all wallets show 0%; real signal = large SOL + fresh)
+QUALITY_A_THRESHOLD = 0.35         # Grade A: open paper trade (lowered from 0.45 — size_score was near-zero when API returns no amount data, composite was systematically suppressed)
 QUALITY_B_THRESHOLD = 0.25         # Grade B: log as MEDIUM signal, no auto-trade (lowered from 0.40)
 MIN_SOL_AMOUNT = 0.1               # Ignore dust buys < 0.1 SOL (raised from 0.01 — require meaningful conviction)
 MAX_WALLETS_PER_RUN = 20           # Cap to stay within Helius rate limits
@@ -347,15 +347,22 @@ def score_signal(
     now = time.time()
 
     # 1. Wallet win rate
+    # FIX: default 0.50 (neutral) instead of 0.30 — backtest has 0 wallets, so all wallets
+    # were getting the pessimistic 0.30 default which pulled composite below quality threshold.
     if wallet_label == "CONVERGENCE":
-        rates = [win_rates.get(w, 0.30) for w in all_buyers]
-        wallet_win_rate = sum(rates) / len(rates) if rates else 0.30
+        rates = [win_rates.get(w, 0.50) for w in all_buyers]
+        wallet_win_rate = sum(rates) / len(rates) if rates else 0.50
     else:
-        wallet_win_rate = win_rates.get(wallet_label, 0.30)
+        wallet_win_rate = win_rates.get(wallet_label, 0.50)
 
     # 2. Size score — logarithmic scaling
+    # FIX: when API returns no amount data (amount_sol==0), use neutral fallback 0.5
+    # instead of near-zero (~0.001) which was killing quality scores unfairly.
     import math
-    size_score = min(1.0, max(0.0, math.log10(max(amount_sol, 0.001) + 1) / math.log10(3)))
+    if amount_sol == 0:
+        size_score = 0.5
+    else:
+        size_score = min(1.0, max(0.0, math.log10(max(amount_sol, 0.001) + 1) / math.log10(3)))
 
     # 3. Freshness score — linear decay over 5 minutes
     age_seconds = max(0, now - tx_timestamp)

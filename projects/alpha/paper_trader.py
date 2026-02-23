@@ -54,13 +54,48 @@ PAPER_TRADES_PATH = os.path.join(os.path.dirname(__file__), "paper_trades.jsonl"
 MEMORY_API = "http://localhost:8100"
 
 # ── Signal-timestamp dedup (daemon mode) ─────────────────────────────────────
-# In-memory dict: signal_key -> epoch_time_added
-# Prevents the same underlying signal event from reopening a position after close.
-# Root cause: SM_11-SM_15 generators use multi-hour lookback windows, so the same
-# buy events keep returning every 60s cycle. Token-address dedup blocks open positions
-# but not re-entry after close. Signal-ts dedup catches that gap.
-_PROCESSED_SIGNALS: dict[str, float] = {}
+# FIX: was an in-memory dict that was wiped on every restart, allowing the same signal
+# event to reopen a position after a restart. Now file-backed for cross-restart persistence.
 _SIGNAL_TS_DEDUP_HOURS = 4.0  # Matches hold horizon + buffer
+_PROCESSED_SIGNALS_PATH = os.path.join(os.path.dirname(__file__), "processed_signals.jsonl")
+
+
+def _load_processed_signals() -> dict[str, float]:
+    """Load processed signal keys from disk into an in-memory dict."""
+    result: dict[str, float] = {}
+    if not os.path.exists(_PROCESSED_SIGNALS_PATH):
+        return result
+    cutoff = time.time() - _SIGNAL_TS_DEDUP_HOURS * 3600
+    try:
+        with open(_PROCESSED_SIGNALS_PATH) as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    rec = json.loads(line)
+                    key, ts = rec.get("key"), rec.get("ts")
+                    if key and ts and ts >= cutoff:
+                        result[key] = ts
+                except Exception:
+                    pass
+    except OSError:
+        pass
+    return result
+
+
+def _append_processed_signal(key: str, ts: float):
+    """Append a processed signal to the persistent log."""
+    try:
+        with open(_PROCESSED_SIGNALS_PATH, "a") as f:
+            f.write(json.dumps({"key": key, "ts": ts}) + "\n")
+    except OSError:
+        pass
+
+
+# In-memory cache — hydrated from disk on first access
+_PROCESSED_SIGNALS: dict[str, float] = {}
+_PROCESSED_SIGNALS_LOADED = False
 
 
 # ── Persistence ─────────────────────────────────────────────────────────────
@@ -172,9 +207,14 @@ def _signal_key(signal: dict) -> str:
 
 def is_signal_processed(signal: dict) -> bool:
     """Return True if we have already opened a trade for this signal event."""
+    global _PROCESSED_SIGNALS, _PROCESSED_SIGNALS_LOADED
+    if not _PROCESSED_SIGNALS_LOADED:
+        _PROCESSED_SIGNALS = _load_processed_signals()
+        _PROCESSED_SIGNALS_LOADED = True
+
     now = time.time()
     cutoff = now - _SIGNAL_TS_DEDUP_HOURS * 3600
-    # Prune expired entries
+    # Prune expired entries from in-memory cache
     expired = [k for k, added in _PROCESSED_SIGNALS.items() if added < cutoff]
     for k in expired:
         del _PROCESSED_SIGNALS[k]
@@ -182,8 +222,16 @@ def is_signal_processed(signal: dict) -> bool:
 
 
 def mark_signal_processed(signal: dict):
-    """Record that we acted on this signal event."""
-    _PROCESSED_SIGNALS[_signal_key(signal)] = time.time()
+    """Record that we acted on this signal event — persisted to disk."""
+    global _PROCESSED_SIGNALS, _PROCESSED_SIGNALS_LOADED
+    if not _PROCESSED_SIGNALS_LOADED:
+        _PROCESSED_SIGNALS = _load_processed_signals()
+        _PROCESSED_SIGNALS_LOADED = True
+
+    key = _signal_key(signal)
+    ts = time.time()
+    _PROCESSED_SIGNALS[key] = ts
+    _append_processed_signal(key, ts)
 
 
 def open_position(signal: dict) -> Optional[dict]:
