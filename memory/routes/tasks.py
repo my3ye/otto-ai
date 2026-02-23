@@ -430,6 +430,13 @@ async def create_task(req: TaskCreate):
         else:
             metadata = {}
     cli = req.cli if req.cli in CLI_CONCURRENCY else "claude"
+    # Enforce minimum resource limits per CLI backend to prevent premature failures
+    max_budget_usd = req.max_budget_usd
+    max_turns = req.max_turns
+    if cli == "gemini":
+        max_budget_usd = max(max_budget_usd, 1.0)   # gemini fails at $0.30
+    elif cli == "kimi":
+        max_turns = max(max_turns, 25)               # kimi hits step limit at 15
     row = await pool.fetchrow(
         f"""INSERT INTO tasks (title, prompt, context, priority, model, cli,
                max_budget_usd, max_turns, timeout_seconds, working_directory,
@@ -437,7 +444,7 @@ async def create_task(req: TaskCreate):
            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
            RETURNING {TASK_COLUMNS}""",
         req.title, req.prompt, req.context, req.priority, req.model, cli,
-        req.max_budget_usd, req.max_turns, req.timeout_seconds,
+        max_budget_usd, max_turns, req.timeout_seconds,
         req.working_directory, req.created_by, req.session_id,
         metadata,
     )
@@ -894,7 +901,7 @@ async def update_qa_status(task_id: UUID, req: TaskQAUpdate):
     Tracks whether the task's output was approved or rejected by the independent
     QA reviewer (always a different CLI than the one that ran the task).
     """
-    valid_statuses = {"pending_qa", "approved", "rejected"}
+    valid_statuses = {"pending_qa", "approved", "rejected", "needs_manual_review"}
     if req.qa_status not in valid_statuses:
         raise HTTPException(400, f"Invalid qa_status '{req.qa_status}'. Must be one of: {valid_statuses}")
 
@@ -1021,4 +1028,41 @@ async def trigger_qa_review(task_id: UUID):
         d["metadata"] = {}
 
     log.info(f"Manual QA review triggered for task {task_id} (PID {pid})")
+    return TaskOut(**d)
+
+
+@router.patch("/{task_id}/metadata", response_model=TaskOut)
+async def patch_task_metadata(task_id: UUID, updates: dict):
+    """Merge key-value pairs into a task's metadata JSON.
+
+    Used by qa_runner.sh (Phase 2) to store rl2f_feedback_id after rejection,
+    so the heartbeat can pass it to the retry task's metadata.
+    """
+    import json as _json
+    pool = await get_pool()
+
+    # Fetch existing metadata
+    row = await pool.fetchrow(f"SELECT {TASK_COLUMNS} FROM tasks WHERE id = $1", task_id)
+    if not row:
+        raise HTTPException(404, "Task not found")
+
+    d = dict(row)
+    existing_meta = d.get("metadata") or {}
+    if not isinstance(existing_meta, dict):
+        try:
+            existing_meta = _json.loads(existing_meta) if isinstance(existing_meta, str) else {}
+        except Exception:
+            existing_meta = {}
+
+    merged = {**existing_meta, **updates}
+
+    updated = await pool.fetchrow(
+        f"""UPDATE tasks SET metadata = $2, updated_at = now()
+            WHERE id = $1 RETURNING {TASK_COLUMNS}""",
+        task_id,
+        merged,
+    )
+    d = dict(updated)
+    if not isinstance(d.get("metadata"), dict):
+        d["metadata"] = {}
     return TaskOut(**d)

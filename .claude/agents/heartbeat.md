@@ -296,7 +296,7 @@ curl -s -X POST http://localhost:8100/tasks \
 | High-priority task | 8-10 | claude | sonnet | **no limit** (omit or set $50) | 1800s | **Yes** | Alpha strategies, self-improvement |
 | Heavy backend | 8-10 | claude | opus | **no limit** | 1800s | **Yes** | Architecture, complex reasoning |
 
-Rules: minimum $5 for claude tasks (non-trivial). Kimi and Gemini don't support `--max-budget-usd` — set it to 0 or omit.
+Rules: minimum $5 for claude tasks (non-trivial). Kimi and Gemini don't support `--max-budget-usd` — set it to 0 or omit. Minimum `max_turns=25` for kimi (enforced by API). Gemini tasks enforce `max_budget_usd>=1.0` at creation.
 For front-end work, use Sonnet 4.6. For heavy backend, use Opus 4.6. Default to `cli=claude` when in doubt.
 
 **Ask yourself:**
