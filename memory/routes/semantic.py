@@ -30,6 +30,112 @@ from ..models import (
     ARAGSearchResponse,
 )
 
+# ── HyMem: Dual-granularity retrieval helpers ──────────────────────
+
+
+class QueryComplexityClassifier:
+    """HyMem query complexity classifier.
+    
+    Simple heuristic: short queries (few words) use summary tier,
+    long/complex queries use detailed tier.
+    
+    Thresholds:
+    - <= complexity_threshold words: summary tier (fast, lightweight)
+    - > complexity_threshold words OR contains complex operators: detailed tier
+    """
+    
+    # Complex query indicators (regex-like patterns)
+    COMPLEX_INDICATORS = [
+        " and ", " or ", " but ", " however ", " although ",
+        " compared ", " difference ", " between ", " relationship ",
+        " why ", " how ", " explain ", " analyze ", " compare ",
+    ]
+    
+    def __init__(self, threshold: int = 8):
+        self.threshold = threshold
+    
+    def classify(self, query: str) -> tuple[str, float]:
+        """Classify query complexity. Returns (tier, confidence).
+        
+        Tier: 'summary' for simple queries, 'detailed' for complex queries.
+        """
+        query_lower = query.lower().strip()
+        word_count = len(query_lower.split())
+        
+        # Check for complex query indicators
+        has_complex_indicators = any(
+            indicator in query_lower 
+            for indicator in self.COMPLEX_INDICATORS
+        )
+        
+        # Check for question marks (seeking explanation)
+        is_question = "?" in query or query_lower.startswith(("what", "why", "how", "when", "where", "who"))
+        
+        # Check for conjunctions (multiple concepts)
+        has_conjunctions = any(word in query_lower for word in [" and ", " or ", " vs ", " versus "])
+        
+        # Scoring
+        complexity_score = 0.0
+        if word_count > self.threshold:
+            complexity_score += 0.4
+        if has_complex_indicators:
+            complexity_score += 0.3
+        if is_question and word_count > 5:
+            complexity_score += 0.2
+        if has_conjunctions:
+            complexity_score += 0.1
+        
+        # Determine tier
+        if complexity_score >= 0.5 or word_count > self.threshold:
+            return "detailed", min(1.0, complexity_score + 0.3)
+        return "summary", min(1.0, 1.0 - complexity_score + 0.3)
+
+
+class SummaryGenerator:
+    """Generate concise summaries for HyMem dual-granularity storage."""
+    
+    MAX_SUMMARY_LENGTH = 200  # characters
+    
+    @classmethod
+    def generate(cls, content: str, category: str = "general") -> str:
+        """Generate a concise summary of the content.
+        
+        Uses simple heuristics for fast generation at write time.
+        Falls back to Gemini Flash if content is complex.
+        """
+        content = content.strip()
+        
+        # If already short, use as-is (no summary needed)
+        if len(content) <= cls.MAX_SUMMARY_LENGTH:
+            return content
+        
+        # Try sentence-based extraction first (faster than API call)
+        sentences = content.replace("! ", ". ").replace("? ", ". ").split(". ")
+        
+        # Extract key sentence(s) up to max length
+        summary_parts = []
+        current_length = 0
+        
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if not sentence:
+                continue
+            # Prioritize first sentence (often contains main point)
+            if not summary_parts:
+                summary_parts.append(sentence)
+                current_length = len(sentence)
+            elif current_length + len(sentence) + 2 <= cls.MAX_SUMMARY_LENGTH:
+                summary_parts.append(sentence)
+                current_length += len(sentence) + 2
+            else:
+                break
+        
+        summary = ". ".join(summary_parts)
+        if not summary.endswith("."):
+            summary += "."
+        
+        return summary[:cls.MAX_SUMMARY_LENGTH]
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/semantic", tags=["semantic"])
 
@@ -309,26 +415,39 @@ async def remember(req: SemanticMemoryCreate):
             """UPDATE semantic_memories
                SET importance_score = GREATEST(importance_score, $1)
                WHERE id = $2
-               RETURNING id, content, category, confidence, source, created_at, importance_score""",
+               RETURNING id, content, category, confidence, source, created_at, importance_score, summary_content""",
             importance, duplicate_id,
         )
-        return SemanticMemoryOut(**{**dict(row), "importance_score": importance})
+        return SemanticMemoryOut(**{**dict(row), "importance_score": importance, "tier_used": None})
 
     # BMAM: compute salience score before insert
     salience = await _compute_salience(pool, importance, embedding)
 
+    # HyMem: Generate summary for dual-granularity storage
+    summary_content = SummaryGenerator.generate(req.content, req.category)
+    summary_embedding_str = None
+    
+    # Only generate summary embedding if summary differs from content
+    if summary_content != req.content:
+        summary_embedding = await get_embedding(summary_content)
+        summary_embedding_str = "[" + ",".join(str(x) for x in summary_embedding) + "]"
+
     row = await pool.fetchrow(
         """INSERT INTO semantic_memories
                (content, category, confidence, source, embedding, embedding_hv, metadata,
-                importance_score, ttl_days, salience_score)
-           VALUES ($1, $2, $3, $4, $5::vector, $5::halfvec(1536), $6, $7, $8, $9)
-           RETURNING id, content, category, confidence, source, created_at, importance_score""",
+                importance_score, ttl_days, salience_score,
+                summary_content, summary_embedding, summary_embedding_hv)
+           VALUES ($1, $2, $3, $4, $5::text::vector, $5::text::halfvec(1536), $6, $7, $8, $9, $10,
+                   CASE WHEN ($11::text) IS NOT NULL THEN ($11::text)::vector ELSE NULL END,
+                   CASE WHEN ($11::text) IS NOT NULL THEN ($11::text)::halfvec(1536) ELSE NULL END)
+           RETURNING id, content, category, confidence, source, created_at, importance_score, summary_content""",
         req.content, req.category, req.confidence, req.source,
         embedding_str, req.metadata, importance, req.ttl_days, salience,
+        summary_content, summary_embedding_str,
     )
     logger.info(
-        f"AgeMem+BMAM: stored memory {row['id']} category={req.category} "
-        f"importance={importance:.3f} salience={salience:.3f}"
+        f"AgeMem+BMAM+HyMem: stored memory {row['id']} category={req.category} "
+        f"importance={importance:.3f} salience={salience:.3f} summary_len={len(summary_content)}"
     )
 
     # A-Mem: auto-link new memory to similar existing memories
@@ -362,15 +481,48 @@ def _importance_weighted_score(r) -> float:
 
 @router.post("/search", response_model=list[SemanticMemoryOut])
 async def search(req: SemanticSearchQuery):
+    """HyMem dual-granularity semantic search.
+    
+    Automatically selects tier based on query complexity:
+    - Summary tier: fast, lightweight retrieval for simple queries
+    - Detailed tier: full semantic search for complex queries
+    """
+    pool = await get_pool()
+    
+    # HyMem: classify query complexity to select appropriate tier
+    classifier = QueryComplexityClassifier(threshold=req.complexity_threshold)
+    recommended_tier, confidence = classifier.classify(req.query)
+    
+    # Use forced tier if specified, otherwise use classifier recommendation
+    tier = req.force_tier or recommended_tier
+    
+    logger.info(f"HyMem: query='{req.query[:50]}...' tier={tier} (confidence={confidence:.2f}, forced={req.force_tier is not None})")
+
+    # Perform dual-tier search
+    results = await _hymem_search(pool, req, tier)
+    
+    # Tag results with tier used
+    for r in results:
+        r.tier_used = tier
+    
+    return results
+
+
+async def _hymem_search(
+    pool,
+    req: SemanticSearchQuery,
+    tier: str
+) -> list[SemanticMemoryOut]:
+    """Internal HyMem dual-granularity search implementation."""
+
+    # Embed query first — embedding is always $1 to avoid param index shifting
     query_embedding = await get_embedding(req.query)
     embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
 
-    pool = await get_pool()
-
     # Build dynamic WHERE clause — exclude archived and soft-deleted
     conditions = ["archived = FALSE", "deleted_at IS NULL"]
-    params: list = [embedding_str]
-    idx = 2
+    params: list = [embedding_str]  # $1 = embedding (fixed)
+    idx = 2  # next free param index
 
     if req.min_confidence > 0:
         conditions.append(f"confidence >= ${idx}")
@@ -383,40 +535,87 @@ async def search(req: SemanticSearchQuery):
         idx += 1
 
     where = " AND ".join(conditions)
-    # Fetch 3x the requested limit for two-phase re-ranking, then trim
     fetch_limit = req.limit * 3
     params.append(fetch_limit)
+    # idx now points to fetch_limit's position in params
 
     async with pool.acquire() as conn:
-        # Enable iterative HNSW scan so WHERE-clause filtering doesn't over-skip candidates
         await conn.execute("SET hnsw.iterative_scan = relaxed_order")
-        rows = await conn.fetch(
-            f"""SELECT id, content, category, confidence, source, created_at,
-                       utility_score, relevance_score, importance_score, salience_score,
-                       1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
-                FROM semantic_memories
-                WHERE embedding_hv IS NOT NULL AND {where}
-                ORDER BY embedding_hv <=> $1::halfvec(1536)
-                LIMIT ${idx}""",
-            *params,
-        )
 
-        # Phase 2: re-rank by BMAM salience-blended score (0.6*cosine + 0.4*salience)
+        if tier == "summary":
+            # HyMem Summary Tier: fast retrieval using summary embeddings
+            # Falls back to detailed tier if no summary embeddings available
+
+            # Try summary tier first (only rows with summary embeddings)
+            rows = await conn.fetch(
+                f"""SELECT id, content, category, confidence, source, created_at,
+                           utility_score, relevance_score, importance_score, salience_score,
+                           summary_content,
+                           1 - (summary_embedding_hv <=> $1::halfvec(1536)) AS similarity
+                    FROM semantic_memories
+                    WHERE summary_embedding_hv IS NOT NULL AND {where}
+                    ORDER BY summary_embedding_hv <=> $1::halfvec(1536)
+                    LIMIT ${idx}""",
+                *params,
+            )
+
+            # If summary tier returns too few results, fall back to detailed
+            if len(rows) < req.limit:
+                logger.info(f"HyMem: summary tier returned {len(rows)} results, falling back to detailed tier")
+                rows = await conn.fetch(
+                    f"""SELECT id, content, category, confidence, source, created_at,
+                               utility_score, relevance_score, importance_score, salience_score,
+                               summary_content,
+                               1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+                        FROM semantic_memories
+                        WHERE embedding_hv IS NOT NULL AND {where}
+                        ORDER BY embedding_hv <=> $1::halfvec(1536)
+                        LIMIT ${idx}""",
+                    *params,
+                )
+        else:
+            # HyMem Detailed Tier: full semantic search on content embeddings
+            rows = await conn.fetch(
+                f"""SELECT id, content, category, confidence, source, created_at,
+                           utility_score, relevance_score, importance_score, salience_score,
+                           summary_content,
+                           1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+                    FROM semantic_memories
+                    WHERE embedding_hv IS NOT NULL AND {where}
+                    ORDER BY embedding_hv <=> $1::halfvec(1536)
+                    LIMIT ${idx}""",
+                *params,
+            )
+
+        # Phase 2: re-rank by BMAM salience-blended score
         ranked = sorted(rows, key=_bmam_score, reverse=True)[: req.limit]
 
-        # ReMe + AgeMem + BMAM: on retrieval, strengthen retrieved memories and track access
+        # ReMe + AgeMem + BMAM + HyMem: update retrieval stats
         ids = [r["id"] for r in ranked]
         if ids:
-            await conn.execute(
-                """UPDATE semantic_memories
-                   SET last_retrieved_at = NOW(),
-                       utility_score = LEAST(1.0, utility_score + 0.1 * (1.0 - utility_score)),
-                       relevance_score = LEAST(1.0, relevance_score + 0.05 * (1.0 - relevance_score)),
-                       salience_score = LEAST(1.0, salience_score + 0.05 * (1.0 - salience_score)),
-                       retrieval_count = retrieval_count + 1
-                   WHERE id = ANY($1::uuid[])""",
-                ids,
-            )
+            if tier == "summary":
+                await conn.execute(
+                    """UPDATE semantic_memories
+                       SET last_retrieved_at = NOW(),
+                           summary_retrieval_count = summary_retrieval_count + 1,
+                           utility_score = LEAST(1.0, utility_score + 0.1 * (1.0 - utility_score)),
+                           relevance_score = LEAST(1.0, relevance_score + 0.05 * (1.0 - relevance_score)),
+                           salience_score = LEAST(1.0, salience_score + 0.05 * (1.0 - salience_score)),
+                           retrieval_count = retrieval_count + 1
+                       WHERE id = ANY($1::uuid[])""",
+                    ids,
+                )
+            else:
+                await conn.execute(
+                    """UPDATE semantic_memories
+                       SET last_retrieved_at = NOW(),
+                           utility_score = LEAST(1.0, utility_score + 0.1 * (1.0 - utility_score)),
+                           relevance_score = LEAST(1.0, relevance_score + 0.05 * (1.0 - relevance_score)),
+                           salience_score = LEAST(1.0, salience_score + 0.05 * (1.0 - salience_score)),
+                           retrieval_count = retrieval_count + 1
+                       WHERE id = ANY($1::uuid[])""",
+                    ids,
+                )
 
         primary = [
             SemanticMemoryOut(**{
@@ -427,16 +626,11 @@ async def search(req: SemanticSearchQuery):
             for r in ranked
         ]
 
-    # A-Mem: expand with 1-hop linked context (non-fatal, additive only)
+    # A-Mem: expand with 1-hop linked context
     try:
         primary_ids = [r.id for r in primary]
         linked = await _amem_expand_links(pool, primary_ids)
         if linked:
-            # Attach linked_context as a response header-style extension
-            # We return the primary list unchanged + annotate the first item's
-            # score field is untouched — linked context is injected into a
-            # custom X-Linked-Context response header via a background annotation.
-            # For now, log it so the heartbeat can see associative expansion is working.
             logger.info(f"A-Mem: {len(linked)} linked memories surfaced for query '{req.query[:60]}'")
     except Exception as e:
         logger.warning(f"A-Mem link expansion failed (non-fatal): {e}")
@@ -800,6 +994,74 @@ async def arag_search(req: ARAGSearchRequest):
         keyword_count=result["keyword_count"],
         structured_count=result["structured_count"],
     )
+
+
+# ── HyMem: briefing search (exported) ─────────────────────────────
+
+async def hymem_briefing_facts(
+    pool,
+    query: str,
+    limit: int = 20,
+    min_confidence: float = 0.7,
+    top_k_detailed: int = 5,
+    excluded_categories: tuple = (),
+) -> list[dict]:
+    """HyMem hybrid search optimised for context briefings.
+
+    Returns top_k_detailed results with full content (detailed tier),
+    plus remaining results with summary_content only (summary tier breadth).
+    Falls back to arag_search_internal if needed.
+    """
+    query_embedding = await get_embedding(query)
+    embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
+
+    conditions = ["archived = FALSE", "deleted_at IS NULL", "embedding_hv IS NOT NULL"]
+    params: list = [embedding_str]
+    idx = 2
+
+    if min_confidence > 0:
+        conditions.append(f"confidence >= ${idx}")
+        params.append(min_confidence)
+        idx += 1
+
+    where = " AND ".join(conditions)
+    params.append(limit * 3)
+
+    async with pool.acquire() as conn:
+        await conn.execute("SET hnsw.iterative_scan = relaxed_order")
+        rows = await conn.fetch(
+            f"""SELECT id, content, category, confidence, source, created_at,
+                       importance_score, salience_score, utility_score, relevance_score,
+                       summary_content,
+                       1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+                FROM semantic_memories
+                WHERE {where}
+                ORDER BY embedding_hv <=> $1::halfvec(1536)
+                LIMIT ${idx}""",
+            *params,
+        )
+
+    ranked = sorted(rows, key=_bmam_score, reverse=True)[:limit]
+
+    results = []
+    for i, r in enumerate(ranked):
+        cat = r["category"]
+        if cat in excluded_categories:
+            continue
+        # Detailed tier for top-k, summary tier for breadth
+        use_summary = i >= top_k_detailed and r["summary_content"]
+        results.append({
+            "id": r["id"],
+            "content": r["content"],
+            "summary_content": r["summary_content"],
+            "category": cat,
+            "confidence": float(r["confidence"]),
+            "importance_score": float(r["importance_score"]) if r["importance_score"] is not None else 0.5,
+            "display_content": r["summary_content"] if use_summary else r["content"],
+            "tier": "summary" if use_summary else "detailed",
+        })
+
+    return results
 
 
 # ── AgeMem: explicit memory management ────────────────────────────

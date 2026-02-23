@@ -12,7 +12,7 @@ which brain-specific sections are included:
 import json
 import logging
 from .graphiti import graphiti_search
-from .routes.semantic import arag_search_internal
+from .routes.semantic import arag_search_internal, hymem_briefing_facts
 from .config import settings
 
 log = logging.getLogger("otto.context_builder")
@@ -131,6 +131,7 @@ async def build_context_text(
     pool,
     max_tokens: int = 15000,
     source: str = "startup",
+    format: str = "full",
 ) -> str:
     """Build token-budgeted context text for Claude or Gemini.
 
@@ -138,7 +139,7 @@ async def build_context_text(
       0a  PURPOSE — immutable identity anchor
       0b  PRIORITIES — ranked what Mev wants
       0c  Active Directives from Mev
-      0d  Working Memory (other core_memory slots)
+      0d  Working Memory (other core_memory slots, sorted by recency)
       1   Identity facts (semantic_memories.category='identity')
       2   Mission & goals (semantic_memories.category in mission/goal/decision)
       3   Pending questions (Claude→Mev)
@@ -150,10 +151,22 @@ async def build_context_text(
       6   High-confidence semantic facts
       7   Knowledge graph
       8   Procedures
+
+    format="full"    — full verbosity (default, for Claude Code sessions)
+    format="compact" — same information, shorter snippets (for WhatsApp/Gemini)
     """
     is_whatsapp = source == "whatsapp"
+    is_compact = format == "compact"
     is_large = max_tokens >= 5000
     is_xlarge = max_tokens >= 10000
+
+    # Verbosity multipliers: compact reduces snippet lengths by ~40%
+    _snippet = 180 if is_compact else 300
+    _wm_snippet = 250 if is_compact else 400
+    _event_snippet = 150 if is_compact else 300
+    _rc_reasoning = 200 if is_compact else 300
+    _rc_other = 120 if is_compact else 200
+    _rc_limit = 3 if is_compact else 5
 
     lines: list[str] = []
     used = 0
@@ -212,17 +225,17 @@ async def build_context_text(
     except Exception:
         pass
 
-    # ── Tier 0d: Working memory (other core_memory slots) ────────────────
+    # ── Tier 0d: Working memory (sorted by recency + priority) ──────────
     try:
         wm_rows = await pool.fetch(
             "SELECT slot, content FROM core_memory "
             "WHERE content != '' AND slot NOT IN ('purpose', 'priorities') "
-            "ORDER BY priority DESC"
+            "ORDER BY priority DESC, updated_at DESC NULLS LAST"
         )
         if wm_rows:
             _add("[Otto] Working Memory:")
             for r in wm_rows:
-                snippet = r["content"][:400]
+                snippet = r["content"][:_wm_snippet]
                 if not _add(f"  [{r['slot']}] {snippet}"):
                     break
             _add("")
@@ -296,21 +309,33 @@ async def build_context_text(
             """SELECT id, title, model, started_at FROM tasks
                WHERE status = 'running' ORDER BY started_at ASC LIMIT 5"""
         )
+        # Failed tasks first (more urgent), then completed unreviewed
+        # Compact: limit 5 total; full: limit 10
+        unreviewed_limit = 5 if is_compact else 10
+        failed_rows = await pool.fetch(
+            """SELECT id, title, exit_code FROM tasks
+               WHERE status = 'failed' AND reviewed = FALSE
+               ORDER BY completed_at DESC LIMIT $1""",
+            unreviewed_limit,
+        )
         done_rows = await pool.fetch(
             """SELECT id, title, exit_code FROM tasks
-               WHERE status IN ('completed', 'failed') AND reviewed = FALSE
-               ORDER BY completed_at DESC LIMIT 10"""
+               WHERE status = 'completed' AND reviewed = FALSE
+               ORDER BY completed_at DESC LIMIT $1""",
+            unreviewed_limit,
         )
         pending_count = await pool.fetchval(
             "SELECT COUNT(*) FROM tasks WHERE status = 'pending'"
         )
-        if running_rows or done_rows or pending_count:
+        all_unreviewed = list(failed_rows) + list(done_rows)
+        if running_rows or all_unreviewed or pending_count:
             _add("[Otto] Task Queue:")
             if running_rows:
                 for r in running_rows:
-                    _add(f"  [RUNNING] {r['title']} (model: {r['model']}, since: {r['started_at']})")
-            if done_rows:
-                for r in done_rows:
+                    model_label = r["model"] or "sonnet"
+                    _add(f"  [RUNNING] [P1] {r['title']} (model: {model_label}, since: {r['started_at']})")
+            if all_unreviewed:
+                for r in all_unreviewed:
                     label = "DONE" if (r["exit_code"] or 0) == 0 else "FAIL"
                     _add(f"  [{label}] {r['title']} (id: {r['id']}) — NEEDS REVIEW")
                 _add("  ACTION: Review output with GET /tasks/{id}, then POST /tasks/{id}/review")
@@ -325,7 +350,8 @@ async def build_context_text(
                 """SELECT heartbeat_type, cycle_ts, reasoning, decisions,
                           expected, actual, outcome_match
                    FROM reasoning_chain
-                   ORDER BY cycle_ts DESC LIMIT 5"""
+                   ORDER BY cycle_ts DESC LIMIT $1""",
+                _rc_limit,
             )
             if chain_rows:
                 _add("[Otto] Recent reasoning chain (oldest → newest):")
@@ -333,14 +359,14 @@ async def build_context_text(
                     ts = r["cycle_ts"].strftime("%Y-%m-%d %H:%M") if r["cycle_ts"] else "?"
                     htype = r["heartbeat_type"]
                     lines_entry = [f"  [{htype} @ {ts}]"]
-                    lines_entry.append(f"    WHY: {r['reasoning'][:300]}")
+                    lines_entry.append(f"    WHY: {r['reasoning'][:_rc_reasoning]}")
                     if r["decisions"]:
-                        lines_entry.append(f"    DECIDED: {r['decisions'][:200]}")
+                        lines_entry.append(f"    DECIDED: {r['decisions'][:_rc_other]}")
                     if r["expected"]:
-                        lines_entry.append(f"    EXPECTED: {r['expected'][:200]}")
+                        lines_entry.append(f"    EXPECTED: {r['expected'][:_rc_other]}")
                     if r["actual"]:
                         match_label = r["outcome_match"] or "?"
-                        lines_entry.append(f"    ACTUAL [{match_label.upper()}]: {r['actual'][:200]}")
+                        lines_entry.append(f"    ACTUAL [{match_label.upper()}]: {r['actual'][:_rc_other]}")
                     if not _add("\n".join(lines_entry)):
                         break
                 _add("")
@@ -370,10 +396,9 @@ async def build_context_text(
             min_importance, event_limit,
         )
         if event_rows:
-            snippet_len = 300 if is_large else 150
             _add("[Otto] Recent events:")
             for r in event_rows:
-                snippet = r["content"][:snippet_len]
+                snippet = r["content"][:_event_snippet]
                 if not _add(f"  [{r['event_type']}] {snippet}"):
                     break
             _add("")
@@ -394,33 +419,30 @@ async def build_context_text(
                     break
             _add("")
 
-    # ── Tier 6: High-confidence semantic facts via A-RAG (fill budget) ──────
-    # A-RAG surfaces broader, more diverse facts than static SQL ordering:
-    # semantic strategy finds conceptually relevant items,
-    # keyword strategy finds category-labeled facts,
-    # structured strategy ensures high-importance items always surface.
+    # ── Tier 6: High-confidence semantic facts via HyMem hybrid (fill budget) ──────
+    # HyMem returns top-k detailed (full content) + breadth via summary tier.
+    # Summary tier items are shorter, fitting more facts within the token budget.
     if used < max_tokens * 0.6:
         fact_limit = 20 if is_xlarge else (10 if is_large else 5)
+        top_k_detailed = 5 if is_xlarge else (3 if is_large else 2)
         try:
-            arag_result = await arag_search_internal(
+            hymem_facts = await hymem_briefing_facts(
                 pool=pool,
                 query="Otto mission priorities active work infrastructure current state decisions",
                 limit=fact_limit,
                 min_confidence=0.7,
-                # Exclude tiers already covered by identity/mission sections
+                top_k_detailed=top_k_detailed,
+                excluded_categories=("identity", "mission", "goal", "decision"),
             )
-            arag_facts = [
-                r for r in arag_result["results"]
-                if r["category"] not in ("identity", "mission", "goal", "decision")
-            ]
-            if arag_facts:
+            if hymem_facts:
                 _add("[Otto] Key facts:")
-                for r in arag_facts:
-                    if not _add(f"  [{r['category']}] {r['content'][:200]}"):
+                for r in hymem_facts:
+                    display = r["display_content"][:_snippet]
+                    if not _add(f"  [{r['category']}] {display}"):
                         break
                 _add("")
         except Exception as e:
-            log.warning(f"A-RAG context retrieval failed, falling back to SQL: {e}")
+            log.warning(f"HyMem context retrieval failed, falling back to SQL: {e}")
             fact_rows = await pool.fetch(
                 """SELECT content, category FROM semantic_memories
                    WHERE category NOT IN ('identity', 'mission', 'goal', 'decision')
@@ -431,7 +453,7 @@ async def build_context_text(
             if fact_rows:
                 _add("[Otto] Key facts:")
                 for r in fact_rows:
-                    if not _add(f"  [{r['category']}] {r['content'][:200]}"):
+                    if not _add(f"  [{r['category']}] {r['content'][:_snippet]}"):
                         break
                 _add("")
 
@@ -482,11 +504,11 @@ async def build_context_text(
                     brain = r["source_brain"]
                     if node_type == "directive":
                         cat = content.get("category", "directive").upper()
-                        if not _add(f"  [DIRECTIVE/{cat}] (from {brain}, P{r['priority']}) {text[:200]}"):
+                        if not _add(f"  [DIRECTIVE/{cat}] (from {brain}, P{r['priority']}) {text[:_snippet]}"):
                             break
                     elif node_type == "decision":
                         by = content.get("decided_by", "?")
-                        if not _add(f"  [DECISION] (by {by}, from {brain}) {text[:200]}"):
+                        if not _add(f"  [DECISION] (by {by}, from {brain}) {text[:_snippet]}"):
                             break
                     elif node_type == "task_state":
                         status = content.get("status", "?")
