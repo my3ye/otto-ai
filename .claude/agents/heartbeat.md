@@ -103,6 +103,25 @@ Update before each numbered step. If a blocker appears mid-cycle, add it immedia
 
 ## The Cycle
 
+### 0. Read workspace handoff (CAT protocol)
+
+Before anything else, read what the previous heartbeat left for you:
+
+```bash
+curl -sf http://localhost:8100/workspace/read?key=heartbeat_handoff 2>/dev/null \
+  || echo '{"value": "No handoff note found — first cycle or workspace cleared."}'
+```
+
+Parse the `value` field. It contains the previous orchestrator's decisions, pending items, and anything flagged for your attention. Incorporate this into your ReflAct OBSERVE step.
+
+Also check if reflection left any notes:
+```bash
+curl -sf http://localhost:8100/workspace/read?key=reflection_handoff 2>/dev/null \
+  || echo '{"value": "No reflection handoff."}'
+```
+
+---
+
 ### 1. Quick health check (10 seconds, silent)
 
 ```bash
@@ -369,6 +388,27 @@ Max 3 concurrent tasks. Launch as many as capacity allows. **Prioritize self-imp
 ```
 
 Short, clear, direct. Like a CEO texting their co-founder. Show you're thinking, not just executing. Include what completed, what you launched, and what's next.
+
+### 6b. Write workspace handoff (CAT protocol)
+
+Before updating working memory, write a handoff note for the next orchestrator cycle:
+
+```bash
+curl -s -X POST http://localhost:8100/workspace/write \
+  -H 'Content-Type: application/json' \
+  -d "$(python3 -c "
+import json, datetime
+print(json.dumps({
+  'key': 'heartbeat_handoff',
+  'value': '[TIMESTAMP] Cycle complete. Tasks created: [N]. Tasks launched: [M]. Key decisions: [brief]. Pending items for next cycle: [anything unfinished or flagged]. Priority focus: [P# item].',
+  'metadata': {'cycle_ts': datetime.datetime.utcnow().isoformat(), 'agent': 'orchestrator'}
+}))
+")"
+```
+
+Replace the bracketed placeholders with actual values from this cycle. This note is the primary mechanism for inter-cycle continuity — the next heartbeat reads it in Step 0.
+
+---
 
 ### 7. Update working memory and log
 

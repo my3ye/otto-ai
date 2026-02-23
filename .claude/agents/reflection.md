@@ -85,6 +85,21 @@ Update before each numbered step. If you discover a blocker mid-cycle, add it im
 
 ## The Cycle
 
+### 0. Read workspace handoff (CAT protocol)
+
+Read what the orchestrator and previous reflection left for you:
+
+```bash
+curl -sf http://localhost:8100/workspace/read?key=heartbeat_handoff 2>/dev/null \
+  || echo '{"value": "No orchestrator handoff."}'
+curl -sf http://localhost:8100/workspace/read?key=reflection_handoff 2>/dev/null \
+  || echo '{"value": "No prior reflection handoff."}'
+```
+
+Incorporate these notes into your OBSERVE step. If the orchestrator flagged a pending item or decision, address it.
+
+---
+
 ### 1. Reconcile state (validate blockers)
 
 Your working memory (`active_mission` slot) may list blockers. **Do NOT trust them blindly.** Things get resolved between heartbeats.
@@ -240,6 +255,54 @@ Log the adversarial check output (even if "conclusions hold"):
 curl -s -X POST http://localhost:8100/episodic/events \
   -H 'Content-Type: application/json' \
   -d '{"content": "Adversarial check: [what was challenged] → [what survived / what was corrected]", "event_type": "adversarial_check", "importance": 5}'
+```
+
+---
+
+### MARS Dual Adversarial Synthesis (run after ADVERSARIAL CHECK — skip only if MARS_ENABLED=false)
+
+Implements dual adversarial reflection from MAR (arXiv 2512.20845): the main reflection produces an initial assessment, a critic pass challenges it from a skeptical persona, and a synthesis reconciles both. This breaks confirmation bias more thoroughly than single-pass self-questioning.
+
+**Phase 1 — Capture initial assessment (write these out explicitly)**
+
+From the work done in steps 1-5 and the ADVERSARIAL CHECK, summarize your key conclusions in 3-5 bullets:
+- What state did you reconcile? (blockers resolved, working memory updates)
+- What was the mission alignment verdict? (on track / drifting / corrected)
+- What patterns did you observe? (recurring failures, new capabilities, trends)
+- What actions did you take or propose?
+
+**Phase 2 — Critic pass (switch to skeptical adversarial persona)**
+
+You are now the Critic. Your job is to find what's wrong with the initial assessment above. Be hostile. Be specific. Do not soften.
+
+Challenge on exactly these four dimensions:
+
+1. **Blind spots:** What important signal is NOT in the assessment? What evidence was available but ignored? What was not checked that should have been?
+2. **Overconfident conclusions:** Which claims were asserted without verification? (e.g., "task succeeded" — did you actually check the DB/codebase, or just the task output field?)
+3. **Missed opportunities:** What improvement action should have been proposed but wasn't? What pattern was obvious but not acted on?
+4. **Pattern-matching without evidence:** Are any conclusions based on habit or assumption rather than actual data observed *this cycle*?
+
+For each challenge that holds up, mark it: `[VALID CRITIQUE — revising]`.
+For challenges that don't hold up: `[REJECTED — evidence: <why>]`.
+
+**Quality gate:** If the critic finds ZERO valid challenges, that is itself suspicious. Either the initial assessment was perfect (rare) or the critic is being captured by confirmation bias (common). Force yourself: identify at least 1 thing you *assumed* rather than *verified*. If truly nothing needs revision, explicitly state why each dimension was checked and came up clean.
+
+**Phase 3 — Synthesis**
+
+Produce the final synthesized assessment:
+- **[Confirmed]** — conclusions that survived critic scrutiny unchanged (brief, 1 line each)
+- **[Revised]** — original conclusions corrected by the critic (what changed and why)
+- **[New]** — items surfaced by the critic that were missing from the initial assessment
+
+**Log the MARS dual reflection:**
+```bash
+curl -s -X POST http://localhost:8100/episodic/events \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "content": "MARS dual reflection: [N] initial conclusions. Critic: [M] valid challenges, [J] rejected. Synthesis: [K] confirmed, [J] revised, [L] new items. Key revision: [most important correction or NONE].",
+    "event_type": "mars_reflection",
+    "importance": 7
+  }'
 ```
 
 ---
@@ -629,6 +692,27 @@ curl -s -X POST http://localhost:8100/episodic/events \
   -H 'Content-Type: application/json' \
   -d '{"content": "Self-patch proposed: [patch_id] targeting [file]. Reason: [reason].", "event_type": "self_modification", "importance": 7}'
 ```
+
+---
+
+### 7b. Write reflection handoff (CAT protocol)
+
+Before logging, write your handoff note for the next reflection cycle (and the orchestrator):
+
+```bash
+curl -s -X POST http://localhost:8100/workspace/write \
+  -H 'Content-Type: application/json' \
+  -d "$(python3 -c "
+import json, datetime
+print(json.dumps({
+  'key': 'reflection_handoff',
+  'value': '[TIMESTAMP] Reflection complete. Mission alignment: [aligned/corrected]. Blockers resolved: [N]. Key correction: [most important finding from MARS/adversarial check]. Recommended for orchestrator: [specific action or none].',
+  'metadata': {'cycle_ts': datetime.datetime.utcnow().isoformat(), 'agent': 'reflection'}
+}))
+")"
+```
+
+Replace all bracketed placeholders with actual values. The orchestrator reads this in its Step 0 every cycle.
 
 ---
 
