@@ -6,7 +6,7 @@ import math
 import time
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 
 from ..config import settings
 from ..db import get_pool
@@ -28,7 +28,9 @@ from ..models import (
     ARAGSearchRequest,
     ARAGResult,
     ARAGSearchResponse,
+    SimpleMemSearchResponse,
 )
+from ..simplemem import compress_for_context
 
 # ── HyMem: Dual-granularity retrieval helpers ──────────────────────
 
@@ -479,33 +481,57 @@ def _importance_weighted_score(r) -> float:
     return 0.7 * similarity + 0.2 * importance + 0.1 * recency
 
 
-@router.post("/search", response_model=list[SemanticMemoryOut])
-async def search(req: SemanticSearchQuery):
+@router.post("/search")
+async def search(
+    req: SemanticSearchQuery,
+    compress: bool = Query(default=False, description="Apply SimpleMem 3-stage compression (dedup+summarize+rank). Returns SimpleMemSearchResponse when True."),
+):
     """HyMem dual-granularity semantic search.
-    
+
     Automatically selects tier based on query complexity:
     - Summary tier: fast, lightweight retrieval for simple queries
     - Detailed tier: full semantic search for complex queries
+
+    Optional ?compress=true applies SimpleMem 3-stage compression (arXiv 2601.02553):
+    returns a SimpleMemSearchResponse with original_count, compressed_count, and
+    char reduction metadata alongside the compressed result list.
     """
     pool = await get_pool()
-    
+
     # HyMem: classify query complexity to select appropriate tier
     classifier = QueryComplexityClassifier(threshold=req.complexity_threshold)
     recommended_tier, confidence = classifier.classify(req.query)
-    
+
     # Use forced tier if specified, otherwise use classifier recommendation
     tier = req.force_tier or recommended_tier
-    
+
     logger.info(f"HyMem: query='{req.query[:50]}...' tier={tier} (confidence={confidence:.2f}, forced={req.force_tier is not None})")
 
     # Perform dual-tier search
     results = await _hymem_search(pool, req, tier)
-    
+
     # Tag results with tier used
     for r in results:
         r.tier_used = tier
-    
-    return results
+
+    if not compress:
+        # Unchanged backwards-compatible response
+        return results
+
+    # ── SimpleMem compression ─────────────────────────────────────────────────
+    compressed, orig_chars, comp_chars = compress_for_context(
+        results,
+        top_k=req.limit,
+        dedup_threshold=0.82,
+    )
+    return SimpleMemSearchResponse(
+        results=compressed,
+        original_count=len(results),
+        compressed_count=len(compressed),
+        original_chars=orig_chars,
+        compressed_chars=comp_chars,
+        reduction_pct=round(100.0 * (1 - comp_chars / orig_chars), 1) if orig_chars > 0 else 0.0,
+    )
 
 
 async def _hymem_search(

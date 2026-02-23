@@ -695,6 +695,21 @@ class QAFeedbackCreate(BaseModel):
     qa_reviewer: str | None = None     # which CLI did QA (claude/gemini/auto)
 
 
+# ── SimpleMem: compressed search response ──────────────────────────
+
+class SimpleMemSearchResponse(BaseModel):
+    """Response from POST /semantic/search?compress=true.
+
+    SimpleMem 3-stage compression (arXiv 2601.02553): dedup + summarize + rank/trim.
+    """
+    results: list[SemanticMemoryOut]
+    original_count: int        # memories before compression
+    compressed_count: int      # memories after compression
+    original_chars: int        # total content chars before compression
+    compressed_chars: int      # total content chars after compression
+    reduction_pct: float       # percentage reduction in content chars
+
+
 # ── WhatsApp ───────────────────────────────────────────────────────
 class WhatsAppIncoming(BaseModel):
     from_jid: str
