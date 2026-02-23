@@ -8,6 +8,7 @@ from ..models import (
     EpisodicEventOut, ProcedureOut,
 )
 from ..config import settings
+from ..simplemem import compress_for_context
 import logging
 
 log = logging.getLogger("otto.context")
@@ -41,21 +42,43 @@ async def get_briefing(session_id: str | None = None):
 
     # Identity facts from pgvector
     identity_rows = await pool.fetch(
-        """SELECT id, content, category, confidence, source, created_at
+        """SELECT id, content, category, confidence, source, created_at, summary_content
            FROM semantic_memories
            WHERE category = 'identity' AND confidence >= 0.8
            ORDER BY confidence DESC LIMIT 20""",
     )
-    identity_facts = [SemanticMemoryOut(**dict(r)) for r in identity_rows]
+    identity_facts_raw = [SemanticMemoryOut(**dict(r)) for r in identity_rows]
 
     # High-confidence semantic facts
     fact_rows = await pool.fetch(
-        """SELECT id, content, category, confidence, source, created_at
+        """SELECT id, content, category, confidence, source, created_at, summary_content
            FROM semantic_memories
            WHERE category != 'identity' AND confidence >= 0.7
            ORDER BY confidence DESC, updated_at DESC LIMIT 30""",
     )
-    high_confidence_facts = [SemanticMemoryOut(**dict(r)) for r in fact_rows]
+    high_confidence_facts_raw = [SemanticMemoryOut(**dict(r)) for r in fact_rows]
+
+    # SimpleMem: apply 3-stage compression to reduce context token usage
+    orig_id_chars = sum(len(m.content or '') for m in identity_facts_raw)
+    orig_hc_chars = sum(len(m.content or '') for m in high_confidence_facts_raw)
+
+    identity_facts_compressed, _, comp_id_chars = compress_for_context(
+        identity_facts_raw, dedup_threshold=0.82
+    )
+    high_confidence_facts_compressed, _, comp_hc_chars = compress_for_context(
+        high_confidence_facts_raw, dedup_threshold=0.82
+    )
+    identity_facts = identity_facts_compressed
+    high_confidence_facts = high_confidence_facts_compressed
+
+    total_orig = orig_id_chars + orig_hc_chars
+    total_comp = comp_id_chars + comp_hc_chars
+    log.info(
+        f"SimpleMem briefing: identity {len(identity_facts_raw)}→{len(identity_facts)}, "
+        f"facts {len(high_confidence_facts_raw)}→{len(high_confidence_facts)} | "
+        f"chars {total_orig}→{total_comp} "
+        f"({round(100*(1-total_comp/total_orig),1) if total_orig > 0 else 0}% reduction)"
+    )
 
     # Recent important events
     event_rows = await pool.fetch(
