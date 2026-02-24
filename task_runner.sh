@@ -5,6 +5,9 @@
 
 set -euo pipefail
 
+# Clear Claude nested session detection so task_runner can spawn CLI sessions
+unset CLAUDECODE CLAUDE_CODE_ENTRYPOINT 2>/dev/null || true
+
 API="http://localhost:8100"
 CLAUDE_CLI="/home/web3relic/.local/bin/claude"
 LOG_DIR="/home/web3relic/otto/logs/tasks"
@@ -182,6 +185,54 @@ except Exception:
     fi
 fi
 
+# ── Procedure Memory Lookup ───────────────────────────────────────────────────
+# Query /procedural/suggest for known approaches to this task type.
+# High-trust procedures (trust_score >= 0.55) are injected into the prompt.
+# Procedure names are saved so we can record outcomes after execution.
+PROC_BLOCK=""
+PROC_NAMES=""
+TITLE_ENC_PROC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$TITLE" 2>/dev/null || echo "")
+if [ -n "$TITLE_ENC_PROC" ]; then
+    PROC_JSON=$(curl -sf "${API}/procedural/suggest?task_description=${TITLE_ENC_PROC}" 2>/dev/null || echo "[]")
+    PROC_BLOCK=$(echo "$PROC_JSON" | python3 -c "
+import json, sys
+try:
+    procs = json.load(sys.stdin)
+    relevant = [p for p in procs if p.get('trust_score', 0) >= 0.55 and p.get('steps')]
+    if not relevant:
+        sys.exit(0)
+    lines = ['--- Known procedure (from procedure memory) ---']
+    for p in relevant:
+        lines.append(f\"Procedure: {p['name']} (trust={p['trust_score']:.2f})\")
+        if p.get('description'):
+            lines.append(f\"  Description: {p['description']}\")
+        if p.get('steps'):
+            lines.append('  Steps:')
+            for s in p['steps']:
+                lines.append(f'    - {s}')
+    lines.append('--- Use this approach if applicable, adapt as needed ---')
+    print('\n'.join(lines))
+except Exception:
+    pass
+" 2>/dev/null || echo "")
+    PROC_NAMES=$(echo "$PROC_JSON" | python3 -c "
+import json, sys
+try:
+    procs = json.load(sys.stdin)
+    relevant = [p['name'] for p in procs if p.get('trust_score', 0) >= 0.55 and p.get('steps')]
+    print('\n'.join(relevant))
+except Exception:
+    pass
+" 2>/dev/null || echo "")
+    if [ -n "$PROC_BLOCK" ]; then
+        PROC_COUNT=$(echo "$PROC_NAMES" | grep -c . 2>/dev/null || echo "?")
+        log "Procedure memory: ${PROC_COUNT} known procedure(s) will be injected into prompt"
+    else
+        log "Procedure memory: no high-trust procedures matched for this task"
+    fi
+fi
+# ── End Procedure Memory Lookup ───────────────────────────────────────────────
+
 # Build the full prompt with context
 FULL_PROMPT="You are Otto, executing a task from the task queue.
 
@@ -204,6 +255,12 @@ if [ -n "$HINDSIGHT_BLOCK" ]; then
     FULL_PROMPT="${FULL_PROMPT}
 
 ${HINDSIGHT_BLOCK}"
+fi
+
+if [ -n "$PROC_BLOCK" ]; then
+    FULL_PROMPT="${FULL_PROMPT}
+
+${PROC_BLOCK}"
 fi
 
 if [ -n "$CONTEXT" ]; then
@@ -527,6 +584,25 @@ curl -sf -X POST "${API}/tasks/${TASK_ID}/complete" \
     -d "$RESULT_JSON" >> "$LOG_FILE" 2>&1 || {
     log "WARNING: Failed to report task completion to API"
 }
+
+# ── Procedure Outcome Recording ───────────────────────────────────────────────
+# For each procedure that was injected into the prompt, record success or failure.
+# This closes the TAME learning loop: trust scores converge toward actual reliability.
+if [ -n "$PROC_NAMES" ]; then
+    PROC_SUCCESS="true"
+    [ "$EXIT_CODE" -ne 0 ] && PROC_SUCCESS="false"
+    while IFS= read -r PROC_NAME; do
+        [ -z "$PROC_NAME" ] && continue
+        PROC_NAME_ENC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$PROC_NAME" 2>/dev/null || echo "$PROC_NAME")
+        curl -sf -X PUT "${API}/procedural/${PROC_NAME_ENC}/outcome" \
+            -H 'Content-Type: application/json' \
+            -d "{\"success\": ${PROC_SUCCESS}}" \
+            >> "$LOG_FILE" 2>&1 && \
+            log "Procedure outcome: ${PROC_NAME} → success=${PROC_SUCCESS}" || \
+            log "WARNING: could not record outcome for procedure '${PROC_NAME}' (non-fatal)"
+    done <<< "$PROC_NAMES"
+fi
+# ── End Procedure Outcome Recording ───────────────────────────────────────────
 
 # ── QA Runner — review and auto-commit if task succeeded ──────────────────────
 QA_RUNNER="/home/web3relic/otto/qa_runner.sh"

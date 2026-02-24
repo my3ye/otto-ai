@@ -31,6 +31,7 @@ from ..models import (
     SimpleMemSearchResponse,
 )
 from ..simplemem import compress_for_context
+from ..llm import llm_chat
 
 # ── HyMem: Dual-granularity retrieval helpers ──────────────────────
 
@@ -145,24 +146,39 @@ router = APIRouter(prefix="/semantic", tags=["semantic"])
 # ── AgeMem: Importance scoring ─────────────────────────────────────
 
 # Category weights per AgeMem spec (arxiv 2601.01885)
+# Canonical category set — validated on /remember. Any caller must use one of these.
+# Mapped from legacy: market_research→research, self_improvement→capability,
+# alpha/brand/characters/product/project_context/own_model/webassist→project,
+# pipeline_status/working_memory/reasoning_chain→system, architecture→infrastructure,
+# narrative/general→observation, procedure/implementation→capability, goal→mission.
+CANONICAL_CATEGORIES: frozenset[str] = frozenset({
+    "identity",      # Otto's identity, persona, who Otto is
+    "directive",     # Commands/instructions from Mev
+    "mission",       # Goals, objectives, purpose (inc. former 'goal')
+    "decision",      # Decisions made by Otto or Mev
+    "infrastructure",# System architecture, deployment (inc. former 'architecture')
+    "project",       # All brand/product projects (alpha, characters, brand, etc.)
+    "research",      # Papers, findings, market research
+    "capability",    # Otto's skills, procedures, implementations (inc. 'self_improvement')
+    "system",        # Internal system state, pipeline status, memory state
+    "observation",   # General observations, narrative, facts (inc. 'general')
+    "learning",      # Lessons learned, reflections (future use)
+    "relationship",  # Relationships between entities (future use)
+})
+
 _CATEGORY_WEIGHTS: dict[str, float] = {
     "identity": 1.0,
     "directive": 0.95,
     "infrastructure": 0.9,
-    "project_alpha": 0.85,
-    "brand": 0.85,
     "mission": 0.85,
     "research": 0.8,
-    "self_improvement": 0.8,
-    "principle": 0.8,
-    "goal": 0.75,
+    "capability": 0.8,
     "decision": 0.75,
-    "procedure": 0.7,
-    "outreach": 0.65,
-    "task": 0.65,
-    "event": 0.6,
+    "project": 0.75,
+    "learning": 0.7,
+    "system": 0.65,
+    "relationship": 0.6,
     "observation": 0.55,
-    "general": 0.5,
 }
 
 _DUPLICATE_SIMILARITY_THRESHOLD = 0.85  # cosine similarity above which we suppress a duplicate
@@ -218,17 +234,10 @@ async def _compute_importance(
 # ── Gemini Flash helper ────────────────────────────────────────────
 
 async def _gemini_summarize(memories_text: str, category: str) -> str:
-    """Use Gemini Flash to merge multiple memories into a single summary."""
-    if not settings.gemini_api_key:
-        # Fallback: simple concatenation
+    """Use LLM to merge multiple memories into a single summary."""
+    if not settings.kimi_api_key:
         return f"[summarized] {memories_text[:500]}"
 
-    import google.generativeai as genai  # lazy import
-    genai.configure(api_key=settings.gemini_api_key)
-    model = genai.GenerativeModel(
-        "gemini-2.0-flash",
-        generation_config={"temperature": 0.1},
-    )
     prompt = (
         "You are an AI memory assistant. Merge these related memories into a single, "
         "concise factual statement (1-3 sentences). Preserve all key information. "
@@ -236,11 +245,10 @@ async def _gemini_summarize(memories_text: str, category: str) -> str:
         f"Category: {category}\n\nMemories to merge:\n{memories_text}"
     )
     try:
-        response = await asyncio.to_thread(model.generate_content, prompt)
-        return response.text.strip()
+        response = await llm_chat([{"role": "user", "content": prompt}], max_tokens=300, temperature=0.1)
+        return response or f"[summarized] {memories_text[:500]}"
     except Exception as e:
-        logger.warning(f"Gemini summarize failed: {e}")
-        # Fallback: concatenate with separator
+        logger.warning(f"LLM summarize failed: {e}")
         return " | ".join(
             line.lstrip("- ").strip()
             for line in memories_text.split("\n")
@@ -397,6 +405,28 @@ def _bmam_score(r) -> float:
 
 @router.post("/remember", response_model=SemanticMemoryOut)
 async def remember(req: SemanticMemoryCreate):
+    # Category validation — normalize to canonical set
+    cat = req.category.lower().strip() if req.category else "observation"
+    if cat not in CANONICAL_CATEGORIES:
+        # Auto-map legacy/unknown categories to closest canonical
+        _legacy_map = {
+            "general": "observation", "market_research": "research",
+            "self_improvement": "capability", "alpha": "project",
+            "characters": "project", "brand": "project", "product": "project",
+            "project_context": "project", "own_model": "project", "webassist": "project",
+            "pipeline_status": "system", "working_memory": "system",
+            "reasoning_chain": "system", "architecture": "infrastructure",
+            "narrative": "observation", "implementation": "capability",
+            "procedure": "capability", "goal": "mission",
+            "principle": "capability", "task": "system", "event": "observation",
+            "outreach": "project", "project_alpha": "project",
+        }
+        mapped = _legacy_map.get(cat, "observation")
+        logger.warning(f"category '{cat}' not canonical — mapped to '{mapped}'")
+        cat = mapped
+    # Mutate the request category field for downstream use
+    req = req.model_copy(update={"category": cat})
+
     embedding = await get_embedding(req.content)
     embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
 
