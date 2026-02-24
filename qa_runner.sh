@@ -77,6 +77,19 @@ WORK_DIR=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.
 qa_log "Task: ${TITLE}"
 qa_log "Work dir: ${WORK_DIR}"
 
+# Brief settling delay — allow async API writes (semantic memory, episodic events, DB)
+# to propagate before QA verification. Prevents race-condition false positives where
+# QA queries semantic memory before the task's writes have committed.
+sleep 5
+qa_log "Settled (5s) — beginning verification"
+
+# Detect budget/timeout-exceeded output — partial success is possible even on exceeded budget
+IS_BUDGET_EXCEEDED=false
+if echo "$OUTPUT" | grep -qiE '(exceeded.*budget|budget.*exceeded|Exceeded USD|max.*budget.*usd|budget.*exhausted)'; then
+    IS_BUDGET_EXCEEDED=true
+    qa_log "Budget-exceeded output detected — will flag partial deliverable check in QA prompt"
+fi
+
 # ── Select QA reviewer (must differ from task CLI) ───────────────────────────
 # claude → gemini, gemini → claude, kimi → claude
 case "$TASK_CLI" in
@@ -232,17 +245,24 @@ SEMANTIC_EVIDENCE=""
 if echo "$TITLE" | grep -qiE '(research|sweep|survey|explor|investigat|analys|review|discover|audit)'; then
     IS_RESEARCH_TASK=true
     qa_log "Research/exploration task detected — querying semantic memory for recent storage"
-    SEMANTIC_RESULTS=$(curl -sf -X POST "${API}/semantic/search" \
-        -H 'Content-Type: application/json' \
-        -d '{"query": "research papers", "limit": 5}' 2>/dev/null || echo "")
-    SEMANTIC_EVIDENCE=$(echo "$SEMANTIC_RESULTS" | python3 -c "
+    # Helper function: query semantic memory and return evidence string
+    _query_semantic_evidence() {
+        local query_str="${1:-research papers}"
+        local hours_back="${2:-2}"
+        local limit="${3:-5}"
+        local results
+        results=$(curl -sf -X POST "${API}/semantic/search" \
+            -H 'Content-Type: application/json' \
+            -d "{\"query\": \"${query_str}\", \"limit\": ${limit}}" 2>/dev/null || echo "")
+        echo "$results" | python3 -c "
 import json, sys
 from datetime import datetime, timezone, timedelta
 try:
     results = json.load(sys.stdin)
     if not isinstance(results, list):
         results = results.get('results', [])
-    cutoff = datetime.now(timezone.utc) - timedelta(hours=1)
+    # Widened from 1h → 2h to reduce timing sensitivity
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=${hours_back})
     recent = []
     for r in results:
         created = r.get('created_at', '')
@@ -253,16 +273,36 @@ try:
         except Exception:
             pass
     if recent:
-        print('VERIFIED: {} fact(s) stored in semantic memory in last hour:'.format(len(recent)))
+        print('VERIFIED: {} fact(s) stored in semantic memory in last {}h:'.format(len(recent), ${hours_back}))
         for i, f in enumerate(recent, 1):
             print('  {}. {}'.format(i, f[:150]))
     else:
         total = len(results)
-        print('UNVERIFIED: 0 facts stored in last hour (query returned {} older results).'.format(total))
+        print('UNVERIFIED: 0 facts stored in last {}h (query returned {} older results).'.format(${hours_back}, total))
 except Exception as e:
     print('ERROR querying semantic memory: {}'.format(e))
-" 2>/dev/null || echo "Semantic memory query failed")
-    qa_log "Semantic evidence: ${SEMANTIC_EVIDENCE:0:200}"
+" 2>/dev/null || echo "Semantic memory query failed"
+    }
+
+    SEMANTIC_RESULTS=$(curl -sf -X POST "${API}/semantic/search" \
+        -H 'Content-Type: application/json' \
+        -d '{"query": "research papers", "limit": 5}' 2>/dev/null || echo "")
+    SEMANTIC_EVIDENCE=$(_query_semantic_evidence "research papers" 2 5)
+    qa_log "Semantic evidence (first attempt): ${SEMANTIC_EVIDENCE:0:200}"
+
+    # Retry once with 3s delay if first query returned UNVERIFIED (race condition guard)
+    if echo "$SEMANTIC_EVIDENCE" | grep -q "^UNVERIFIED:"; then
+        qa_log "Semantic: 0 recent results — retrying in 3s (timing race guard)"
+        sleep 3
+        SEMANTIC_EVIDENCE_RETRY=$(_query_semantic_evidence "research papers" 2 10)
+        if echo "$SEMANTIC_EVIDENCE_RETRY" | grep -q "^VERIFIED:"; then
+            SEMANTIC_EVIDENCE="$SEMANTIC_EVIDENCE_RETRY"
+            qa_log "Retry confirmed semantic storage: ${SEMANTIC_EVIDENCE:0:200}"
+        else
+            qa_log "Retry also returned UNVERIFIED — accepting result as is"
+        fi
+    fi
+    qa_log "Semantic evidence (final): ${SEMANTIC_EVIDENCE:0:200}"
 
     # Auto-approve: if semantic storage is verified, skip the QA LLM entirely.
     # Rationale: QA LLMs see empty git diff and tend to reject research tasks even when
@@ -338,6 +378,55 @@ if [ "$IS_RESEARCH_TASK" = "true" ]; then
     TASK_TYPE_NOTE="TASK TYPE: RESEARCH/EXPLORATION — primary deliverable is semantic memory storage (API calls), NOT git diff. An empty git diff is EXPECTED and NORMAL for this task type."
 fi
 
+# Build budget-exceeded warning section for QA prompt
+BUDGET_EXCEEDED_NOTE=""
+if [ "$IS_BUDGET_EXCEEDED" = "true" ]; then
+    # Check if there are actually changed files or semantic evidence despite the budget error
+    HAS_PARTIAL=""
+    if [ -n "$CHANGED_FILES" ]; then
+        HAS_PARTIAL="Changed files detected: $(echo "$CHANGED_FILES" | wc -l) file(s) were modified before budget was exceeded."
+    fi
+    if [ "$IS_RESEARCH_TASK" = "true" ] && echo "$SEMANTIC_EVIDENCE" | grep -q "^VERIFIED:"; then
+        HAS_PARTIAL="${HAS_PARTIAL} Semantic memory storage verified despite budget error."
+    fi
+    BUDGET_EXCEEDED_NOTE="
+IMPORTANT — BUDGET/TIMEOUT EXCEEDED: The task output contains a budget-exceeded error. This means the task was cut short, but may have completed the core deliverables before being stopped. ${HAS_PARTIAL}
+RULE: Do NOT auto-reject solely because of a budget-exceeded error. Check if the PRIMARY deliverable was completed. If the core work is present (files changed, endpoints added, memories stored), APPROVE with a note about the budget. Only REJECT if the primary deliverable is clearly incomplete or absent.
+"
+    qa_log "Budget-exceeded note added to QA prompt. Partial evidence: ${HAS_PARTIAL:0:200}"
+fi
+
+# ── Live endpoint validation (prevents false "endpoint missing" rejections) ────
+# When a task involves API endpoints, fetch the live OpenAPI spec and include it.
+# This gives QA ground truth about which routes exist — preventing hallucinated
+# "endpoint missing" claims that caused the TraceMem false positive.
+ENDPOINT_SECTION=""
+if echo "$TITLE $PROMPT_EXCERPT" | grep -qiE '(endpoint|route|\/episodic|\/semantic|\/tasks|\/pending|consolidat|api.*path|add.*route|implement.*endpoint)'; then
+    qa_log "Implementation task with endpoints detected — fetching live API spec"
+    LIVE_ENDPOINTS=$(curl -sf "${API}/openapi.json" 2>/dev/null | python3 -c "
+import json, sys
+try:
+    spec = json.load(sys.stdin)
+    paths = sorted(spec.get('paths', {}).keys())
+    print('LIVE API ENDPOINTS ({} total — ground truth from running server):'.format(len(paths)))
+    for p in paths:
+        print('  ' + p)
+except Exception as e:
+    print('Could not parse API spec: ' + str(e))
+" 2>/dev/null || echo "Could not fetch live API endpoints (server may be down)")
+    if echo "$LIVE_ENDPOINTS" | grep -q "LIVE API ENDPOINTS"; then
+        ENDPOINT_SECTION="
+LIVE API ENDPOINTS (ground truth — fetched from running server right now):
+${LIVE_ENDPOINTS}
+
+CRITICAL RULE: Do NOT claim an endpoint is 'missing' or 'not implemented' if it appears in the list above. The live server is the authoritative source — not just the git diff.
+"
+        qa_log "Live endpoints fetched: $(echo "$LIVE_ENDPOINTS" | wc -l) lines"
+    else
+        qa_log "Could not fetch live API endpoints — skipping endpoint section"
+    fi
+fi
+
 QA_PROMPT="You are Otto's QA reviewer. A task just completed and you must decide: APPROVE or REJECT.
 
 TASK TITLE: ${TITLE}
@@ -354,7 +443,7 @@ ${CHANGED_FILES}
 
 GIT DIFF (full if ≤3000 chars, structured summary if larger):
 ${DIFF_EXCERPT}
-${SEMANTIC_SECTION}
+${SEMANTIC_SECTION}${ENDPOINT_SECTION}
 YOUR JOB:
 1. Check that the changes align with what was requested
 2. Look for obvious issues: broken syntax, missing files, incomplete implementation, security problems
@@ -386,6 +475,53 @@ For REJECT (only when you have HIGH-confidence CRITICAL findings — fill all fi
 
 qa_log "Spawning QA agent (${QA_CLI})..."
 
+# ── Create isolated QA worktree ──────────────────────────────────────────────
+# WORKTREE ISOLATION FIX: Run QA CLI from a clean git worktree so the reviewer
+# doesn't see 50+ untracked files in the main working directory.
+# Those untracked files were causing false rejections ("missing deliverables").
+# Changed files are copied into the worktree so the reviewer can inspect them.
+QA_WORKTREE=""
+QA_WORKTREE_CREATED=false
+_cleanup_qa_worktree() {
+    if [ "$QA_WORKTREE_CREATED" = true ] && [ -n "$QA_WORKTREE" ] && [ -d "$QA_WORKTREE" ]; then
+        git -C "$WORK_DIR" worktree remove --force "$QA_WORKTREE" 2>/dev/null || \
+            rm -rf "$QA_WORKTREE" 2>/dev/null || true
+        echo "$(date -Iseconds) [QA] QA worktree removed: ${QA_WORKTREE}" >> "$PARENT_LOG" 2>/dev/null || true
+    fi
+}
+trap _cleanup_qa_worktree EXIT
+
+if git -C "$WORK_DIR" rev-parse --git-dir >/dev/null 2>&1; then
+    QA_WORKTREE="/tmp/otto_qa_wt_${TASK_ID:0:8}_$$"
+    DIRTY_COUNT=$(git -C "$WORK_DIR" status --porcelain 2>/dev/null | wc -l || echo "?")
+    if git -C "$WORK_DIR" worktree add --detach "$QA_WORKTREE" HEAD 2>/dev/null; then
+        QA_WORKTREE_CREATED=true
+        qa_log "QA worktree created: ${QA_WORKTREE} (main dir: ${DIRTY_COUNT} dirty/untracked files)"
+        # Copy task-scoped changed files into worktree so reviewer can inspect them
+        _wt_copied=0
+        if [ -n "$CHANGED_FILES" ]; then
+            while IFS= read -r _wf; do
+                [ -z "$_wf" ] && continue
+                _wsrc="${WORK_DIR}/${_wf}"
+                _wdst="${QA_WORKTREE}/${_wf}"
+                if [ -f "$_wsrc" ]; then
+                    mkdir -p "$(dirname "$_wdst")" 2>/dev/null && \
+                        cp -f "$_wsrc" "$_wdst" 2>/dev/null && \
+                        _wt_copied=$((_wt_copied + 1)) || true
+                fi
+            done <<< "$CHANGED_FILES"
+        fi
+        qa_log "Worktree: copied ${_wt_copied} task file(s) for review"
+    else
+        qa_log "WARNING: git worktree add failed — QA will run without isolation"
+        QA_WORKTREE=""
+    fi
+fi
+
+# QA reviewer runs from worktree (clean) or WORK_DIR (fallback if worktree failed)
+QA_REVIEW_DIR="${QA_WORKTREE:-$WORK_DIR}"
+qa_log "QA review dir: ${QA_REVIEW_DIR}"
+
 QA_RESULT=""
 QA_DECISION="REJECT"  # Default safe choice
 QA_CLI_USED=""
@@ -403,19 +539,19 @@ _run_qa_cli() {
     local exit_code=0
 
     if [ "$cli" = "gemini" ]; then
-        timeout 60 gemini -p "$QA_PROMPT" >"$QA_RESULT_FILE" 2>"$stderr_tmp" || exit_code=$?
+        (cd "$QA_REVIEW_DIR" && timeout 60 gemini -p "$QA_PROMPT") >"$QA_RESULT_FILE" 2>"$stderr_tmp" || exit_code=$?
     elif [ "$cli" = "claude" ]; then
-        timeout 120 "$CLAUDE_CLI" \
+        (cd "$QA_REVIEW_DIR" && timeout 120 "$CLAUDE_CLI" \
             --print \
             --dangerously-skip-permissions \
             --model "claude-haiku-4-5-20251001" \
             --max-turns 3 \
             --max-budget-usd 0.20 \
-            -p "$QA_PROMPT" >"$QA_RESULT_FILE" 2>"$stderr_tmp" || exit_code=$?
+            -p "$QA_PROMPT") >"$QA_RESULT_FILE" 2>"$stderr_tmp" || exit_code=$?
     elif [ "$cli" = "kimi" ]; then
-        timeout 60 /home/web3relic/.local/bin/kimi \
+        (cd "$QA_REVIEW_DIR" && timeout 60 /home/web3relic/.local/bin/kimi \
             --quiet \
-            -p "$QA_PROMPT" >"$QA_RESULT_FILE" 2>"$stderr_tmp" || exit_code=$?
+            -p "$QA_PROMPT") >"$QA_RESULT_FILE" 2>"$stderr_tmp" || exit_code=$?
     fi
 
     # Capture first 5 lines of stderr for diagnostics

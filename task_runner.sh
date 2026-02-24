@@ -333,6 +333,20 @@ except Exception:
 " 2>/dev/null || echo "$OUTPUT")
 fi
 
+# ── Rate limit sentinel ────────────────────────────────────────────────────────
+# If the CLI hit a rate limit, write sentinel so heartbeat/reflection skip next cycle.
+RATE_LIMIT_FILE="/tmp/otto-rate-limited"
+COMBINED_OUTPUT="${STDERR}${OUTPUT}"
+if echo "$COMBINED_OUTPUT" | grep -qiE "429|rate.limit|RateLimitError|overloaded_error|too_many_requests|quota_exceeded"; then
+    date +%s > "$RATE_LIMIT_FILE"
+    log "Rate limit detected — wrote sentinel ${RATE_LIMIT_FILE}. Heartbeat/reflection will skip next cycle."
+    curl -sf -X POST "${API}/episodic/events" \
+        -H 'Content-Type: application/json' \
+        -d "{\"type\":\"rate_limit_hit\",\"summary\":\"Rate limit hit during task ${TASK_ID:0:8}. Sentinel written — next heartbeat/reflection cycle suppressed.\"}" \
+        >> "$LOG_FILE" 2>&1 || true
+fi
+# ── End rate limit sentinel ────────────────────────────────────────────────────
+
 # Exit 124 = timeout — log how much partial output was captured
 if [ "$EXIT_CODE" -eq 124 ]; then
     OUTBYTES=${#OUTPUT}
