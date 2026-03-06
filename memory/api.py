@@ -2,9 +2,14 @@ import logging
 import signal
 from contextlib import asynccontextmanager
 
+# Configure application logging — show INFO+ for otto.* modules
+logging.basicConfig(level=logging.WARNING, format="%(name)s %(levelname)s: %(message)s")
+logging.getLogger("otto").setLevel(logging.INFO)
+
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
 
 from .db import get_pool, close_pool
 from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files
@@ -131,6 +136,139 @@ app.include_router(jitrl.router)
 app.include_router(workspace.router)
 app.include_router(broadcast.router)
 app.include_router(files.router)
+
+
+@app.get("/hello", response_class=HTMLResponse)
+async def hello():
+    return """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hello — Otto</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Rajdhani:wght@400;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #080c10;
+      --surface: #0d1117;
+      --border: #1e3a4a;
+      --accent: #00d4ff;
+      --accent-dim: rgba(0, 212, 255, 0.15);
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Rajdhani', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .grid-bg {
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+    }
+    .glow {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -60%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(ellipse, rgba(0,212,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .card {
+      position: relative;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 56px 64px;
+      text-align: center;
+      max-width: 520px;
+      width: 90%;
+      box-shadow: 0 0 40px rgba(0,212,255,0.06), inset 0 1px 0 rgba(0,212,255,0.08);
+    }
+    .badge {
+      display: inline-block;
+      font-family: 'Geist Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--accent);
+      background: var(--accent-dim);
+      border: 1px solid rgba(0,212,255,0.3);
+      border-radius: 4px;
+      padding: 4px 12px;
+      margin-bottom: 28px;
+    }
+    h1 {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 52px;
+      font-weight: 900;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+      text-shadow: 0 0 30px rgba(0,212,255,0.5);
+      line-height: 1;
+      margin-bottom: 16px;
+    }
+    p {
+      font-size: 17px;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0.02em;
+      line-height: 1.6;
+    }
+    .divider {
+      width: 60px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      margin: 28px auto;
+    }
+    .meta {
+      font-family: 'Geist Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+    }
+    .dot {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      background: var(--accent);
+      border-radius: 50%;
+      margin-right: 8px;
+      box-shadow: 0 0 6px var(--accent);
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="grid-bg"></div>
+  <div class="glow"></div>
+  <div class="card">
+    <div class="badge">OTTO · SYSTEM</div>
+    <h1>HELLO</h1>
+    <div class="divider"></div>
+    <p>The management system is online.<br>All systems operational.</p>
+    <div class="divider"></div>
+    <div class="meta"><span class="dot"></span>mev.otto.lk / hello</div>
+  </div>
+</body>
+</html>"""
 
 
 @app.get("/health")
