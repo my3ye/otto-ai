@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
 from .db import get_pool, close_pool
-from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files
+from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals
 from .routes.kernel_routes import router as kernel_router
 from .gateway.routes import router as gateway_router
 from .routes.maintenance import run_maintenance_job
@@ -136,6 +136,8 @@ app.include_router(jitrl.router)
 app.include_router(workspace.router)
 app.include_router(broadcast.router)
 app.include_router(files.router)
+app.include_router(commerce.router)
+app.include_router(virtuals.router)
 
 
 @app.get("/hello", response_class=HTMLResponse)
