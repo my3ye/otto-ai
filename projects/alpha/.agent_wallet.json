@@ -1,0 +1,9 @@
+{
+  "address": "0x75e6e2f0879f626945C3FC71815e29912bB8f4FE",
+  "network": "base-mainnet",
+  "mnemonic": "cattle easy era lock trash ahead involve toward inject raven amused impact",
+  "private_key": "69eb21dbc7cbec21923cc46ec9e0a068800373408d328e82e230eee3bec0993b",
+  "created_by": "otto/setup_agent_wallet.py",
+  "created_at": "2026-03-06T10:00:52.251511Z",
+  "note": "Base L2 wallet \u2014 fund with ETH for gas, USDC for operations"
+}

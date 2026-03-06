@@ -1,0 +1,79 @@
+{
+  "_comment": "Broadcast System platform config \u2014 NEVER commit credentials to git",
+  "platforms": {
+    "telegram": {
+      "enabled": false,
+      "bot_token": "",
+      "channel": "@otto_signals",
+      "parse_mode": "HTML"
+    },
+    "bluesky": {
+      "enabled": false,
+      "handle": "",
+      "app_password": "",
+      "pds_url": "https://bsky.social"
+    },
+    "discord": {
+      "enabled": false,
+      "webhooks": {
+        "main": ""
+      }
+    },
+    "mastodon": {
+      "enabled": false,
+      "instance": "https://mastodon.social",
+      "access_token": "",
+      "visibility": "public"
+    },
+    "devto": {
+      "enabled": false,
+      "api_key": "",
+      "organization_id": null
+    },
+    "nostr": {
+      "enabled": false,
+      "private_key_hex": "",
+      "relays": [
+        "wss://relay.damus.io",
+        "wss://relay.nostr.band",
+        "wss://nos.lol",
+        "wss://relay.primal.net"
+      ]
+    },
+    "lemmy": {
+      "enabled": false,
+      "instance": "https://lemmy.world",
+      "username": "",
+      "password": "",
+      "default_community": "technology"
+    },
+    "hashnode": {
+      "enabled": false,
+      "token": "",
+      "publication_id": ""
+    },
+    "threads": {
+      "enabled": false,
+      "access_token": "",
+      "user_id": ""
+    },
+    "x": {
+      "enabled": true,
+      "accounts": [
+        {
+          "handle": "maitrieye",
+          "name": "MY3YE",
+          "auth_token": "39538e10743e3fb21c29b23d77b4637b44700681",
+          "ct0": "963e521ea839f524192a4589bacdf1ced0b38a1b55405e958be89af1c115e740e6e8a33f99b4fdffb15840e7026bd2cfb7be07afe59458c0cf3a6270e78daad91a8e2da1f3b8b576d8de50d9a958c7ab",
+          "enabled": true
+        },
+        {
+          "handle": "OttoAssist",
+          "auth_token": "2eac385fb53770f2c004391bb9a3ead3e168f73e",
+          "ct0": "14ce3d4134978557309adda58551eb7a503c1cb3ad35f3ff2a0f95b1ef69475593eb4e53140568e15452819c35dc9fbfd2745022b89d3599d3dc40445750869cbb131f5fe44c1b8929b6dab96181ae5c",
+          "enabled": true
+        }
+      ]
+    }
+  }
+}
