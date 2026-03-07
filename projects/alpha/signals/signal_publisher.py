@@ -72,6 +72,35 @@ MIN_TOTAL_USD = 1_000
 CONFIDENCE_LEVELS = {"ULTRA", "HIGH"}
 LOOKBACK_HOURS = 2
 
+# --- Single-wallet signal mode thresholds ---
+SW_MIN_QUALITY_SCORE = 0.6   # Grade A + score >= 0.6
+SW_LOOKBACK_HOURS = 2        # Only look at last 2 hours of signals.jsonl
+
+# Noisy wallets excluded from single-wallet mode (same as whale_convergence.py)
+SW_NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7"}
+
+# --- Single-wallet DexScreener filters (more permissive than convergence mode) ---
+# Convergence hunts for micro-cap pumps. Single-wallet tracks smart money broadly.
+SW_FILTER_MIN_MARKET_CAP   = 500_000    # $500K — filter obvious junk/rugs
+# No upper mcap bound — smart money buys mid/large caps too
+SW_FILTER_MIN_LIQUIDITY    = 50_000     # $50K minimum pool liquidity
+SW_FILTER_VOLUME_SPIKE_MIN = 1.5        # h1 vol must be >= 1.5x hourly average
+SW_FILTER_MAX_PUMP_6H      = 40.0       # Skip if already up >40% in 6h (already too late)
+SW_FILTER_MIN_TOKEN_AGE_DAYS = 1        # Token must be at least 1 day old
+
+# Stablecoins and large-caps to skip (subset of whale_convergence BLOCKED_TOKENS)
+SW_BLOCKED_TOKENS = {
+    "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+    "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
+    "So11111111111111111111111111111111111111112",     # SOL (wrapped)
+    "mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So",  # mSOL
+    "7dHbWXmci3dT8UFYWYZweBLXgycu7Y3iL6trKn1Y7ARj",  # stSOL
+    "J1toso1uCk3RLmjorhTtrVwY9HJ7X8V9yYac6Y7kGCPn",  # jitoSOL
+    "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",   # JUP
+    "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",  # BONK
+    "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",  # WIF
+}
+
 # --- TP/SL levels (Phase 1 fix: replace 4h time exits) ---
 TP1_PCT = 0.10   # +10%
 TP2_PCT = 0.25   # +25%
@@ -96,12 +125,17 @@ MAX_SIGNALS_PER_DAY = 3
 
 def load_state() -> dict:
     if STATE_FILE.exists():
-        return json.loads(STATE_FILE.read_text())
+        state = json.loads(STATE_FILE.read_text())
+        # Migrate old state without published_tokens_today
+        if "published_tokens_today" not in state:
+            state["published_tokens_today"] = []
+        return state
     return {
         "last_published_ts": 0,
         "total_published": 0,
         "published_today": 0,
         "today_date": str(date.today()),
+        "published_tokens_today": [],
     }
 
 
@@ -115,6 +149,7 @@ def get_daily_count(state: dict) -> int:
     if state.get("today_date") != today_str:
         state["published_today"] = 0
         state["today_date"] = today_str
+        state["published_tokens_today"] = []
     return state.get("published_today", 0)
 
 
@@ -196,6 +231,47 @@ def apply_quality_filters(signal: dict, dex_data: dict) -> tuple[bool, str]:
             return False, f"token too new: {age_days:.1f} days < {FILTER_MIN_TOKEN_AGE_DAYS} days"
 
     return True, "all filters passed"
+
+
+def apply_sw_quality_filters(signal: dict, dex_data: dict) -> tuple[bool, str]:
+    """
+    Quality filters for single-wallet signals. More permissive than convergence.
+    Smart money buys mid-cap tokens too — no upper market cap bound.
+    """
+    # --- Market cap floor: $500K (filter absolute garbage) ---
+    mcap = dex_data.get("marketCap") or dex_data.get("fdv") or 0
+    if mcap < SW_FILTER_MIN_MARKET_CAP:
+        return False, f"mcap too low: ${mcap:,.0f} < ${SW_FILTER_MIN_MARKET_CAP:,}"
+
+    # --- Liquidity floor: >= $50K ---
+    liq = dex_data.get("liquidity", {}).get("usd", 0) or 0
+    if liq < SW_FILTER_MIN_LIQUIDITY:
+        return False, f"liquidity too low: ${liq:,.0f} < ${SW_FILTER_MIN_LIQUIDITY:,}"
+
+    # --- Volume spike: h1 vol >= 1.5x hourly average ---
+    vol = dex_data.get("volume", {})
+    h1_vol  = vol.get("h1", 0) or 0
+    h24_vol = vol.get("h24", 0) or 0
+    if h24_vol > 0:
+        avg_hourly = h24_vol / 24
+        spike_ratio = h1_vol / avg_hourly if avg_hourly > 0 else 0
+        if spike_ratio < SW_FILTER_VOLUME_SPIKE_MIN:
+            return False, f"volume spike too low: {spike_ratio:.1f}x < {SW_FILTER_VOLUME_SPIKE_MIN}x"
+
+    # --- Already-pumped filter: skip if >40% up in 6h ---
+    price_change = dex_data.get("priceChange", {})
+    change_6h = price_change.get("h6", 0) or 0
+    if change_6h > SW_FILTER_MAX_PUMP_6H:
+        return False, f"already pumped: +{change_6h:.1f}% in 6h > {SW_FILTER_MAX_PUMP_6H}%"
+
+    # --- Token age: > 1 day ---
+    pair_created_ms = dex_data.get("pairCreatedAt", 0) or 0
+    if pair_created_ms > 0:
+        age_days = (time.time() * 1000 - pair_created_ms) / (1000 * 86400)
+        if age_days < SW_FILTER_MIN_TOKEN_AGE_DAYS:
+            return False, f"token too new: {age_days:.1f} days < {SW_FILTER_MIN_TOKEN_AGE_DAYS} days"
+
+    return True, "all SW filters passed"
 
 
 # ---------------------------------------------------------------------------
@@ -346,6 +422,208 @@ def format_signal_post(signal: dict, dex_data: dict | None, tp_sl: dict | None) 
 
 
 # ---------------------------------------------------------------------------
+# Single-wallet signal formatting
+# ---------------------------------------------------------------------------
+
+def format_single_wallet_post(signal: dict, dex_data: dict | None, tp_sl: dict | None) -> str:
+    """
+    Format a single smart-money buy into a Telegram alert.
+    Different template from convergence — 🐋 Smart Money Alert.
+    """
+    token = signal["token"]
+    wallet = signal.get("wallet", "Unknown")
+    quality_score = signal.get("quality_score", 0)
+    amount_sol = signal.get("amount_sol", 0)
+    amount_usd = signal.get("amount_usd", 0)
+
+    # Time formatting
+    ts_str = signal.get("timestamp", "")
+    try:
+        dt = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+        time_str = dt.strftime("%H:%M UTC")
+    except Exception:
+        time_str = "recent"
+
+    # Token name + symbol from DexScreener
+    if dex_data:
+        base = dex_data.get("baseToken", {})
+        token_name   = base.get("name", "Unknown")
+        token_symbol = base.get("symbol", "???")
+        mcap   = dex_data.get("marketCap") or dex_data.get("fdv") or 0
+        liq    = dex_data.get("liquidity", {}).get("usd", 0) or 0
+        vol    = dex_data.get("volume", {})
+        h1_vol  = vol.get("h1", 0) or 0
+        h24_vol = vol.get("h24", 0) or 0
+        avg_hourly = h24_vol / 24 if h24_vol > 0 else 0
+        spike_ratio = h1_vol / avg_hourly if avg_hourly > 0 else 0
+        price_usd = float(dex_data.get("priceUsd", 0) or 0)
+        price_change = dex_data.get("priceChange", {})
+        change_1h = price_change.get("h1", 0) or 0
+        change_24h = price_change.get("h24", 0) or 0
+    else:
+        token_name   = "Unknown"
+        token_symbol = "???"
+        mcap, liq, h1_vol, avg_hourly, spike_ratio = 0, 0, 0, 0, 0
+        price_usd = 0
+        change_1h = change_24h = 0
+
+    # Buy amount display — prefer SOL if non-zero; only show USD if >= $1
+    if amount_sol > 0:
+        buy_str = f"{amount_sol:.2f} SOL"
+        if amount_usd >= 1:
+            buy_str += f" (~{format_usd(amount_usd)})"
+    elif amount_usd >= 1:
+        buy_str = format_usd(amount_usd)
+    elif amount_usd > 0:
+        buy_str = f"{amount_usd:.4f} USD"
+    else:
+        buy_str = "amount not available"
+
+    # TP/SL lines
+    if tp_sl and price_usd > 0:
+        entry_line = format_price(tp_sl["entry"])
+        tp1_line   = f"{format_price(tp_sl['tp1'])} (+10%)"
+        tp2_line   = f"{format_price(tp_sl['tp2'])} (+25%)"
+        tp3_line   = f"{format_price(tp_sl['tp3'])} (+50%)"
+        sl_line    = f"{format_price(tp_sl['sl'])} (-15%)"
+        be_note    = f"Move stop to breakeven ({entry_line}) after TP1 hits"
+    else:
+        entry_line = "see chart"
+        tp1_line   = "+10%"
+        tp2_line   = "+25%"
+        tp3_line   = "+50%"
+        sl_line    = "-15%"
+        be_note    = "Move stop to breakeven after TP1 hits"
+
+    # Volume spike display
+    if spike_ratio > 0:
+        vol_str = f"{format_usd(h1_vol)}/h  ({spike_ratio:.1f}x avg)"
+    else:
+        vol_str = "N/A"
+
+    # Price momentum
+    momentum = ""
+    if change_1h != 0 or change_24h != 0:
+        momentum = f"📈 1h: {change_1h:+.1f}%  |  24h: {change_24h:+.1f}%"
+
+    # Score display (1 decimal)
+    score_str = f"{quality_score:.2f}"
+
+    # Links
+    dex_url  = f"https://dexscreener.com/solana/{token}"
+    bird_url = f"https://birdeye.so/token/{token}?chain=solana"
+
+    post = f"""🐋 Smart Money Alert — {wallet}
+
+📍 Token: {token_name} ({token_symbol})
+💰 MCap: {format_usd(mcap)}  |  Liquidity: {format_usd(liq)}
+📊 Volume: {vol_str}
+{momentum}
+
+🎯 Entry Zone: {entry_line}
+✅ TP1: {tp1_line}
+✅ TP2: {tp2_line}
+✅ TP3: {tp3_line}
+❌ Stop Loss: {sl_line}
+⏱️ Hold: 24-48h  |  {be_note}
+
+💼 Buy: {buy_str}
+🏆 Signal Quality: {score_str}/1.0  (Grade A)
+🕐 Detected: {time_str}
+
+📈 Chart: {dex_url}
+🔍 Birdeye: {bird_url}
+
+⚠️ Not financial advice. DYOR. Risk only what you can afford to lose.
+
+💡 Tip wallet (SOL/USDC): <code>{TIP_WALLET}</code>"""
+
+    return post
+
+
+# ---------------------------------------------------------------------------
+# Single-wallet signal loading
+# ---------------------------------------------------------------------------
+
+def get_new_single_wallet_signals(state: dict) -> list[dict]:
+    """
+    Read signals.jsonl directly and return grade-A smart money buy signals
+    that haven't been published yet.
+
+    Filters:
+    - quality_grade == 'A' AND quality_score >= SW_MIN_QUALITY_SCORE
+    - amount_usd > 0 (skip parsing failures)
+    - Not in SW_BLOCKED_TOKENS
+    - Not in SW_NOISY_WALLETS
+    - Within last SW_LOOKBACK_HOURS
+    - Token not already in published_tokens_today
+
+    Deduplication: per unique token, keep only the highest quality_score record.
+    Returns sorted by quality_score descending.
+    """
+    cutoff_ts = time.time() - SW_LOOKBACK_HOURS * 3600
+    published_tokens = set(state.get("published_tokens_today", []))
+
+    # token → best signal record for that token
+    best_per_token: dict[str, dict] = {}
+
+    if not SIGNALS_JSONL.exists():
+        print(f"[publisher] signals.jsonl not found at {SIGNALS_JSONL}")
+        return []
+
+    for line in SIGNALS_JSONL.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            r = json.loads(line)
+        except Exception:
+            continue
+
+        token = r.get("token", "")
+        if not token or len(token) < 20:
+            continue
+        if token in SW_BLOCKED_TOKENS:
+            continue
+        if token in published_tokens:
+            continue
+
+        wallet = r.get("wallet", "")
+        if not wallet or wallet in SW_NOISY_WALLETS:
+            continue
+
+        # Grade A + score threshold
+        if r.get("quality_grade") != "A":
+            continue
+        score = r.get("quality_score", 0)
+        if score < SW_MIN_QUALITY_SCORE:
+            continue
+
+        # Skip zero-amount (parsing failures)
+        if r.get("amount_usd", 0) == 0 and r.get("amount_sol", 0) == 0:
+            continue
+
+        # Must be within lookback window
+        ts_str = r.get("timestamp", "")
+        try:
+            ts = int(datetime.fromisoformat(ts_str.replace("Z", "+00:00")).timestamp())
+        except Exception:
+            continue
+        if ts < cutoff_ts:
+            continue
+
+        # Keep best signal per token
+        existing = best_per_token.get(token)
+        if existing is None or score > existing.get("quality_score", 0):
+            best_per_token[token] = r
+
+    signals = list(best_per_token.values())
+    signals.sort(key=lambda s: s.get("quality_score", 0), reverse=True)
+    print(f"[publisher] Single-wallet: found {len(signals)} unique grade-A tokens in last {SW_LOOKBACK_HOURS}h")
+    return signals
+
+
+# ---------------------------------------------------------------------------
 # Signal loading (unchanged logic from original)
 # ---------------------------------------------------------------------------
 
@@ -379,14 +657,21 @@ def get_new_signals(last_ts: int) -> list[dict]:
 # Performance tracking
 # ---------------------------------------------------------------------------
 
-def record_signal_performance(signal: dict, dex_data: dict | None, tp_sl: dict | None):
+def record_signal_performance(signal: dict, dex_data: dict | None, tp_sl: dict | None,
+                               signal_type: str = "convergence"):
     """
     Write a new entry to signal_performance.jsonl when a signal is published.
     This feeds the performance tracker that checks for TP/SL hits.
+    signal_type: "convergence" or "single_wallet"
     """
     import hashlib
     token = signal["token"]
-    sig_ts = signal["signal_ts"]
+    # convergence signals use signal_ts (int), single-wallet use timestamp (ISO str)
+    sig_ts = signal.get("signal_ts") or int(
+        datetime.fromisoformat(
+            signal.get("timestamp", "").replace("Z", "+00:00")
+        ).timestamp()
+    )
 
     # Stable unique ID: hash of token + signal_ts
     sig_id = hashlib.sha256(f"{token}:{sig_ts}".encode()).hexdigest()[:12]
@@ -400,11 +685,12 @@ def record_signal_performance(signal: dict, dex_data: dict | None, tp_sl: dict |
 
     entry = {
         "signal_id":       sig_id,
+        "signal_type":     signal_type,
         "token":           token,
         "token_name":      token_name,
         "token_symbol":    token_symbol,
         "signal_ts":       sig_ts,
-        "signal_time":     signal.get("signal_time", ""),
+        "signal_time":     signal.get("signal_time") or signal.get("timestamp", ""),
         "published_ts":    int(time.time()),
         "entry_price":     tp_sl["entry"] if tp_sl else None,
         "tp1_price":       tp_sl["tp1"]   if tp_sl else None,
@@ -413,7 +699,9 @@ def record_signal_performance(signal: dict, dex_data: dict | None, tp_sl: dict |
         "sl_price":        tp_sl["sl"]    if tp_sl else None,
         "be_price":        tp_sl["be"]    if tp_sl else None,
         "wallet_count":    signal.get("wallet_count", 0),
-        "total_buy_usd":   signal.get("total_buy_usd", 0),
+        "wallet":          signal.get("wallet", ""),
+        "quality_score":   signal.get("quality_score", None),
+        "total_buy_usd":   signal.get("total_buy_usd") or signal.get("amount_usd", 0),
         "confidence":      signal.get("confidence", ""),
         "status":          "open",
         "stop_moved_to_be": False,
@@ -432,7 +720,7 @@ def record_signal_performance(signal: dict, dex_data: dict | None, tp_sl: dict |
     with open(PERF_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")
 
-    print(f"[publisher] Recorded performance entry: {sig_id} ({token_name}/{token_symbol})")
+    print(f"[publisher] Recorded performance entry: {sig_id} ({token_name}/{token_symbol}) [{signal_type}]")
 
 
 # ---------------------------------------------------------------------------
@@ -512,29 +800,27 @@ async def run(dry_run: bool = False, test_mode: bool = False,
         return
 
     remaining_today = MAX_SIGNALS_PER_DAY - daily_count
-    new_signals = get_new_signals(state["last_published_ts"])
-    print(f"[publisher] Found {len(new_signals)} new signals | Daily count: {daily_count}/{MAX_SIGNALS_PER_DAY}")
-
-    if not new_signals:
-        print("[publisher] Nothing to publish")
-        return
-
     published = 0
-    for signal in new_signals:
+
+    # -----------------------------------------------------------------------
+    # TIER 1: Convergence signals (premium — 3+ wallets, HIGH/ULTRA)
+    # -----------------------------------------------------------------------
+    convergence_signals = get_new_signals(state["last_published_ts"])
+    print(f"[publisher] Convergence signals: {len(convergence_signals)} new | Daily: {daily_count}/{MAX_SIGNALS_PER_DAY}")
+
+    for signal in convergence_signals:
         if published >= remaining_today:
-            print(f"[publisher] Daily limit reached mid-run. Stopping at {published} published.")
+            print(f"[publisher] Daily limit reached. Stopping at {published} published.")
             break
 
         token = signal["token"]
-        print(f"[publisher] Processing: {token[:20]}... | {signal['confidence']} | wallets={signal['wallet_count']}")
+        print(f"[publisher] [CONVERGENCE] Processing: {token[:20]}... | {signal['confidence']} | wallets={signal['wallet_count']}")
 
-        # Fetch DexScreener data
         dex_data = await fetch_dex_data(token)
 
-        # Apply quality filters (unless --no-filters)
         if not no_filters:
             if dex_data is None:
-                print(f"[publisher] SKIP: No DexScreener data available for {token[:16]}...")
+                print(f"[publisher] SKIP: No DexScreener data for {token[:16]}...")
                 continue
             passes, reason = apply_quality_filters(signal, dex_data)
             if not passes:
@@ -542,7 +828,6 @@ async def run(dry_run: bool = False, test_mode: bool = False,
                 continue
             print(f"[publisher] PASSES filters: {reason}")
 
-        # Compute TP/SL from current price
         tp_sl = None
         if dex_data:
             price_usd = float(dex_data.get("priceUsd", 0) or 0)
@@ -550,34 +835,101 @@ async def run(dry_run: bool = False, test_mode: bool = False,
                 tp_sl = compute_tp_sl(price_usd)
                 print(f"[publisher] Entry: {format_price(price_usd)} | TP1: {format_price(tp_sl['tp1'])} | SL: {format_price(tp_sl['sl'])}")
 
-        # Format post
         post = format_signal_post(signal, dex_data, tp_sl)
 
         if dry_run:
-            print("--- DRY RUN ---")
+            print("--- DRY RUN [CONVERGENCE] ---")
             print(post)
-            print("---------------")
+            print("-----------------------------")
             published += 1
-            # Still record to perf tracker in dry-run (with dry-run note)
             if dex_data:
-                record_signal_performance(signal, dex_data, tp_sl)
+                record_signal_performance(signal, dex_data, tp_sl, signal_type="convergence")
         else:
             success = await post_to_telegram(post)
             if success:
                 published += 1
-                state["last_published_ts"]  = max(state["last_published_ts"], signal["signal_ts"])
-                state["total_published"]    = state.get("total_published", 0) + 1
-                state["published_today"]    = state.get("published_today", 0) + 1
-                state["today_date"]         = str(date.today())
+                state["last_published_ts"] = max(state["last_published_ts"], signal["signal_ts"])
+                state["total_published"]   = state.get("total_published", 0) + 1
+                state["published_today"]   = state.get("published_today", 0) + 1
+                state["today_date"]        = str(date.today())
+                # Track token to avoid duplicate from single-wallet mode
+                if token not in state["published_tokens_today"]:
+                    state["published_tokens_today"].append(token)
                 save_state(state)
-                # Record to performance tracker
                 if dex_data:
-                    record_signal_performance(signal, dex_data, tp_sl)
-            # Rate limit delay between posts
+                    record_signal_performance(signal, dex_data, tp_sl, signal_type="convergence")
             await asyncio.sleep(1)
 
-    print(f"[publisher] Done. Published {published}/{len(new_signals)} signals.")
-    if not dry_run and published > 0:
+    # -----------------------------------------------------------------------
+    # TIER 2: Single-wallet signals (grade-A smart money buys)
+    # -----------------------------------------------------------------------
+    remaining_today = MAX_SIGNALS_PER_DAY - daily_count - published
+    if remaining_today <= 0:
+        print(f"[publisher] No slots remaining for single-wallet signals ({published} convergence published).")
+    else:
+        sw_signals = get_new_single_wallet_signals(state)
+        print(f"[publisher] Single-wallet signals: {len(sw_signals)} candidates | {remaining_today} slot(s) remaining")
+
+        sw_published = 0
+        for signal in sw_signals:
+            if sw_published >= remaining_today:
+                print(f"[publisher] Single-wallet slot limit reached.")
+                break
+
+            token = signal["token"]
+            wallet = signal.get("wallet", "?")
+            score  = signal.get("quality_score", 0)
+            print(f"[publisher] [SINGLE-WALLET] Processing: {token[:20]}... | {wallet} | score={score:.3f}")
+
+            dex_data = await fetch_dex_data(token)
+
+            if not no_filters:
+                if dex_data is None:
+                    print(f"[publisher] SKIP: No DexScreener data for {token[:16]}...")
+                    continue
+                passes, reason = apply_sw_quality_filters(signal, dex_data)
+                if not passes:
+                    print(f"[publisher] FILTERED OUT: {reason}")
+                    continue
+                print(f"[publisher] PASSES SW filters: {reason}")
+
+            tp_sl = None
+            if dex_data:
+                price_usd = float(dex_data.get("priceUsd", 0) or 0)
+                if price_usd > 0:
+                    tp_sl = compute_tp_sl(price_usd)
+                    print(f"[publisher] Entry: {format_price(price_usd)} | TP1: {format_price(tp_sl['tp1'])} | SL: {format_price(tp_sl['sl'])}")
+
+            post = format_single_wallet_post(signal, dex_data, tp_sl)
+
+            if dry_run:
+                print("--- DRY RUN [SINGLE-WALLET] ---")
+                print(post)
+                print("-------------------------------")
+                sw_published += 1
+                published += 1
+                if dex_data:
+                    record_signal_performance(signal, dex_data, tp_sl, signal_type="single_wallet")
+            else:
+                success = await post_to_telegram(post)
+                if success:
+                    sw_published += 1
+                    published += 1
+                    state["total_published"]   = state.get("total_published", 0) + 1
+                    state["published_today"]   = state.get("published_today", 0) + 1
+                    state["today_date"]        = str(date.today())
+                    if token not in state["published_tokens_today"]:
+                        state["published_tokens_today"].append(token)
+                    save_state(state)
+                    if dex_data:
+                        record_signal_performance(signal, dex_data, tp_sl, signal_type="single_wallet")
+                await asyncio.sleep(1)
+
+        print(f"[publisher] Single-wallet: published {sw_published}/{len(sw_signals)} candidates")
+
+    total_this_run = published
+    print(f"[publisher] Done. Published {total_this_run} signals this run.")
+    if not dry_run and total_this_run > 0:
         print(f"[publisher] Total published all-time: {state.get('total_published', 0)}")
 
 
