@@ -58,6 +58,9 @@
 - **Window limitation**: 3 pages × 100 = 300 txs max. For active wallets (SM_10 does 70+ trades/day), buys may be outside window — sells show large wSOL recv but skip because no matching holdings
 - Results at: `~/otto/projects/alpha/winrate_pair_tracking_results.json` (pair tracking), `~/otto/projects/alpha/requalification_results.json` (old proxy results)
 - **CONCLUSION**: Wallet pool fundamentally broken. Need complete rebuild using feePayer-filtered discovery to find real directional traders.
+- **FeePayer-filtered discovery (2026-03-08, commit 26edeea)**: New `wallet_discovery.py` at `~/otto/projects/alpha/`. Query trending token's SWAP txs → extract feePayer wallets → score with pair tracking. First run: 7 tokens → 260 candidates → 11 QUALIFIED traders (avg 76% WR vs 30% before). Key insight: querying token mint's txs gives feePayers = real traders (not LP positions).
+- **DexScreener endpoint for trending**: `GET /token-boosts/top/v1` then `GET /latest/dex/tokens/{addr}` for pair data. No API key needed.
+- **Results file**: `~/otto/projects/alpha/discovered_traders.json` — new discoveries. `winrate_pair_tracking_results.json` — existing pool scoring.
 
 ## Conventions
 
