@@ -39,6 +39,10 @@ load_dotenv(BOT_DIR / ".env")
 
 from helius_client import get_wallet_transactions
 from wallet_tracker import is_swap_event, extract_swap_details, load_wallets
+from birdeye_client import get_token_security
+
+# In-memory cache: token → security result (reset each run; avoids redundant API calls)
+_token_security_cache: dict[str, dict] = {}
 
 # ── Paths ────────────────────────────────────────────────────────────────────
 SIGNALS_PATH = ALPHA_DIR / "signals.jsonl"
@@ -180,10 +184,11 @@ async def fetch_wallet_balances(wallets: list[dict]) -> dict[str, float]:
     Fetch SOL balance (in SOL) for each wallet via Helius RPC.
     Returns {label: sol_balance}.
     """
-    from config import HELIUS_API_KEY, HELIUS_RPC_URL
-    if not HELIUS_API_KEY:
+    from helius_rotator import get_helius_key, get_helius_rpc_url
+    if not get_helius_key():
         return {}
 
+    rpc_url = get_helius_rpc_url()
     balances: dict[str, float] = {}
     async with httpx.AsyncClient(timeout=10.0) as client:
         for wallet in wallets[:20]:  # cap at 20
@@ -193,7 +198,7 @@ async def fetch_wallet_balances(wallets: list[dict]) -> dict[str, float]:
                 continue
             try:
                 resp = await client.post(
-                    HELIUS_RPC_URL,
+                    rpc_url,
                     json={"jsonrpc": "2.0", "id": 1, "method": "getBalance", "params": [address]},
                 )
                 resp.raise_for_status()
@@ -638,6 +643,17 @@ async def scan_for_fresh_signals() -> dict:
             sig_key = ("CONVERGENCE", token, ts_bucket)
             if sig_key in seen:
                 continue
+
+            # ── Birdeye rug filter (Week 2) ──────────────────────────────────
+            # Check holder concentration + mint auth before publishing HIGH signals
+            if token not in _token_security_cache:
+                _token_security_cache[token] = get_token_security(token)
+            sec = _token_security_cache.get(token, {})
+            if sec.get("is_rug_risk"):
+                reasons = ", ".join(sec.get("rug_reasons", ["unknown"]))
+                print(f"  [rug] BLOCKED {token[:16]}... | {reasons}")
+                continue
+            # ── End rug filter ────────────────────────────────────────────────
 
             quality = score_signal("CONVERGENCE", token, amount, tx_ts, win_rates, unique_buyers)
             token_price = token_prices.get(token, 0.0)
