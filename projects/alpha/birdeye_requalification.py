@@ -151,7 +151,7 @@ def score_existing_wallet(wallet: dict) -> dict:
     wallet["birdeye_win_rate"] = stats["win_rate"]
     wallet["birdeye_trade_count"] = stats["trade_count"]
     wallet["birdeye_avg_hold_min"] = stats["avg_hold_minutes"]
-    wallet["birdeye_pnl_usd"] = stats["total_realized_pnl_usd"]
+    wallet["birdeye_pnl_usd"] = stats.get("total_realized_pnl_usd", 0.0)
     wallet["birdeye_checked_at"] = datetime.now(timezone.utc).isoformat()
 
     wr_pct = stats["win_rate"] * 100
