@@ -18,7 +18,10 @@ from typing import Optional
 SIGNAL_NAME = "SM_12_whale_convergence"
 SIGNALS_PATH = os.path.join(os.path.dirname(__file__), '..', 'signals.jsonl')
 WINDOW_MINUTES = 30       # Tightened back to 30min (60min was too wide — stale signals)
-MIN_BUY_USD = 100         # Raised from $50 — filter noise, require meaningful conviction
+# Week 1 fix: raised from $100 → $500. $100 buys are bots/dust — not conviction trades.
+# Backtest showed wrong wallet pool (SM_1/2/4/7 = bots) was the primary 30% WR cause.
+# Raising the floor filters the smallest bot trades even from non-noisy wallets.
+MIN_BUY_USD = 500         # Raised from $100 — require real conviction (not bot dust)
 MIN_WALLETS = 4           # Raised from 3 — every trade had wallet_count=3 (no discriminating power)
 # BUG FIX 6: Only look at signals from the last N hours — prevents stale signals from
 # generating fresh convergence alerts every run (was causing same token to appear 112x)
@@ -128,12 +131,18 @@ def load_buy_signals() -> list[dict]:
             if ts < cutoff_ts:
                 continue
 
+            # Week 1 fix: enforce MIN_BUY_USD filter (was defined but never applied!)
+            # $100 buys are bots/dust — filter before convergence detection.
+            amount_usd = float(r.get("amount_usd", 0) or 0)
+            if amount_usd < MIN_BUY_USD:
+                continue
+
             records.append({
                 "ts": ts,
                 "timestamp": ts_str,
                 "token": token,
                 "wallet": wallet,
-                "amount_usd": float(r.get("amount_usd", 0) or 0),
+                "amount_usd": amount_usd,
                 "signal": r.get("signal"),
             })
 

@@ -67,7 +67,8 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "")
 
 # --- Signal detection thresholds (kept from original) ---
-MIN_WALLET_COUNT = 3
+# Week 1 fix: raised from 3→4 (research shows 3-wallet signals had no discriminating power)
+MIN_WALLET_COUNT = 4
 MIN_TOTAL_USD = 1_000
 CONFIDENCE_LEVELS = {"ULTRA", "HIGH"}
 LOOKBACK_HOURS = 2
@@ -84,7 +85,7 @@ SW_NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7"}
 SW_FILTER_MIN_MARKET_CAP   = 500_000    # $500K — filter obvious junk/rugs
 # No upper mcap bound — smart money buys mid/large caps too
 SW_FILTER_MIN_LIQUIDITY    = 50_000     # $50K minimum pool liquidity
-SW_FILTER_VOLUME_SPIKE_MIN = 1.5        # h1 vol must be >= 1.5x hourly average
+SW_FILTER_VOLUME_SPIKE_MIN = 1.0        # h1 vol must be >= 1.0x hourly average (lowered from 1.5 — was filtering 7/8 candidates)
 SW_FILTER_MAX_PUMP_6H      = 40.0       # Skip if already up >40% in 6h (already too late)
 SW_FILTER_MIN_TOKEN_AGE_DAYS = 1        # Token must be at least 1 day old
 
@@ -112,8 +113,15 @@ FILTER_MIN_MARKET_CAP   = 100_000    # $100K minimum market cap
 FILTER_MAX_MARKET_CAP   = 3_000_000  # $3M maximum market cap
 FILTER_MIN_LIQUIDITY    = 100_000    # $100K minimum pool liquidity
 FILTER_VOLUME_SPIKE_MIN = 3.0        # h1 vol must be >= 3x (h24/24) average
-FILTER_MAX_PUMP_6H      = 25.0       # Skip if price already up >25% in 6h
-FILTER_MIN_TOKEN_AGE_DAYS = 3        # Token must be > 3 days old
+# Week 1 fix: was >25% in 6h → now >15% in 1h. DexScreener has no 2h field; h1 is the
+# correct proxy. If a token pumped >15% in the last hour we're already late — skip it.
+FILTER_MAX_PUMP_1H      = 15.0       # Skip if price already up >15% in last 1h
+# Week 1 fix: raised from 3→7 days. Most rugs happen in the first week; 3-day floor
+# still exposed us to peak rug window. 7 days eliminates the majority of rug risk.
+FILTER_MIN_TOKEN_AGE_DAYS = 7        # Token must be > 7 days old (was 3)
+# Week 1 fix: NEW — reject wash-traded tokens. If 24h volume > 20x liquidity the pool
+# is being churned artificially. Real organic volume rarely exceeds 10x liquidity/day.
+FILTER_MAX_VOL_LIQ_RATIO = 20.0      # 24h_vol / liquidity cap (wash-trade guard)
 
 # --- Quality gate: max signals per day ---
 MAX_SIGNALS_PER_DAY = 3
@@ -217,13 +225,21 @@ def apply_quality_filters(signal: dict, dex_data: dict) -> tuple[bool, str]:
         if spike_ratio < FILTER_VOLUME_SPIKE_MIN:
             return False, f"volume spike too low: {spike_ratio:.1f}x < {FILTER_VOLUME_SPIKE_MIN}x (h1=${h1_vol:,.0f}, avg=${avg_hourly:,.0f})"
 
-    # --- Already-pumped filter: skip if >25% up in 6h ---
-    price_change = dex_data.get("priceChange", {})
-    change_6h = price_change.get("h6", 0) or 0
-    if change_6h > FILTER_MAX_PUMP_6H:
-        return False, f"already pumped: +{change_6h:.1f}% in 6h > {FILTER_MAX_PUMP_6H}%"
+    # --- Wash-trade guard: reject if 24h volume > 20x liquidity (Week 1 fix) ---
+    # Organic volume rarely exceeds 10x liquidity/day. >20x = almost certainly wash-trading.
+    if liq > 0 and h24_vol > 0:
+        vol_liq_ratio = h24_vol / liq
+        if vol_liq_ratio > FILTER_MAX_VOL_LIQ_RATIO:
+            return False, f"wash-trade suspect: 24h_vol/liq={vol_liq_ratio:.1f}x > {FILTER_MAX_VOL_LIQ_RATIO}x (vol=${h24_vol:,.0f}, liq=${liq:,.0f})"
 
-    # --- Token age: > 3 days ---
+    # --- Already-pumped filter: skip if >15% up in last 1h (Week 1 fix, was >25% in 6h) ---
+    # DexScreener has no 2h field; h1 is the proxy. >15% in 1h = we are already late.
+    price_change = dex_data.get("priceChange", {})
+    change_1h = price_change.get("h1", 0) or 0
+    if change_1h > FILTER_MAX_PUMP_1H:
+        return False, f"already pumped: +{change_1h:.1f}% in 1h > {FILTER_MAX_PUMP_1H}%"
+
+    # --- Token age: > 7 days (Week 1 fix, was 3 days) ---
     pair_created_ms = dex_data.get("pairCreatedAt", 0) or 0
     if pair_created_ms > 0:
         age_days = (time.time() * 1000 - pair_created_ms) / (1000 * 86400)
