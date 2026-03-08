@@ -44,12 +44,20 @@
 ## Alpha Signal Pipeline
 
 - `birdeye_client.py` is at `projects/alpha/bot/birdeye_client.py` — must `sys.path.insert(0, 'bot')` from alpha dir
-- `compute_wallet_win_rate()` with `use_birdeye_prices=False` (default) returns 0.5 for ALL wallets — useless proxy
-- `compute_wallet_win_rate()` with `use_birdeye_prices=True` needs tokens with OHLCV history; fails for today's buys (no T+24h data) and old/rugged meme tokens (delisted from Birdeye)
-- Bug fixed 2026-03-08: `score_existing_wallet()` line 154 — `stats["total_realized_pnl_usd"]` → `stats.get("total_realized_pnl_usd", 0.0)` (key not returned by compute_wallet_win_rate)
-- SOL→token buy heuristic misses Jupiter aggregator routes (token→token swaps); SM_13/18/11/17 have highest activity (21-35 buys)
-- 2 wallets (SM_12, SM_15) intermittently fail Helius fetch — likely rate limit transient errors
-- Results at: `~/otto/projects/alpha/requalification_results.json`
+- `compute_wallet_win_rate()` with `use_birdeye_prices=False` returns 0.5 for ALL wallets — useless proxy; Birdeye OHLCV fails for recent/delisted meme tokens
+- `compute_wallet_win_rate_from_pairs()`: FIFO buy/sell pair tracking using Helius txs — implemented 2026-03-08 (commit 9190c1b)
+  - feePayer filter: only process txs wallet INITIATED (excludes LP wallets)
+  - wSOL as currency: modern Solana DEXes use wSOL not native SOL (nativeBalanceChange ≈ 0 for wSOL swaps)
+  - JIT LP filter: skip txs where same mint sent/received within 0.5% — catches SM_3/SM_14 bots
+  - Token→token rollover: A→B swaps transfer cost basis through intermediate tokens
+- **Wallet taxonomy (18 active wallets)**: 17/18 are NOT real directional traders:
+  - LP positions (SM_11/12/13/17/18/20): never appear as feePayer — passive pool accounts
+  - JIT LP bots (SM_3/SM_14 confirmed, SM_16/SM_19 suspected): atomic roundtrip liquidity
+  - MEV bundler (SM_8): fee payer but no own token transfers
+  - Only SM_10 is a real directional trader: 83% WR, +0.22 SOL realized from 6 closed trades
+- **Window limitation**: 3 pages × 100 = 300 txs max. For active wallets (SM_10 does 70+ trades/day), buys may be outside window — sells show large wSOL recv but skip because no matching holdings
+- Results at: `~/otto/projects/alpha/winrate_pair_tracking_results.json` (pair tracking), `~/otto/projects/alpha/requalification_results.json` (old proxy results)
+- **CONCLUSION**: Wallet pool fundamentally broken. Need complete rebuild using feePayer-filtered discovery to find real directional traders.
 
 ## Conventions
 
