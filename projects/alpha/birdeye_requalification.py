@@ -43,6 +43,7 @@ from birdeye_client import (
     get_token_security,
     get_price_at_timestamp,
     compute_wallet_win_rate,
+    compute_wallet_win_rate_from_pairs,
     score_wallet,
     RATE_LIMIT_SLEEP,
 )
@@ -58,6 +59,77 @@ def get_wallet_tx_list_sync(address: str, limit: int = 50) -> list[dict]:
     except Exception as e:
         print(f"    [!] Helius tx fetch error for {address[:12]}: {e}")
         return []
+
+
+def get_wallet_transactions_extended(
+    address: str,
+    limit_per_page: int = 100,
+    max_pages: int = 3,
+) -> list[dict]:
+    """
+    Fetch up to limit_per_page * max_pages SWAP transactions using cursor pagination.
+
+    Uses Helius Enhanced TX API with 'before' cursor for pagination.
+    Handles key rotation on monthly quota exhaustion.
+    Returns combined list of transactions across all pages.
+    """
+    from helius_rotator import get_helius_key, mark_key_exhausted, is_quota_exhaustion, HELIUS_API_BASE
+
+    all_txs: list[dict] = []
+    before_cursor: str | None = None
+
+    for page in range(max_pages):
+        key = get_helius_key()
+        if not key:
+            print(f"    [!] All Helius keys exhausted on page {page}")
+            break
+
+        url = f"{HELIUS_API_BASE}/addresses/{address}/transactions"
+        params: dict = {
+            "api-key": key,
+            "limit": limit_per_page,
+            "type": "SWAP",
+        }
+        if before_cursor:
+            params["before"] = before_cursor
+
+        try:
+            with httpx.Client(timeout=20.0) as client:
+                resp = client.get(url, params=params)
+
+                if resp.status_code == 429:
+                    body = resp.text
+                    if is_quota_exhaustion(body):
+                        mark_key_exhausted(key)
+                        continue  # retry with next key
+                    else:
+                        print(f"    [!] Helius rate limited (transient) on page {page}")
+                        break
+
+                resp.raise_for_status()
+                data = resp.json()
+
+        except Exception as e:
+            print(f"    [!] Helius fetch error (page {page}): {e}")
+            break
+
+        if not data or not isinstance(data, list):
+            break
+
+        all_txs.extend(data)
+        print(f"    [helius] Page {page + 1}: {len(data)} txs (total {len(all_txs)})")
+
+        if len(data) < limit_per_page:
+            break  # No more pages
+
+        # Set cursor to last signature for next page
+        before_cursor = data[-1].get("signature")
+        if not before_cursor:
+            break
+
+        time.sleep(0.5)  # Be nice to the rate limiter between pages
+
+    return all_txs
 
 # ── Config ────────────────────────────────────────────────────────────────────
 
@@ -520,6 +592,172 @@ def apply_updates(
     return wallets_data
 
 
+# ── Pair Tracking Analysis ────────────────────────────────────────────────────
+
+PAIR_TRACKING_RESULTS_FILE = ALPHA_DIR / "winrate_pair_tracking_results.json"
+
+
+def score_wallet_pair_tracking(wallet: dict) -> dict:
+    """
+    Score a wallet using buy/sell pair tracking from extended Helius tx history.
+
+    Fetches up to 300 SWAP transactions (3 pages × 100), then uses
+    compute_wallet_win_rate_from_pairs() to compute realized PnL per completed
+    trade cycle (buy → sell of same token), with FIFO cost basis and
+    token→token rollover support.
+
+    Returns updated wallet dict with 'pair_tracking' sub-dict.
+    """
+    address = wallet.get("address", "")
+    label = wallet.get("label", address[:8])
+    print(f"\n  [pair-track] {label} ({address[:12]}...)")
+
+    txs = get_wallet_transactions_extended(address, limit_per_page=100, max_pages=3)
+    time.sleep(0.3)  # Brief pause between wallets
+
+    if not txs:
+        print(f"    → No transaction data (Helius unavailable or wallet inactive)")
+        return {
+            **wallet,
+            "pair_tracking": {
+                "status": "no_data",
+                "win_rate": None,
+                "completed_trades": 0,
+                "wins": 0,
+                "losses": 0,
+                "open_positions": 0,
+                "realized_pnl_sol": 0.0,
+                "txs_fetched": 0,
+            },
+        }
+
+    print(f"    → {len(txs)} total SWAP txs fetched")
+    stats = compute_wallet_win_rate_from_pairs(address, txs, lookback_days=90)
+
+    wr_pct = stats["win_rate"] * 100
+    status = "SUFFICIENT" if not stats["disqualified"] else "INSUFFICIENT"
+    hold_h = stats["avg_hold_minutes"] / 60
+
+    print(
+        f"    WR={wr_pct:.0f}%  completed={stats['completed_trades']} "
+        f"(W={stats['wins']}/L={stats['losses']})  "
+        f"open={stats['open_positions']}  "
+        f"PnL={stats['realized_pnl_sol']:+.3f} SOL  "
+        f"hold={hold_h:.1f}h  [{status}]"
+    )
+
+    return {
+        **wallet,
+        "pair_tracking": {
+            **stats,
+            "txs_fetched": len(txs),
+            "checked_at": datetime.now(timezone.utc).isoformat(),
+        },
+    }
+
+
+def run_pair_tracking_analysis(wallets_data: dict, target_label: str | None = None) -> None:
+    """
+    Run pair tracking win rate computation on all active wallets (or one specific wallet).
+
+    Saves results to winrate_pair_tracking_results.json.
+    Does NOT modify wallets.json — analysis only.
+    """
+    active_wallets = [
+        w for w in wallets_data.get("wallets", [])
+        if w.get("active", True) is not False
+    ]
+
+    if target_label:
+        active_wallets = [w for w in active_wallets if w.get("label") == target_label]
+        if not active_wallets:
+            print(f"  [!] No active wallet found with label {target_label}")
+            return
+
+    print(f"\n[Pair Tracking] Running on {len(active_wallets)} active wallets...")
+    print("  Method: buy/sell pair tracking from Helius tx history (up to 300 txs each)")
+    print("  Computes: FIFO cost basis + token→token rollovers + realized PnL in SOL\n")
+
+    results = []
+    for wallet in active_wallets:
+        scored = score_wallet_pair_tracking(wallet)
+        pt = scored.get("pair_tracking", {})
+        results.append({
+            "label": wallet.get("label", "?"),
+            "address": wallet.get("address", ""),
+            "txs_fetched": pt.get("txs_fetched", 0),
+            "completed_trades": pt.get("completed_trades", 0),
+            "wins": pt.get("wins", 0),
+            "losses": pt.get("losses", 0),
+            "open_positions": pt.get("open_positions", 0),
+            "win_rate": pt.get("win_rate"),
+            "realized_pnl_sol": pt.get("realized_pnl_sol", 0.0),
+            "avg_hold_minutes": pt.get("avg_hold_minutes", 0.0),
+            "disqualified": pt.get("disqualified", True),
+            "reason": pt.get("reason", ""),
+            "method": pt.get("method", "helius_pair_tracking"),
+        })
+
+    # ── Summary ───────────────────────────────────────────────────────────────
+    sufficient = [r for r in results if not r["disqualified"]]
+    total_with_data = [r for r in results if r["completed_trades"] > 0]
+
+    print("\n" + "=" * 60)
+    print("  Pair Tracking Results Summary")
+    print("=" * 60)
+    print(f"  Wallets analyzed:   {len(results)}")
+    print(f"  With completed trades: {len(total_with_data)}")
+    print(f"  Sufficient data (5+):  {len(sufficient)}")
+
+    if sufficient:
+        avg_wr = sum(r["win_rate"] for r in sufficient) / len(sufficient)
+        print(f"  Avg win rate (sufficient): {avg_wr * 100:.1f}%")
+        print(f"\n  {'Label':<8}  {'WR%':>5}  {'Done':>5}  {'W/L':>7}  {'Open':>5}  {'PnL(SOL)':>10}")
+        print(f"  {'-'*8}  {'-'*5}  {'-'*5}  {'-'*7}  {'-'*5}  {'-'*10}")
+        for r in sorted(sufficient, key=lambda x: -(x["win_rate"] or 0)):
+            print(
+                f"  {r['label']:<8}  {r['win_rate']*100:>5.0f}%  "
+                f"{r['completed_trades']:>5}  "
+                f"{r['wins']}/{r['losses']:>3}  "
+                f"{r['open_positions']:>5}  "
+                f"{r['realized_pnl_sol']:>+10.3f}"
+            )
+
+    if total_with_data:
+        print(f"\n  All wallets with >0 completed trades:")
+        print(f"  {'Label':<8}  {'WR%':>5}  {'Done':>5}  {'Txs':>5}  {'Status'}")
+        print(f"  {'-'*8}  {'-'*5}  {'-'*5}  {'-'*5}  {'-'*15}")
+        for r in sorted(total_with_data, key=lambda x: -(x["completed_trades"])):
+            status = "OK" if not r["disqualified"] else f"LOW ({r['completed_trades']}<5)"
+            wr_str = f"{r['win_rate']*100:.0f}%" if r["win_rate"] is not None else "N/A"
+            print(
+                f"  {r['label']:<8}  {wr_str:>5}  {r['completed_trades']:>5}  "
+                f"{r['txs_fetched']:>5}  {status}"
+            )
+
+    # ── Save results ──────────────────────────────────────────────────────────
+    output = {
+        "run_date": datetime.now(timezone.utc).isoformat(),
+        "method": "helius_pair_tracking",
+        "description": (
+            "Buy/sell pair tracking from Helius tx history. "
+            "FIFO cost basis matching, token→token rollover, realized PnL in SOL."
+        ),
+        "summary": {
+            "total_analyzed": len(results),
+            "with_completed_trades": len(total_with_data),
+            "sufficient_data": len(sufficient),
+            "avg_win_rate_sufficient": round(
+                sum(r["win_rate"] for r in sufficient) / len(sufficient), 3
+            ) if sufficient else None,
+        },
+        "wallets": results,
+    }
+
+    PAIR_TRACKING_RESULTS_FILE.write_text(json.dumps(output, indent=2))
+    print(f"\n  Results saved to: {PAIR_TRACKING_RESULTS_FILE}")
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 def main():
@@ -527,6 +765,15 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Preview changes without writing")
     parser.add_argument("--score-only", action="store_true", help="Score existing wallets only")
     parser.add_argument("--wallet", help="Score a single wallet address and exit")
+    parser.add_argument(
+        "--pair-tracking",
+        action="store_true",
+        help=(
+            "Run buy/sell pair tracking win rate computation on all wallets. "
+            "Fetches up to 300 txs each. Saves to winrate_pair_tracking_results.json. "
+            "Does NOT modify wallets.json."
+        ),
+    )
     args = parser.parse_args()
 
     print("=" * 60)
@@ -537,6 +784,16 @@ def main():
     print("=" * 60)
 
     env = load_env()
+
+    # ── Pair tracking analysis mode ────────────────────────────────────────────
+    if args.pair_tracking:
+        print("  Mode: PAIR TRACKING (buy/sell pairs via Helius, no wallet changes)")
+        print("=" * 60)
+        wallets_data = load_wallets()
+        active_wallets = [w for w in wallets_data.get("wallets", []) if w.get("active", True) is not False]
+        print(f"\nLoaded {len(wallets_data['wallets'])} wallets ({len(active_wallets)} active)")
+        run_pair_tracking_analysis(wallets_data, target_label=args.wallet)
+        sys.exit(0)
 
     # ── Single wallet score mode ───────────────────────────────────────────────
     if args.wallet:

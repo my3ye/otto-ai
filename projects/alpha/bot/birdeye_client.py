@@ -439,6 +439,288 @@ def compute_wallet_win_rate(
     }
 
 
+def compute_wallet_win_rate_from_pairs(
+    wallet_address: str,
+    helius_txs: list[dict[str, Any]],
+    lookback_days: int = 90,
+    min_sol_per_trade: float = 0.01,
+) -> dict[str, Any]:
+    """
+    Compute win rate by tracking buy/sell pairs per token from Helius tx history.
+
+    This replaces the broken proxy (0.5 for all) and OHLCV approaches (fails for
+    recent/delisted tokens). Uses actual realized PnL from completed trade cycles.
+
+    Key design decisions:
+    - Only processes transactions where feePayer == wallet_address (wallet initiated trade).
+      This correctly excludes LP position wallets (SM_11/13/17/18) which are passive.
+    - Tracks wSOL (wrapped SOL) as currency: modern DEX swaps use wSOL not native SOL.
+      wSOL transfers give the real cost/revenue of each trade.
+    - FIFO cost basis matching for buy→sell pairs of the same token.
+    - Token→token rollover: when wallet swaps A→B, B inherits A's cost basis.
+    - Open positions = bought but not sold within the lookback window (excluded from WR).
+
+    Returns:
+      win_rate: float [0-1]
+      completed_trades: int  — buy+sell pairs matched
+      wins: int
+      losses: int
+      open_positions: int    — tokens held, not yet sold
+      realized_pnl_sol: float  — total realized PnL in wSOL/SOL equivalent
+      avg_hold_minutes: float
+      trade_count: int         — alias for completed_trades (score_wallet compat)
+      total_realized_pnl_usd: float  — alias for realized_pnl_sol (proxy, not USD)
+      total_volume_sol: float  — total SOL/wSOL spent across all tracked buys
+      total_volume_usd: float  — alias for total_volume_sol (proxy, not USD)
+      disqualified: bool       — True if completed_trades < 5
+      reason: str
+      method: str = "helius_pair_tracking"
+    """
+    from collections import defaultdict, deque
+
+    MIN_COMPLETED_TRADES = 5
+
+    WSOL_MINT = "So11111111111111111111111111111111111111112"  # Wrapped SOL
+    STABLE_MINTS = {
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",  # USDC
+        "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",  # USDT
+        "Es9vMFrzaCERmKkovDkRs3zqhEYnhEhFdRgEaYNTbEUd",  # USDT alt
+    }
+    CURRENCY_MINTS = STABLE_MINTS | {WSOL_MINT}  # Not traded assets — used as currency
+
+    cutoff = time.time() - lookback_days * 86400
+
+    # ── Filter: only process txs wallet INITIATED (feePayer = wallet) ─────────
+    # This correctly excludes LP position wallets where other wallets trigger swaps
+    # against the LP — the LP appears in tokenTransfers but didn't initiate the tx.
+    sorted_txs = sorted(
+        [tx for tx in helius_txs
+         if tx.get("timestamp", 0) >= cutoff
+         and tx.get("type") == "SWAP"
+         and tx.get("feePayer") == wallet_address],
+        key=lambda x: x.get("timestamp", 0),
+    )
+
+    # holdings[token_mint] = deque of {"buy_ts": int, "sol_cost": float, "token_amount": float}
+    # sol_cost is the wSOL/SOL basis (possibly inherited through token→token rollovers)
+    holdings: dict[str, deque] = defaultdict(deque)
+
+    completed_trades: list[dict] = []
+    total_buy_sol: float = 0.0  # Track total SOL/wSOL spent on buys
+
+    for tx in sorted_txs:
+        ts = tx.get("timestamp", 0)
+        account_data = tx.get("accountData") or []
+        token_transfers = tx.get("tokenTransfers") or []
+
+        # ── Step 1: Get wallet's native SOL change (fallback for non-wSOL swaps) ─
+        sol_delta_lamports = 0
+        for acc in account_data:
+            if acc.get("account") == wallet_address:
+                sol_delta_lamports = acc.get("nativeBalanceChange", 0) or 0
+                break
+        native_sol_delta = sol_delta_lamports / 1_000_000_000
+
+        # ── Step 2: Track wSOL and non-stable token flows for this wallet ────────
+        wsol_recv: float = 0.0   # wSOL received by wallet (from sells)
+        wsol_sent: float = 0.0   # wSOL sent by wallet (for buys)
+        tokens_received: dict[str, float] = {}   # non-currency tokens received
+        tokens_sent: dict[str, float] = {}       # non-currency tokens sent
+
+        for xfer in token_transfers:
+            mint = xfer.get("mint", "")
+            if not mint:
+                continue
+            amount = float(xfer.get("tokenAmount", 0) or 0)
+            if amount <= 0:
+                continue
+
+            if mint == WSOL_MINT:
+                if xfer.get("toUserAccount") == wallet_address:
+                    wsol_recv += amount
+                if xfer.get("fromUserAccount") == wallet_address:
+                    wsol_sent += amount
+            elif mint not in STABLE_MINTS:
+                if xfer.get("toUserAccount") == wallet_address:
+                    tokens_received[mint] = tokens_received.get(mint, 0) + amount
+                if xfer.get("fromUserAccount") == wallet_address:
+                    tokens_sent[mint] = tokens_sent.get(mint, 0) + amount
+
+        # ── Step 3: Compute net SOL proxy (wSOL is primary; native SOL is fallback) ─
+        # Net wSOL flow: positive = received, negative = spent
+        net_wsol = wsol_recv - wsol_sent
+        # Use wSOL as primary currency indicator; native SOL as secondary for DEXes
+        # that unwrap SOL directly (less common with modern DEXes)
+        sol_proxy_spent = wsol_sent if wsol_sent > 0.001 else max(0.0, -native_sol_delta)
+        sol_proxy_recv = wsol_recv if wsol_recv > 0.001 else max(0.0, native_sol_delta)
+
+        # ── Step 4: Classify transaction ──────────────────────────────────────────
+        #
+        # JIT LP detection: if for ANY token, the sent and received amounts are
+        # nearly identical (within 0.5%), this tx is a JIT liquidity provision
+        # event, not a directional trade. Skip these entirely.
+        jit_lp_tx = any(
+            mint in tokens_sent and tokens_sent[mint] > 0 and
+            abs(tokens_received.get(mint, 0) - tokens_sent[mint]) / tokens_sent[mint] < 0.005
+            for mint in tokens_received
+        )
+        if jit_lp_tx:
+            continue  # JIT LP tx: wallet added/removed liquidity atomically
+
+        is_buy = sol_proxy_spent > min_sol_per_trade and bool(tokens_received)
+        is_sell = sol_proxy_recv > 0.001 and bool(tokens_sent)
+        # Token→token: no meaningful wSOL/SOL change but both tokens moved
+        is_token_swap = (
+            bool(tokens_received) and bool(tokens_sent)
+            and not is_buy and not is_sell
+            and abs(net_wsol) < 0.001
+            and abs(native_sol_delta) < 0.001
+        )
+
+        if is_buy and tokens_received:
+            # wSOL/SOL → Token BUY
+            # Distribute cost evenly if multiple tokens received (rare)
+            num_tokens = len(tokens_received)
+            sol_per_token = sol_proxy_spent / num_tokens
+            total_buy_sol += sol_proxy_spent
+
+            for mint, amount in tokens_received.items():
+                holdings[mint].append({
+                    "buy_ts": ts,
+                    "sol_cost": sol_per_token,
+                    "token_amount": amount,
+                })
+
+        elif is_sell and tokens_sent:
+            # Token → wSOL/SOL SELL: FIFO match against prior buys
+            num_tokens = len(tokens_sent)
+            sol_per_token = sol_proxy_recv / num_tokens
+
+            for mint, amount in tokens_sent.items():
+                if not holdings[mint]:
+                    continue  # No tracked buy → skip (pre-lookback purchase)
+
+                sol_received_for_this = sol_per_token
+                sol_basis = 0.0
+                remaining_to_sell = amount
+                earliest_buy_ts = ts  # fallback
+
+                while remaining_to_sell > 1e-9 and holdings[mint]:
+                    oldest = holdings[mint][0]
+
+                    if oldest["token_amount"] <= remaining_to_sell + 1e-9:
+                        # Consume entire buy lot
+                        sol_basis += oldest["sol_cost"]
+                        remaining_to_sell -= oldest["token_amount"]
+                        earliest_buy_ts = oldest["buy_ts"]
+                        holdings[mint].popleft()
+                    else:
+                        # Partial consume: split the lot proportionally
+                        fraction = remaining_to_sell / oldest["token_amount"]
+                        portion_cost = oldest["sol_cost"] * fraction
+                        sol_basis += portion_cost
+                        earliest_buy_ts = oldest["buy_ts"]
+                        # Update lot in place
+                        oldest["sol_cost"] -= portion_cost
+                        oldest["token_amount"] -= remaining_to_sell
+                        remaining_to_sell = 0
+
+                if sol_basis > 0:
+                    pnl_sol = sol_received_for_this - sol_basis
+                    hold_minutes = (ts - earliest_buy_ts) / 60 if earliest_buy_ts else 0
+
+                    completed_trades.append({
+                        "token": mint,
+                        "buy_ts": earliest_buy_ts,
+                        "sell_ts": ts,
+                        "sol_spent": round(sol_basis, 6),
+                        "sol_received": round(sol_received_for_this, 6),
+                        "pnl_sol": round(pnl_sol, 6),
+                        "hold_minutes": round(hold_minutes, 1),
+                        "is_win": pnl_sol > 0,
+                    })
+
+        elif is_token_swap:
+            # Token → Token SWAP: transfer cost basis from sold token to bought token
+            # Handles Jupiter routes where SOL→A→B→SOL happens across multiple txs
+            for sent_mint, sent_amount in tokens_sent.items():
+                if not holdings[sent_mint]:
+                    continue
+
+                # Extract cost basis from sent token (consume FIFO lots)
+                extracted_basis = 0.0
+                remaining = sent_amount
+
+                while remaining > 1e-9 and holdings[sent_mint]:
+                    oldest = holdings[sent_mint][0]
+                    if oldest["token_amount"] <= remaining + 1e-9:
+                        extracted_basis += oldest["sol_cost"]
+                        remaining -= oldest["token_amount"]
+                        holdings[sent_mint].popleft()
+                    else:
+                        fraction = remaining / oldest["token_amount"]
+                        portion = oldest["sol_cost"] * fraction
+                        extracted_basis += portion
+                        oldest["sol_cost"] -= portion
+                        oldest["token_amount"] -= remaining
+                        remaining = 0
+
+                if extracted_basis > 0:
+                    # Transfer basis to received tokens (split evenly if multiple)
+                    num_received = len(tokens_received)
+                    basis_per_received = extracted_basis / num_received if num_received > 0 else 0
+
+                    for recv_mint, recv_amount in tokens_received.items():
+                        if recv_mint in CURRENCY_MINTS:
+                            continue
+                        holdings[recv_mint].append({
+                            "buy_ts": ts,
+                            "sol_cost": basis_per_received,
+                            "token_amount": recv_amount,
+                        })
+
+    # ── Compute open positions ────────────────────────────────────────────────
+    open_positions = sum(
+        1 for lots in holdings.values()
+        for lot in lots
+        if lot.get("sol_cost", 0) > 0
+    )
+
+    # ── Aggregate results ─────────────────────────────────────────────────────
+    wins = sum(1 for t in completed_trades if t["is_win"])
+    losses = len(completed_trades) - wins
+    total_pnl_sol = sum(t["pnl_sol"] for t in completed_trades)
+    avg_hold = (
+        sum(t["hold_minutes"] for t in completed_trades) / len(completed_trades)
+        if completed_trades else 0.0
+    )
+
+    n = len(completed_trades)
+    win_rate = wins / n if n > 0 else 0.0
+    disqualified = n < MIN_COMPLETED_TRADES
+    reason = ""
+    if disqualified:
+        reason = f"insufficient completed trades ({n}, need {MIN_COMPLETED_TRADES}+)"
+
+    return {
+        "win_rate": round(win_rate, 3),
+        "completed_trades": n,
+        "wins": wins,
+        "losses": losses,
+        "open_positions": open_positions,
+        "realized_pnl_sol": round(total_pnl_sol, 4),
+        "avg_hold_minutes": round(avg_hold, 1),
+        # Compat aliases for score_wallet()
+        "trade_count": n,
+        "total_realized_pnl_usd": round(total_pnl_sol, 4),  # SOL as proxy (directionally correct)
+        "total_volume_sol": round(total_buy_sol, 4),
+        "total_volume_usd": round(total_buy_sol, 4),         # SOL as proxy
+        "disqualified": disqualified,
+        "reason": reason,
+        "method": "helius_pair_tracking",
+    }
+
+
 def score_wallet(win_rate_stats: dict[str, Any]) -> float:
     """
     Composite wallet quality score (0-1) based on research framework.
