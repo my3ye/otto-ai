@@ -1,0 +1,2330 @@
+{
+  "discovery_date": "2026-03-08T07:38:55.288671+00:00",
+  "method": "feepayer_filtered_pair_tracking",
+  "description": "FeePayer-filtered directional trader discovery. Sourced from DexScreener trending tokens. Filtered by feePayer participation in token transfers (not LP/MEV targets). Scored via buy/sell pair tracking with FIFO cost basis.",
+  "config": {
+    "trending_tokens_analyzed": 7,
+    "candidates_collected": 260,
+    "candidates_scored": 75,
+    "min_completed_trades": 5,
+    "min_win_rate": 0.55,
+    "min_realized_pnl": 0.0,
+    "max_inactive_days": 14
+  },
+  "summary": {
+    "total_scored": 75,
+    "qualified_traders": 11,
+    "avg_win_rate_qualified": 0.763,
+    "avg_pnl_qualified_sol": 2.4215
+  },
+  "trending_tokens": [
+    {
+      "address": "9oxGicd5KXNcthYM6yD23X9zcznQVnHjrAEN38fFpump",
+      "symbol": "BioLLM",
+      "price_change_24h": 249.0,
+      "volume_24h": 2051566.78
+    },
+    {
+      "address": "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump",
+      "symbol": "FINDER",
+      "price_change_24h": 272.0,
+      "volume_24h": 1301524.83
+    },
+    {
+      "address": "33dhma9QA7xefhVpA7c5vMrN826xcHanSHruUEKF2LmW",
+      "symbol": "SOS",
+      "price_change_24h": 59.43,
+      "volume_24h": 431068.91
+    },
+    {
+      "address": "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump",
+      "symbol": "Hate",
+      "price_change_24h": 16.94,
+      "volume_24h": 1190764.27
+    },
+    {
+      "address": "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump",
+      "symbol": "MOONY",
+      "price_change_24h": 61.86,
+      "volume_24h": 290811.81
+    },
+    {
+      "address": "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump",
+      "symbol": "KIMJONG",
+      "price_change_24h": 13.25,
+      "volume_24h": 1327365.23
+    },
+    {
+      "address": "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump",
+      "symbol": "Leprecoin",
+      "price_change_24h": 50.39,
+      "volume_24h": 94880.2
+    }
+  ],
+  "qualified_traders": [
+    {
+      "address": "KGaphGSWgj77HV3YWxArsrXdhdcewNqPPBhkQGcUhnr",
+      "win_rate": 0.947,
+      "completed_trades": 19,
+      "wins": 18,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": 1.2496,
+      "avg_hold_minutes": 295.0,
+      "composite_score": 0.907,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955392,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:02.570997+00:00"
+    },
+    {
+      "address": "AhNSFJEzpRPo9djSt4Wkfnm3ivTQcZYVZEj6NRgY1x1x",
+      "win_rate": 1.0,
+      "completed_trades": 5,
+      "wins": 5,
+      "losses": 0,
+      "open_positions": 5,
+      "realized_pnl_sol": 4.4625,
+      "avg_hold_minutes": 642.4,
+      "composite_score": 0.865,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772951647,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:56.118117+00:00"
+    },
+    {
+      "address": "6aYKsyC1ySxUaFmB6n3Fi74XUJgdC1zeWfLumiLPU7UL",
+      "win_rate": 1.0,
+      "completed_trades": 5,
+      "wins": 5,
+      "losses": 0,
+      "open_positions": 3,
+      "realized_pnl_sol": 14.2552,
+      "avg_hold_minutes": 734.3,
+      "composite_score": 0.865,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955280,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:11.208540+00:00"
+    },
+    {
+      "address": "6ZDv5tTzJyNVu9ZCJQH9taaoptZnHhjsG9JekXfnnqqe",
+      "win_rate": 0.828,
+      "completed_trades": 29,
+      "wins": 24,
+      "losses": 5,
+      "open_positions": 18,
+      "realized_pnl_sol": 0.3029,
+      "avg_hold_minutes": 29.7,
+      "composite_score": 0.672,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772948706,
+      "days_since_active": 0.1,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:54.034693+00:00"
+    },
+    {
+      "address": "4wZ67rzHH8pxQkbg61tcMShzidWCoAMprLc2tiWjYUWL",
+      "win_rate": 0.724,
+      "completed_trades": 29,
+      "wins": 21,
+      "losses": 8,
+      "open_positions": 2,
+      "realized_pnl_sol": 0.8157,
+      "avg_hold_minutes": 25.5,
+      "composite_score": 0.615,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772953825,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:42.614936+00:00"
+    },
+    {
+      "address": "HV8noz19cyWscpU4trk1uynCVjyPsX16zEuoaP38HX9Q",
+      "win_rate": 0.833,
+      "completed_trades": 6,
+      "wins": 5,
+      "losses": 1,
+      "open_positions": 36,
+      "realized_pnl_sol": 0.1088,
+      "avg_hold_minutes": 30.5,
+      "composite_score": 0.582,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump",
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "KIMJONG",
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772953868,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:25.102223+00:00"
+    },
+    {
+      "address": "DTmrXjfyDU2VVokmAKgpwM7kxsJ4K5MGSBCnuMbnFnRt",
+      "win_rate": 0.643,
+      "completed_trades": 14,
+      "wins": 9,
+      "losses": 5,
+      "open_positions": 4,
+      "realized_pnl_sol": 0.7582,
+      "avg_hold_minutes": 126.6,
+      "composite_score": 0.581,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955398,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:00.396481+00:00"
+    },
+    {
+      "address": "CbsyBz6RtFbvkLYu9qAqk8D4D8DNSScG92WncCZvZQ57",
+      "win_rate": 0.625,
+      "completed_trades": 16,
+      "wins": 10,
+      "losses": 6,
+      "open_positions": 6,
+      "realized_pnl_sol": 1.982,
+      "avg_hold_minutes": 10.7,
+      "composite_score": 0.578,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 7,
+      "last_seen_ts": 1772955264,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 6,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:27.510674+00:00"
+    },
+    {
+      "address": "zqGuNyiX2BEtwBWctYixSe75XYrLcDiNowA3AXsY1PV",
+      "win_rate": 0.571,
+      "completed_trades": 7,
+      "wins": 4,
+      "losses": 3,
+      "open_positions": 1,
+      "realized_pnl_sol": 0.9148,
+      "avg_hold_minutes": 308.2,
+      "composite_score": 0.57,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955355,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:04.088448+00:00"
+    },
+    {
+      "address": "J1sfMsbxGNXDPMUPXyGs5D6oCEe7fSYgdPMRyVzZuZUW",
+      "win_rate": 0.6,
+      "completed_trades": 20,
+      "wins": 12,
+      "losses": 8,
+      "open_positions": 50,
+      "realized_pnl_sol": 1.2297,
+      "avg_hold_minutes": 5.0,
+      "composite_score": 0.448,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 11,
+      "last_seen_ts": 1772955206,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 10,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:18.767716+00:00"
+    },
+    {
+      "address": "7XEo2KxFzxrKQnYibhx6PsPgvKewJHsBsSATEaGbfY4P",
+      "win_rate": 0.625,
+      "completed_trades": 16,
+      "wins": 10,
+      "losses": 6,
+      "open_positions": 67,
+      "realized_pnl_sol": 0.5572,
+      "avg_hold_minutes": 5.7,
+      "composite_score": 0.431,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 22,
+      "last_seen_ts": 1772955196,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 20,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:13.978887+00:00"
+    }
+  ],
+  "all_scored": [
+    {
+      "address": "KGaphGSWgj77HV3YWxArsrXdhdcewNqPPBhkQGcUhnr",
+      "win_rate": 0.947,
+      "completed_trades": 19,
+      "wins": 18,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": 1.2496,
+      "avg_hold_minutes": 295.0,
+      "composite_score": 0.907,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955392,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:02.570997+00:00"
+    },
+    {
+      "address": "AhNSFJEzpRPo9djSt4Wkfnm3ivTQcZYVZEj6NRgY1x1x",
+      "win_rate": 1.0,
+      "completed_trades": 5,
+      "wins": 5,
+      "losses": 0,
+      "open_positions": 5,
+      "realized_pnl_sol": 4.4625,
+      "avg_hold_minutes": 642.4,
+      "composite_score": 0.865,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772951647,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:56.118117+00:00"
+    },
+    {
+      "address": "6aYKsyC1ySxUaFmB6n3Fi74XUJgdC1zeWfLumiLPU7UL",
+      "win_rate": 1.0,
+      "completed_trades": 5,
+      "wins": 5,
+      "losses": 0,
+      "open_positions": 3,
+      "realized_pnl_sol": 14.2552,
+      "avg_hold_minutes": 734.3,
+      "composite_score": 0.865,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955280,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:11.208540+00:00"
+    },
+    {
+      "address": "6ZDv5tTzJyNVu9ZCJQH9taaoptZnHhjsG9JekXfnnqqe",
+      "win_rate": 0.828,
+      "completed_trades": 29,
+      "wins": 24,
+      "losses": 5,
+      "open_positions": 18,
+      "realized_pnl_sol": 0.3029,
+      "avg_hold_minutes": 29.7,
+      "composite_score": 0.672,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772948706,
+      "days_since_active": 0.1,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:54.034693+00:00"
+    },
+    {
+      "address": "4wZ67rzHH8pxQkbg61tcMShzidWCoAMprLc2tiWjYUWL",
+      "win_rate": 0.724,
+      "completed_trades": 29,
+      "wins": 21,
+      "losses": 8,
+      "open_positions": 2,
+      "realized_pnl_sol": 0.8157,
+      "avg_hold_minutes": 25.5,
+      "composite_score": 0.615,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772953825,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:42.614936+00:00"
+    },
+    {
+      "address": "HV8noz19cyWscpU4trk1uynCVjyPsX16zEuoaP38HX9Q",
+      "win_rate": 0.833,
+      "completed_trades": 6,
+      "wins": 5,
+      "losses": 1,
+      "open_positions": 36,
+      "realized_pnl_sol": 0.1088,
+      "avg_hold_minutes": 30.5,
+      "composite_score": 0.582,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump",
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "KIMJONG",
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772953868,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:25.102223+00:00"
+    },
+    {
+      "address": "DTmrXjfyDU2VVokmAKgpwM7kxsJ4K5MGSBCnuMbnFnRt",
+      "win_rate": 0.643,
+      "completed_trades": 14,
+      "wins": 9,
+      "losses": 5,
+      "open_positions": 4,
+      "realized_pnl_sol": 0.7582,
+      "avg_hold_minutes": 126.6,
+      "composite_score": 0.581,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955398,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:00.396481+00:00"
+    },
+    {
+      "address": "CbsyBz6RtFbvkLYu9qAqk8D4D8DNSScG92WncCZvZQ57",
+      "win_rate": 0.625,
+      "completed_trades": 16,
+      "wins": 10,
+      "losses": 6,
+      "open_positions": 6,
+      "realized_pnl_sol": 1.982,
+      "avg_hold_minutes": 10.7,
+      "composite_score": 0.578,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 7,
+      "last_seen_ts": 1772955264,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 6,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:27.510674+00:00"
+    },
+    {
+      "address": "zqGuNyiX2BEtwBWctYixSe75XYrLcDiNowA3AXsY1PV",
+      "win_rate": 0.571,
+      "completed_trades": 7,
+      "wins": 4,
+      "losses": 3,
+      "open_positions": 1,
+      "realized_pnl_sol": 0.9148,
+      "avg_hold_minutes": 308.2,
+      "composite_score": 0.57,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955355,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:04.088448+00:00"
+    },
+    {
+      "address": "Dofg8NfDEKabkajNYwvRwtfLvRURe3SRbGRPGGGvKzmd",
+      "win_rate": 0.636,
+      "completed_trades": 44,
+      "wins": 28,
+      "losses": 16,
+      "open_positions": 2,
+      "realized_pnl_sol": 0.1076,
+      "avg_hold_minutes": 2.0,
+      "composite_score": 0.517,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955344,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:05.102154+00:00"
+    },
+    {
+      "address": "FMffySdvMJnPgT8R1MP83dTLKvWwifxsXAH1UGnjPQbc",
+      "win_rate": 0.692,
+      "completed_trades": 13,
+      "wins": 9,
+      "losses": 4,
+      "open_positions": 19,
+      "realized_pnl_sol": -0.0571,
+      "avg_hold_minutes": 46.3,
+      "composite_score": 0.479,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump",
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump",
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "FINDER",
+        "KIMJONG",
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 4,
+      "last_seen_ts": 1772954662,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:16.163151+00:00"
+    },
+    {
+      "address": "77p32XFXZ8cASR8aeATYWamwCFo1yMx83FvRbEEwePnm",
+      "win_rate": 0.4,
+      "completed_trades": 10,
+      "wins": 4,
+      "losses": 6,
+      "open_positions": 2,
+      "realized_pnl_sol": 3.8379,
+      "avg_hold_minutes": 525.0,
+      "composite_score": 0.463,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955401,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:56.993758+00:00"
+    },
+    {
+      "address": "J1sfMsbxGNXDPMUPXyGs5D6oCEe7fSYgdPMRyVzZuZUW",
+      "win_rate": 0.6,
+      "completed_trades": 20,
+      "wins": 12,
+      "losses": 8,
+      "open_positions": 50,
+      "realized_pnl_sol": 1.2297,
+      "avg_hold_minutes": 5.0,
+      "composite_score": 0.448,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 11,
+      "last_seen_ts": 1772955206,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 10,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:18.767716+00:00"
+    },
+    {
+      "address": "7XEo2KxFzxrKQnYibhx6PsPgvKewJHsBsSATEaGbfY4P",
+      "win_rate": 0.625,
+      "completed_trades": 16,
+      "wins": 10,
+      "losses": 6,
+      "open_positions": 67,
+      "realized_pnl_sol": 0.5572,
+      "avg_hold_minutes": 5.7,
+      "composite_score": 0.431,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 22,
+      "last_seen_ts": 1772955196,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 20,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:13.978887+00:00"
+    },
+    {
+      "address": "2tgUbS9UMoQD6GkDZBiqKYCURnGrSb6ocYwRABrSJUvY",
+      "win_rate": 0.52,
+      "completed_trades": 50,
+      "wins": 26,
+      "losses": 24,
+      "open_positions": 50,
+      "realized_pnl_sol": -0.0635,
+      "avg_hold_minutes": 1.7,
+      "composite_score": 0.416,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump",
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump",
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump",
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "FINDER",
+        "Hate",
+        "KIMJONG",
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 14,
+      "last_seen_ts": 1772955356,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 7,
+      "discovery_sell_count": 7,
+      "scored_at": "2026-03-08T07:37:10.718303+00:00"
+    },
+    {
+      "address": "AYa3gJuN7PPQbLbNmxY1G7bp6JxV5EBUDoD1B5mPQgct",
+      "win_rate": 0.526,
+      "completed_trades": 38,
+      "wins": 20,
+      "losses": 18,
+      "open_positions": 6,
+      "realized_pnl_sol": 0.5405,
+      "avg_hold_minutes": 7.1,
+      "composite_score": 0.406,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954824,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:31.641341+00:00"
+    },
+    {
+      "address": "FSWr5jJtySpr5hxXAwTjWwUyQPZnyRioWUg9jnRsQvsN",
+      "win_rate": 0.625,
+      "completed_trades": 8,
+      "wins": 5,
+      "losses": 3,
+      "open_positions": 15,
+      "realized_pnl_sol": -0.2732,
+      "avg_hold_minutes": 55.0,
+      "composite_score": 0.403,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772953868,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:41.643811+00:00"
+    },
+    {
+      "address": "882x2v5qrYbhyAVM91CYBkvySB28W7msaZ3ZJQ1Q4eef",
+      "win_rate": 0.545,
+      "completed_trades": 11,
+      "wins": 6,
+      "losses": 5,
+      "open_positions": 7,
+      "realized_pnl_sol": -0.0043,
+      "avg_hold_minutes": 105.9,
+      "composite_score": 0.402,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "33dhma9QA7xefhVpA7c5vMrN826xcHanSHruUEKF2LmW",
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "SOS",
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772954567,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:22.390114+00:00"
+    },
+    {
+      "address": "8Lehb5H4Sg3ybPfHizeuyaUjZoUMJShdJcpiVYHznwwa",
+      "win_rate": 0.5,
+      "completed_trades": 6,
+      "wins": 3,
+      "losses": 3,
+      "open_positions": 6,
+      "realized_pnl_sol": 0.0148,
+      "avg_hold_minutes": 15.1,
+      "composite_score": 0.385,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "33dhma9QA7xefhVpA7c5vMrN826xcHanSHruUEKF2LmW"
+      ],
+      "token_symbols": [
+        "SOS"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772955393,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:41.101428+00:00"
+    },
+    {
+      "address": "DcfdE6XWgmg91iCihsNNAYcGvUPDVU1weVxuYCDyWKNF",
+      "win_rate": 0.533,
+      "completed_trades": 30,
+      "wins": 16,
+      "losses": 14,
+      "open_positions": 13,
+      "realized_pnl_sol": -0.1447,
+      "avg_hold_minutes": 32.4,
+      "composite_score": 0.38,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump",
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "FINDER",
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954659,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:23.428915+00:00"
+    },
+    {
+      "address": "7WQ9eGpDLLBERNX33oM7MUMsacbi4RF1qQcHEyqRxz3K",
+      "win_rate": 0.577,
+      "completed_trades": 26,
+      "wins": 15,
+      "losses": 11,
+      "open_positions": 2,
+      "realized_pnl_sol": -5.8276,
+      "avg_hold_minutes": 25.8,
+      "composite_score": 0.33,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954823,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:32.624902+00:00"
+    },
+    {
+      "address": "7be3FkGumsq37mU7B9PaU5JSK4BuSkpkYHVVGHBqda8n",
+      "win_rate": 0.444,
+      "completed_trades": 9,
+      "wins": 4,
+      "losses": 5,
+      "open_positions": 0,
+      "realized_pnl_sol": -0.6436,
+      "avg_hold_minutes": 102.8,
+      "composite_score": 0.295,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772953092,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:45.750769+00:00"
+    },
+    {
+      "address": "4rp9w1PmnQwQoZoru8Gy5BMN52Bb18sNHSvdF577Hgxg",
+      "win_rate": 0.217,
+      "completed_trades": 23,
+      "wins": 5,
+      "losses": 18,
+      "open_positions": 12,
+      "realized_pnl_sol": 0.1236,
+      "avg_hold_minutes": 74.2,
+      "composite_score": 0.271,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772950706,
+      "days_since_active": 0.1,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:50.328088+00:00"
+    },
+    {
+      "address": "36qYBSjHJYWYzPJ2YZkf9cDztQsjYzd2BZjvcGAay2bo",
+      "win_rate": 0.36,
+      "completed_trades": 25,
+      "wins": 9,
+      "losses": 16,
+      "open_positions": 2,
+      "realized_pnl_sol": 1.594,
+      "avg_hold_minutes": 7.0,
+      "composite_score": 0.26,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955278,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:12.804770+00:00"
+    },
+    {
+      "address": "4Ki4ZLTnydWxS7YBJjTsfnEj8Y4pdDzcBQK5NAQEt3w5",
+      "win_rate": 0.545,
+      "completed_trades": 11,
+      "wins": 6,
+      "losses": 5,
+      "open_positions": 5,
+      "realized_pnl_sol": -1.2281,
+      "avg_hold_minutes": 22.5,
+      "composite_score": 0.256,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "33dhma9QA7xefhVpA7c5vMrN826xcHanSHruUEKF2LmW"
+      ],
+      "token_symbols": [
+        "SOS"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772955010,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:49.406691+00:00"
+    },
+    {
+      "address": "zTFPLkE18wrRBu18tTaRB34ni4JTX9piSjUsoo7xero",
+      "win_rate": 0.385,
+      "completed_trades": 13,
+      "wins": 5,
+      "losses": 8,
+      "open_positions": 4,
+      "realized_pnl_sol": -0.57,
+      "avg_hold_minutes": 143.5,
+      "composite_score": 0.253,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955255,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:14.661908+00:00"
+    },
+    {
+      "address": "2gifK5jPGZLHowoUvNvpKLPhBgh21oyebh4roL5auvXk",
+      "win_rate": 0.294,
+      "completed_trades": 17,
+      "wins": 5,
+      "losses": 12,
+      "open_positions": 2,
+      "realized_pnl_sol": 1.0398,
+      "avg_hold_minutes": 37.0,
+      "composite_score": 0.241,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955152,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:24.782007+00:00"
+    },
+    {
+      "address": "4jkL4dNkY2UbpYrTgLA3u5FqKwKs1LM46RcE6FQU3qXi",
+      "win_rate": 0.444,
+      "completed_trades": 9,
+      "wins": 4,
+      "losses": 5,
+      "open_positions": 31,
+      "realized_pnl_sol": 0.0074,
+      "avg_hold_minutes": 2.9,
+      "composite_score": 0.237,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump",
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump",
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "FINDER",
+        "Hate",
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 5,
+      "last_seen_ts": 1772955399,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 3,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:15.113275+00:00"
+    },
+    {
+      "address": "5m5LuxdsU8ZhbmVFokQfu6WkB5TCR6vSSKcHCvKbDVFx",
+      "win_rate": 0.4,
+      "completed_trades": 10,
+      "wins": 4,
+      "losses": 6,
+      "open_positions": 24,
+      "realized_pnl_sol": 0.0072,
+      "avg_hold_minutes": 33.3,
+      "composite_score": 0.225,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump",
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "KIMJONG",
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772953198,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:26.024047+00:00"
+    },
+    {
+      "address": "CAJqkxd22fyTB5h4qh32TRv3KBHMbTPmWHXXF23wAYTD",
+      "win_rate": 0.357,
+      "completed_trades": 14,
+      "wins": 5,
+      "losses": 9,
+      "open_positions": 21,
+      "realized_pnl_sol": -0.3682,
+      "avg_hold_minutes": 120.5,
+      "composite_score": 0.192,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "33dhma9QA7xefhVpA7c5vMrN826xcHanSHruUEKF2LmW"
+      ],
+      "token_symbols": [
+        "SOS"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772953094,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 3,
+      "scored_at": "2026-03-08T07:37:53.974512+00:00"
+    },
+    {
+      "address": "8vtQsUB83KghbDzibLzQZxwVGuGPSeRf7P782bTeVQHU",
+      "win_rate": 0.366,
+      "completed_trades": 41,
+      "wins": 15,
+      "losses": 26,
+      "open_positions": 0,
+      "realized_pnl_sol": -0.2095,
+      "avg_hold_minutes": 4.0,
+      "composite_score": 0.189,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772954351,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:52.467738+00:00"
+    },
+    {
+      "address": "GHh7kaozVta3M9fqXuqfQC34YtxJsHpY1dPWk7N7VvuL",
+      "win_rate": 0.333,
+      "completed_trades": 12,
+      "wins": 4,
+      "losses": 8,
+      "open_positions": 1,
+      "realized_pnl_sol": -1.4795,
+      "avg_hold_minutes": 170.1,
+      "composite_score": 0.164,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772948712,
+      "days_since_active": 0.1,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:52.286863+00:00"
+    },
+    {
+      "address": "ztLfq1bnPy33r2KNnoyCyLvtatncLGD6o4Kiwu7k8Xv",
+      "win_rate": 0.235,
+      "completed_trades": 17,
+      "wins": 4,
+      "losses": 13,
+      "open_positions": 3,
+      "realized_pnl_sol": -0.9941,
+      "avg_hold_minutes": 437.7,
+      "composite_score": 0.156,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954955,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:25.997160+00:00"
+    },
+    {
+      "address": "4JoKufEQYmBVgxhf9yJCoaYCy8AX1F4NaQ24u23frJEg",
+      "win_rate": 0.333,
+      "completed_trades": 9,
+      "wins": 3,
+      "losses": 6,
+      "open_positions": 4,
+      "realized_pnl_sol": -23.6829,
+      "avg_hold_minutes": 126.9,
+      "composite_score": 0.155,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954378,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:37.645066+00:00"
+    },
+    {
+      "address": "GRTd78JHsC2UVy2utAmmenBpEfEaM45Qite3C22cLDZc",
+      "win_rate": 0.333,
+      "completed_trades": 18,
+      "wins": 6,
+      "losses": 12,
+      "open_positions": 0,
+      "realized_pnl_sol": -0.0782,
+      "avg_hold_minutes": 8.1,
+      "composite_score": 0.135,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955339,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:06.692084+00:00"
+    },
+    {
+      "address": "DKVxCyyrWz2BQ8QCa4dTfuDFCutyPvCVN4qqk5MJmgTk",
+      "win_rate": 0.125,
+      "completed_trades": 8,
+      "wins": 1,
+      "losses": 7,
+      "open_positions": 8,
+      "realized_pnl_sol": -0.5989,
+      "avg_hold_minutes": 1073.5,
+      "composite_score": 0.13,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772947114,
+      "days_since_active": 0.1,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:54.988003+00:00"
+    },
+    {
+      "address": "5QmZrKKGF75DBzZTNLyPdyuNdg5ry8fmmDCDD1skTJxJ",
+      "win_rate": 0.188,
+      "completed_trades": 16,
+      "wins": 3,
+      "losses": 13,
+      "open_positions": 0,
+      "realized_pnl_sol": -0.0252,
+      "avg_hold_minutes": 11.9,
+      "composite_score": 0.128,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955193,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:23.746444+00:00"
+    },
+    {
+      "address": "6kzNFX3ANfLY3Lau9YUkTPo4oq8QnXc9mEQ4zNvWYNEn",
+      "win_rate": 0.167,
+      "completed_trades": 6,
+      "wins": 1,
+      "losses": 5,
+      "open_positions": 0,
+      "realized_pnl_sol": -1.4388,
+      "avg_hold_minutes": 38.5,
+      "composite_score": 0.109,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 4,
+      "last_seen_ts": 1772955191,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 3,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:35.754503+00:00"
+    },
+    {
+      "address": "HfXf73DwCCWkTyaAcmh3ii26knjECfMs5hgMsCYgxCXY",
+      "win_rate": 0.105,
+      "completed_trades": 19,
+      "wins": 2,
+      "losses": 17,
+      "open_positions": 7,
+      "realized_pnl_sol": -0.7556,
+      "avg_hold_minutes": 10.2,
+      "composite_score": 0.099,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955272,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:13.825663+00:00"
+    },
+    {
+      "address": "FqEuHc8yVjtknNyrLKT9VaKbqKPxk7BA2dKcFC1ZZqXB",
+      "win_rate": 0.154,
+      "completed_trades": 13,
+      "wins": 2,
+      "losses": 11,
+      "open_positions": 8,
+      "realized_pnl_sol": -0.6969,
+      "avg_hold_minutes": 63.0,
+      "composite_score": 0.091,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955399,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:37:58.026818+00:00"
+    },
+    {
+      "address": "8AE9cHktnWM1dHwhLLBskCbMUntcSm86JZnzM3f48Hqm",
+      "win_rate": 0.308,
+      "completed_trades": 13,
+      "wins": 4,
+      "losses": 9,
+      "open_positions": 8,
+      "realized_pnl_sol": -2.3666,
+      "avg_hold_minutes": 14.2,
+      "composite_score": 0.083,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772955281,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 3,
+      "scored_at": "2026-03-08T07:37:46.076856+00:00"
+    },
+    {
+      "address": "AK49c6kHLFtVeD4sAanP52isMMkMCLLGUkpYaTWS47pJ",
+      "win_rate": 0.143,
+      "completed_trades": 7,
+      "wins": 1,
+      "losses": 6,
+      "open_positions": 3,
+      "realized_pnl_sol": -0.3007,
+      "avg_hold_minutes": 50.8,
+      "composite_score": 0.063,
+      "disqualified": false,
+      "disqualification_reason": "",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772955235,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 3,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:37:47.880987+00:00"
+    },
+    {
+      "address": "2Yh3SmxpdqptvW849ZR6YniYNe1Lv1cD2Xr8CboDVRbt",
+      "win_rate": 1.0,
+      "completed_trades": 4,
+      "wins": 4,
+      "losses": 0,
+      "open_positions": 45,
+      "realized_pnl_sol": 0.8707,
+      "avg_hold_minutes": 22.7,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (4, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump",
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "KIMJONG",
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 4,
+      "last_seen_ts": 1772955098,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:20.857124+00:00"
+    },
+    {
+      "address": "CcX9dr24Temyd5CRiq7SsHHtM55DNuy8udtKABT23cHH",
+      "win_rate": 1.0,
+      "completed_trades": 2,
+      "wins": 2,
+      "losses": 0,
+      "open_positions": 13,
+      "realized_pnl_sol": 2.5928,
+      "avg_hold_minutes": 40986.6,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (2, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "33dhma9QA7xefhVpA7c5vMrN826xcHanSHruUEKF2LmW"
+      ],
+      "token_symbols": [
+        "SOS"
+      ],
+      "feepayer_tx_count": 6,
+      "last_seen_ts": 1772955399,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 6,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:37:29.814582+00:00"
+    },
+    {
+      "address": "3TMSpSJsF4uzfT65rdviZaNDtWuX8CwpqvANnFiwpE9J",
+      "win_rate": 0.0,
+      "completed_trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": -0.0234,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 6,
+      "last_seen_ts": 1772955206,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 5,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:30.629823+00:00"
+    },
+    {
+      "address": "EsN4qrpX4omQ8JrEWqztVJ4dwbrUEnxsLyHbMCEeEGoL",
+      "win_rate": 1.0,
+      "completed_trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "open_positions": 0,
+      "realized_pnl_sol": 0.0152,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 6,
+      "last_seen_ts": 1772955199,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 5,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:31.428323+00:00"
+    },
+    {
+      "address": "4nzoHhewHuMqDaPFaXTpNDyqgVeBpHGBbnasCmwXja8Q",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 3,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 5,
+      "last_seen_ts": 1772954230,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 5,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:37:32.603173+00:00"
+    },
+    {
+      "address": "2bSqkisKLDy3WijgzhVcXPoH5ePAHE3K2nNRoEUE2yZ6",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 3,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 4,
+      "last_seen_ts": 1772955403,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 4,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:37:33.403521+00:00"
+    },
+    {
+      "address": "7hYHjQvcHEDYSR2Ezx38BKvGUaWUjh4AgMxoFq8Vphwp",
+      "win_rate": 1.0,
+      "completed_trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "open_positions": 1,
+      "realized_pnl_sol": 0.0018,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 4,
+      "last_seen_ts": 1772955393,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 3,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:34.174994+00:00"
+    },
+    {
+      "address": "8M7XxbXSSyB91oHMDjNUCRdbQPhCRN3RV1mEBYzeJRFA",
+      "win_rate": 0.0,
+      "completed_trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "open_positions": 16,
+      "realized_pnl_sol": -0.2148,
+      "avg_hold_minutes": 4815.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (2, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 4,
+      "last_seen_ts": 1772954503,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 3,
+      "scored_at": "2026-03-08T07:37:36.981368+00:00"
+    },
+    {
+      "address": "4jHAWTCPX6So4uLXGXXjZ6xGesoHDrJdu2WxdBMLoC5H",
+      "win_rate": 0.667,
+      "completed_trades": 3,
+      "wins": 2,
+      "losses": 1,
+      "open_positions": 56,
+      "realized_pnl_sol": 0.1409,
+      "avg_hold_minutes": 182.8,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (3, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 4,
+      "last_seen_ts": 1772951456,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:37:38.373777+00:00"
+    },
+    {
+      "address": "3N9MrZBgXmVC1k23WSk6PDAH15B1RhFdBDsKRHLPwbgZ",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 17,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 4,
+      "last_seen_ts": 1772951181,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 4,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:37:39.442521+00:00"
+    },
+    {
+      "address": "8naZPCEEJkS6TnQkBbgiL1695VAfm5i5A8wypYzx6SBG",
+      "win_rate": 0.0,
+      "completed_trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": -0.012,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772955350,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:37:41.800610+00:00"
+    },
+    {
+      "address": "4TrATQ3QzfECtvUj1h9tVp7GVW4mbingrTLWfbrjYYf2",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 3,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HpceJG5ErFDgVKvDrLt8TUyyaGinBdzgJoi81J96pump"
+      ],
+      "token_symbols": [
+        "FINDER"
+      ],
+      "feepayer_tx_count": 3,
+      "last_seen_ts": 1772954714,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 3,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:37:51.460458+00:00"
+    },
+    {
+      "address": "9cif8CN1zrJgs3EKiXLFWfK5ckdrNWgBU1SPko48Pa1B",
+      "win_rate": 0.0,
+      "completed_trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": -0.0203,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955397,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:01.131191+00:00"
+    },
+    {
+      "address": "6dNgz1GVSdNbRQksQPfhvV7Mvt3J2SZirbB4j2sykmoS",
+      "win_rate": 1.0,
+      "completed_trades": 2,
+      "wins": 2,
+      "losses": 0,
+      "open_positions": 0,
+      "realized_pnl_sol": 0.0017,
+      "avg_hold_minutes": 19.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (2, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955313,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:08.135230+00:00"
+    },
+    {
+      "address": "Gu5zphxqZdodZqtb6Miqx1JHACHQaqWSiTcf7UhKs8K9",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 1,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "5NFHTLFBQ3GgQ9QwjeWzHkVpCTQwwcko3vDpkakvpump"
+      ],
+      "token_symbols": [
+        "Hate"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955312,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:09.266317+00:00"
+    },
+    {
+      "address": "6JA2Hy82doS5XvrFsVFrMiXtkE9HCRCEbniCHuav5SMX",
+      "win_rate": 0.0,
+      "completed_trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": -0.027,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955296,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:09.966955+00:00"
+    },
+    {
+      "address": "4AdpP8qd3Y1JGoNiHE2vBRJVMTmYmC5DwVtJm2vKtSKU",
+      "win_rate": 0.0,
+      "completed_trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": -0.0048,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955280,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:11.887323+00:00"
+    },
+    {
+      "address": "8K3oanjZXUqYRacgyYcwg7AJ2aPR8J3Q4JjVEZDMNnFz",
+      "win_rate": 0.0,
+      "completed_trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": -0.0353,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955246,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:15.333684+00:00"
+    },
+    {
+      "address": "8Byu1UAddt72zbSs3YZN9maLeWE4Q3AEW8MUvsHhNqko",
+      "win_rate": 0.0,
+      "completed_trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "open_positions": 1,
+      "realized_pnl_sol": -0.0546,
+      "avg_hold_minutes": 0.4,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "HmnLJ91nRSaghN3WCRU9dtrw25QXMSbVXEv6jYJLpump"
+      ],
+      "token_symbols": [
+        "MOONY"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955221,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:15.969278+00:00"
+    },
+    {
+      "address": "CL98waifmsMo4SNJSMPN5YYi6gRWJg6cwxyGbPjmZ4Te",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 0,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "33dhma9QA7xefhVpA7c5vMrN826xcHanSHruUEKF2LmW"
+      ],
+      "token_symbols": [
+        "SOS"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772955215,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:21.077584+00:00"
+    },
+    {
+      "address": "25mRtde1P3pdmsv75FboHbs5ESiyy6jcqTafptvJzkaU",
+      "win_rate": 1.0,
+      "completed_trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "open_positions": 4,
+      "realized_pnl_sol": 0.7137,
+      "avg_hold_minutes": 41.5,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954955,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:26.856060+00:00"
+    },
+    {
+      "address": "CaV5KRafqynDU1Mj3dkzFvNuQPjHRPeHLPzedFF2Dcqw",
+      "win_rate": 0.0,
+      "completed_trades": 1,
+      "wins": 0,
+      "losses": 1,
+      "open_positions": 26,
+      "realized_pnl_sol": -0.0118,
+      "avg_hold_minutes": 206.8,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (1, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954891,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:27.877360+00:00"
+    },
+    {
+      "address": "4pCtCYicXZDfCLnw9mifd62wU8Tauzn3GknmsSkoNKn7",
+      "win_rate": 0.5,
+      "completed_trades": 2,
+      "wins": 1,
+      "losses": 1,
+      "open_positions": 8,
+      "realized_pnl_sol": -0.3842,
+      "avg_hold_minutes": 10232.9,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (2, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954879,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:29.728937+00:00"
+    },
+    {
+      "address": "CgwwjU2cmsCzoLBsk4WkgRStDfM8jRjYTuWe8FExQNzJ",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 0,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954759,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:33.618370+00:00"
+    },
+    {
+      "address": "CzSaADXFd36aLmfCvX2UJpcTAVedqSQuNqVG5v8prsBS",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 3,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954459,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:35.073641+00:00"
+    },
+    {
+      "address": "7cXeEXa4cpUDYtpaMGP2rc7pe1LJB6M93DtiVJswpbrJ",
+      "win_rate": 0.667,
+      "completed_trades": 3,
+      "wins": 2,
+      "losses": 1,
+      "open_positions": 15,
+      "realized_pnl_sol": 0.1203,
+      "avg_hold_minutes": 113.3,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (3, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954445,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:35.978437+00:00"
+    },
+    {
+      "address": "m9yTMxJ8MrpbvVtQiARUgiZnx83tGxBk996MhTQrxQA",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 0,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954152,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:38.497287+00:00"
+    },
+    {
+      "address": "2WTdSXtHJnJmmR5sjE7ywxNezCKJZHP4eYVnKLdzVGqi",
+      "win_rate": 0.0,
+      "completed_trades": 2,
+      "wins": 0,
+      "losses": 2,
+      "open_positions": 2,
+      "realized_pnl_sol": -0.55,
+      "avg_hold_minutes": 899.5,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (2, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772954149,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:39.911643+00:00"
+    },
+    {
+      "address": "7sSgVJkQRbLPLFmWB9gAwjes6D1YuBPNSyeEueUGuoTq",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 2,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772953678,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 2,
+      "discovery_sell_count": 0,
+      "scored_at": "2026-03-08T07:38:43.599257+00:00"
+    },
+    {
+      "address": "49JS4xS7KUnxuFtdk2vo53WkQFnAXwtVVm4jMBGAHRFg",
+      "win_rate": 1.0,
+      "completed_trades": 2,
+      "wins": 2,
+      "losses": 0,
+      "open_positions": 43,
+      "realized_pnl_sol": 1.1486,
+      "avg_hold_minutes": 6.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (2, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772952869,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:47.174252+00:00"
+    },
+    {
+      "address": "54Pz1e35z9uoFdnxtzjp7xZQoFiofqhdayQWBMN7dsuy",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 0,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "9jR73VKfEjNYx8ZPQnVR8BgSiENv8v3P5EhVTBnxpump"
+      ],
+      "token_symbols": [
+        "KIMJONG"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772952196,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:48.383771+00:00"
+    },
+    {
+      "address": "Su6GGp3m2B845yztukUQuVYQCQRx4sNpnMCvwZK59Gw",
+      "win_rate": 0.0,
+      "completed_trades": 0,
+      "wins": 0,
+      "losses": 0,
+      "open_positions": 0,
+      "realized_pnl_sol": 0,
+      "avg_hold_minutes": 0.0,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (0, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772951874,
+      "days_since_active": 0.0,
+      "discovery_buy_count": 1,
+      "discovery_sell_count": 1,
+      "scored_at": "2026-03-08T07:38:49.416252+00:00"
+    },
+    {
+      "address": "8ofYF99NkdLZejuowy3my15mGe2EPuYXyL9yFDjgxqVR",
+      "win_rate": 0.667,
+      "completed_trades": 3,
+      "wins": 2,
+      "losses": 1,
+      "open_positions": 8,
+      "realized_pnl_sol": 3.1623,
+      "avg_hold_minutes": 330.5,
+      "composite_score": 0.0,
+      "disqualified": true,
+      "disqualification_reason": "insufficient completed trades (3, need 5+)",
+      "method": "helius_pair_tracking",
+      "tokens_found_on": [
+        "C9smdbQEsoZhnNCYhqeLDNE17aMGdBjJvqzk59DCpump"
+      ],
+      "token_symbols": [
+        "Leprecoin"
+      ],
+      "feepayer_tx_count": 2,
+      "last_seen_ts": 1772949393,
+      "days_since_active": 0.1,
+      "discovery_buy_count": 0,
+      "discovery_sell_count": 2,
+      "scored_at": "2026-03-08T07:38:51.348048+00:00"
+    }
+  ]
+}
