@@ -37,6 +37,8 @@
 
 ## WebAssist / Next.js Gotchas
 
+- **React hooks before early return**: NEVER place hook calls after a conditional `return null`. This violates React's rules of hooks and can crash the root layout. Next.js responds with `html#__next_error__` (no lang/title/main) → A11y score 54/100. Fix: move ALL hooks before early return. Found in `GlobalAthenaButton` (commit 92db7e5).
+- **global-error.tsx for root crashes**: Next.js default global error page lacks lang, title, main → A11y failures. Create `app/global-error.tsx` with `<html lang="en">`, `<title>`, `<main>` as safety net.
 - **Framer Motion `.get()` anti-pattern**: Using `motionValue.get()` in JSX style props (e.g., `style={{ margin: marginSide.get() + 'px' }}`) captures a STATIC value at render time — it does NOT create a reactive subscription. Pass the MotionValue directly to `motion.*` style props for reactivity: `style={{ margin: marginSide }}`. Discovered in header.tsx nav margin bug (commit 07f42f5, 2026-03-07).
 - **Vercel deploys**: Commits must be authored by `ottomev <abraottomev@gmail.com>`. Repo-local git config should be set. Always verify with `git log -1 --format='%an <%ae>'`.
 - **Framer Motion ease types**: Tuple casts needed for cubic-bezier arrays in TypeScript (e.g., `ease: [0.4, 0, 0.2, 1] as [number, number, number, number]`). Without cast, TS errors block Vercel build.
