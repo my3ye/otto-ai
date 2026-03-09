@@ -132,6 +132,11 @@ FILTER_MAX_VOL_LIQ_RATIO = 20.0      # 24h_vol / liquidity cap (wash-trade guard
 # --- Quality gate: max signals per day ---
 MAX_SIGNALS_PER_DAY = 3
 
+# --- Repeat convergence tracking ---
+# Tokens that appear as convergence signals 2+ times within 72h get upgraded to ULTRA tier.
+# Backtest: pippin appeared 3x as convergence, returned +19-27% each time.
+CONVERGENCE_SEEN_TTL_HOURS = 72  # Prune entries older than 72h
+
 
 # ---------------------------------------------------------------------------
 # State management
@@ -143,6 +148,9 @@ def load_state() -> dict:
         # Migrate old state without published_tokens_today
         if "published_tokens_today" not in state:
             state["published_tokens_today"] = []
+        # Migrate old state without convergence_seen tracker
+        if "convergence_seen" not in state:
+            state["convergence_seen"] = {}
         return state
     return {
         "last_published_ts": 0,
@@ -150,11 +158,53 @@ def load_state() -> dict:
         "published_today": 0,
         "today_date": str(date.today()),
         "published_tokens_today": [],
+        "convergence_seen": {},
     }
 
 
 def save_state(state: dict):
     STATE_FILE.write_text(json.dumps(state, indent=2))
+
+
+def ordinal(n: int) -> str:
+    """Return ordinal string: 1→'1st', 2→'2nd', 3→'3rd', 4→'4th', etc."""
+    if 11 <= (n % 100) <= 13:
+        return f"{n}th"
+    return f"{n}{['th', 'st', 'nd', 'rd', 'th', 'th', 'th', 'th', 'th', 'th'][n % 10]}"
+
+
+def update_convergence_seen(state: dict, token: str, token_symbol: str = "???") -> int:
+    """
+    Track a token's appearances as a convergence signal.
+    Increments the appearance count, updates last_ts, and prunes entries
+    older than CONVERGENCE_SEEN_TTL_HOURS (72h).
+    Returns the updated appearance count for this token.
+    """
+    now_ts = int(time.time())
+    cutoff_ts = now_ts - CONVERGENCE_SEEN_TTL_HOURS * 3600
+
+    seen: dict = state.setdefault("convergence_seen", {})
+
+    # Prune stale entries (older than 72h)
+    stale_keys = [k for k, v in seen.items() if v.get("last_ts", 0) < cutoff_ts]
+    for k in stale_keys:
+        del seen[k]
+
+    if token in seen:
+        seen[token]["count"] += 1
+        seen[token]["last_ts"] = now_ts
+        # Update symbol if we have a real one now
+        if token_symbol != "???":
+            seen[token]["token_symbol"] = token_symbol
+    else:
+        seen[token] = {
+            "count": 1,
+            "first_ts": now_ts,
+            "last_ts": now_ts,
+            "token_symbol": token_symbol,
+        }
+
+    return seen[token]["count"]
 
 
 def get_daily_count(state: dict) -> int:
@@ -366,6 +416,8 @@ def format_signal_post(signal: dict, dex_data: dict | None, tp_sl: dict | None) 
     total_usd = signal.get("total_buy_usd", 0)
     signal_time = signal.get("signal_time", "")
     window = signal.get("window_minutes", 30)
+    conv_count = signal.get("convergence_count", 1)
+    is_repeat = conv_count >= 2
 
     # Time formatting
     try:
@@ -374,9 +426,17 @@ def format_signal_post(signal: dict, dex_data: dict | None, tp_sl: dict | None) 
     except Exception:
         time_str = "recent"
 
-    # Confidence tag
-    conf_emoji = "🔴" if confidence == "ULTRA" else "🟡"
-    conf_tag = f"ULTRA [{wallets} whales]" if confidence == "ULTRA" else f"HIGH [{wallets} whales]"
+    # Confidence tag — repeat ULTRA gets distinct header
+    if is_repeat:
+        conf_emoji = "🚨"
+        conv_ord = ordinal(conv_count)
+        conf_tag = f"REPEAT CONVERGENCE — {conv_ord} detection [{wallets} whales]"
+    elif confidence == "ULTRA":
+        conf_emoji = "🔴"
+        conf_tag = f"ULTRA [{wallets} whales]"
+    else:
+        conf_emoji = "🟡"
+        conf_tag = f"HIGH [{wallets} whales]"
 
     # Token name + symbol from DexScreener
     if dex_data:
@@ -421,12 +481,17 @@ def format_signal_post(signal: dict, dex_data: dict | None, tp_sl: dict | None) 
     else:
         spike_str = format_usd(total_usd) + " whale aggregate"
 
+    # Repeat convergence banner (ULTRA repeat only)
+    repeat_banner = ""
+    if is_repeat:
+        conv_ord = ordinal(conv_count)
+        repeat_banner = f"\n⭐ {conv_ord} convergence detected — historically strongest signal tier\n"
+
     # Dexscreener + Birdeye links
     dex_url = f"https://dexscreener.com/solana/{token}"
     bird_url = f"https://birdeye.so/token/{token}?chain=solana"
 
-    post = f"""{conf_emoji} WHALE ALERT — {conf_tag}
-
+    post = f"""{conf_emoji} WHALE ALERT — {conf_tag}{repeat_banner}
 📍 Token: {token_name} ({token_symbol})
 💰 Market Cap: {format_usd(mcap)} | Liquidity: {format_usd(liq)}
 📊 DEX Volume 2h: {spike_str}
@@ -848,17 +913,39 @@ async def run(dry_run: bool = False, test_mode: bool = False,
             break
 
         token = signal["token"]
+
+        # --- Repeat convergence tracking ---
+        # Track this convergence appearance BEFORE quality filters so we count every
+        # detection (not just published ones). Symbol updated after dex_data fetch.
+        conv_count = update_convergence_seen(state, token, "???")
+        # Make a mutable copy of the signal dict to add tracking fields
+        signal = dict(signal)
+        signal["convergence_count"] = conv_count
+        if conv_count >= 2:
+            signal["confidence"] = "ULTRA"
+            conv_ord = ordinal(conv_count)
+            print(f"[publisher] ⭐ REPEAT CONVERGENCE: {token[:16]}... ({conv_ord} detection) → upgraded to ULTRA")
+        # --- End repeat convergence tracking ---
+
         print(f"[publisher] [CONVERGENCE] Processing: {token[:20]}... | {signal['confidence']} | wallets={signal['wallet_count']}")
 
         dex_data = await fetch_dex_data(token)
 
+        # Update symbol in convergence_seen now that we have dex_data
+        if dex_data:
+            token_symbol = dex_data.get("baseToken", {}).get("symbol", "???")
+            if token_symbol != "???" and token in state["convergence_seen"]:
+                state["convergence_seen"][token]["token_symbol"] = token_symbol
+
         if not no_filters:
             if dex_data is None:
                 print(f"[publisher] SKIP: No DexScreener data for {token[:16]}...")
+                save_state(state)  # Persist convergence_seen even for skipped signals
                 continue
             passes, reason = apply_quality_filters(signal, dex_data)
             if not passes:
                 print(f"[publisher] FILTERED OUT: {reason}")
+                save_state(state)  # Persist convergence_seen even for filtered signals
                 continue
             print(f"[publisher] PASSES filters: {reason}")
 
@@ -869,6 +956,7 @@ async def run(dry_run: bool = False, test_mode: bool = False,
                 tp_sl = compute_tp_sl(price_usd)
                 print(f"[publisher] Entry: {format_price(price_usd)} | TP1: {format_price(tp_sl['tp1'])} | SL: {format_price(tp_sl['sl'])}")
 
+        signal_type = "convergence_ultra" if conv_count >= 2 else "convergence"
         post = format_signal_post(signal, dex_data, tp_sl)
 
         if dry_run:
@@ -877,7 +965,7 @@ async def run(dry_run: bool = False, test_mode: bool = False,
             print("-----------------------------")
             published += 1
             if dex_data:
-                record_signal_performance(signal, dex_data, tp_sl, signal_type="convergence")
+                record_signal_performance(signal, dex_data, tp_sl, signal_type=signal_type)
         else:
             success = await post_to_telegram(post)
             if success:
@@ -891,7 +979,7 @@ async def run(dry_run: bool = False, test_mode: bool = False,
                     state["published_tokens_today"].append(token)
                 save_state(state)
                 if dex_data:
-                    record_signal_performance(signal, dex_data, tp_sl, signal_type="convergence")
+                    record_signal_performance(signal, dex_data, tp_sl, signal_type=signal_type)
             await asyncio.sleep(1)
 
     # -----------------------------------------------------------------------
@@ -960,6 +1048,10 @@ async def run(dry_run: bool = False, test_mode: bool = False,
                 await asyncio.sleep(1)
 
         print(f"[publisher] Single-wallet: published {sw_published}/{len(sw_signals)} candidates")
+
+    # Always persist convergence_seen at end of run (may have tracked signals that
+    # were filtered out or skipped — these still count as convergence appearances)
+    save_state(state)
 
     total_this_run = published
     print(f"[publisher] Done. Published {total_this_run} signals this run.")
