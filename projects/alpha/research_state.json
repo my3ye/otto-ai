@@ -1,0 +1,18 @@
+{
+  "iteration": 0,
+  "first_run_done": false,
+  "last_run": null,
+  "hypotheses": [
+    "SM_10 is the only real directional trader (83% WR) — focus signals on SM_10 solo",
+    "24h exit horizon outperforms 1h/4h — implement TP/SL instead of fixed time exits",
+    "Wallet pool needs re-qualification: 17/18 wallets may be LP/bot positions",
+    "Convergence signals (2+ wallets on same token) are more reliable than single-wallet"
+  ],
+  "findings": [],
+  "confirmed_actions": [],
+  "action_items": [
+    "Re-qualify wallet pool using Birdeye API (blocked on API key from Mev)",
+    "Implement TP1/SL exits: TP1=+10%, SL=-15%",
+    "Track signal performance TP/SL hit rates automatically"
+  ]
+}

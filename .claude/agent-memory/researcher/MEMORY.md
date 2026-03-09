@@ -34,7 +34,7 @@
 - Our 20 wallets sourced by swap frequency — NO win rate validation
 - SM_1 (MEV bot), SM_6 (TITAN bot) are bots, not smart money
 - Correct methodology: find early buyers of 5x+ tokens → filter by 65%+ win rate
-- Need Birdeye API key for wallet PnL scoring
+- Birdeye API key obtained (cycle 88) — birdeye_client.py integrated
 - Research file: ~/otto/projects/alpha/SIGNAL_QUALITY_RESEARCH.md
 
 ### Smart money wallet scoring thresholds (industry standard)
@@ -64,7 +64,42 @@
 - Embed in every signal: jup.ag/swap/SOL-[TOKEN]?referrer=[KEY]&feeBps=50
 - Jupiter takes only 2.5% of fees earned
 
-### Data sources (all free)
-- DexScreener API: volume, liquidity, price (no auth required)
-- Birdeye API: token metadata, market cap, holders (free tier, API key)
+### Data sources — confirmed capabilities (2026-03-09)
+- DexScreener API: current price, volume, liquidity, pair info — NO OHLCV candles, NO wallet/PnL data. Free, no auth. 300 req/min.
+- Birdeye API: token metadata, market cap, holders (free tier, API key) — blocked/unreliable for our use case
 - Solscan API: transaction history, token age (free tier)
+- Helius Enhanced Transactions API: SWAP type returns inputMint, outputMint, tokenInputs/tokenOutputs (raw token amounts + decimals), pre/post balances. NO USD values. PnL reconstruction requires cross-referencing price oracle separately. Wallet API beta adds history/transfers/balances — no PnL natively.
+- Solana Tracker API: wallet PnL endpoint returns win rate, realized PnL per token, trade counts. Free: 500K credits/month, 10 RPS. $49/mo = 10M credits. BEST free option for wallet PnL.
+- GMGN.ai: no free API — official API requires trading volume + Google Form approval. UI shows win rate/PnL/hold time. Dragon open-source tool scrapes GMGN but hits Cloudflare — fragile.
+- Cielo Finance: API requires Whale plan (paid). UI free. Not viable for programmatic access.
+- Bitquery: GraphQL API for pump.fun early buyers — requires account, has free tier but limited.
+
+### Wallet discovery without Birdeye — step-by-step (2026-03-09)
+1. Find 5-10 tokens that pumped 5x+ in last 30 days (DexScreener trending or GMGN trending page)
+2. For each token, get first 30-min buyers via Helius `getTransactions` on token mint (type=SWAP, filter timestamps)
+3. Collect wallet addresses, deduplicate across multiple pumped tokens — wallets appearing in 2+ early buyer lists are candidates
+4. Score each wallet via Solana Tracker `/wallet/{address}/pnl` — win rate, trade count, realized PnL
+5. Gate: win_rate_30d >= 65%, trade_count >= 30, avg_hold_time > 5min
+6. Alternative: manually visit GMGN.ai/sol/address/{wallet} for each candidate — shows win rate/PnL visually
+
+### Statistical validity of 27 trades (2026-03-09)
+- 27 trades is BELOW the 30-trade minimum for any valid statistical inference
+- 30% WR on 27 trades: 95% CI is approximately 14% to 51% (Wilson interval) — true WR could be anywhere in that range
+- 60% WR on 30 trades: 95% CI is 41% to 77% — still very wide
+- Need 385 trades for robust significance; 100 trades minimum for directional confidence
+- Correct approach at N=27: use Clopper-Pearson exact binomial CI, not z-test
+- Do NOT trust 30% WR at N=27 — it's statistically indistinguishable from 14% or 51%
+- Actionable threshold: once N>=50 with WR >= 55%, begin publishing with caution flag
+
+### Optimal TP/SL for right-skewed crypto returns (2026-03-09)
+- Empirically proven (ScienceDirect 2024 paper): 30% monthly stop-loss on momentum crypto = avg return +9.13% vs -8.02% without SL, and skewness turns POSITIVE
+- Right-tail dependence in crypto is stronger than left-tail — upside clustering is real
+- Academic consensus: DO NOT use symmetric SL/TP (wrong for fat-tail positive-skew assets)
+- Kelly Criterion for asymmetric payoffs: f* = (p*b - q*L) / (b*L). With our data: p=0.30, b=+13% (avg winner), q=0.70, L=5% (avg loser) → f* ≈ 0.14 → bet 14% of capital per trade max
+- Practical structure for our distribution (most trades -2 to -5%, winners +10 to +28%):
+  - SL: -12% to -15% (not tighter — meme coins have wide intraday swings, tight SL gets stopped out on noise)
+  - TP1: +10% (take 33% of position — most reachable)
+  - TP2: +25% (take another 33%)
+  - TP3: +50%+ (let 33% run — captures the fat right tail)
+  - Trail stop after TP1: move SL to breakeven
+- Use fractional Kelly (50% of calculated f*) in practice — reduces variance 4x while keeping 75% of returns
