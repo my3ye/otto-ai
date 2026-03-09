@@ -76,9 +76,15 @@ LOOKBACK_HOURS = 2
 # --- Single-wallet signal mode thresholds ---
 SW_MIN_QUALITY_SCORE = 0.6   # Grade A + score >= 0.6
 SW_LOOKBACK_HOURS = 2        # Only look at last 2 hours of signals.jsonl
+# Timeframe analysis 2026-03-09: min $100 buy required for single-wallet signals.
+# 9/12 published signals were dust trades ($0.003-$0.32) with no smart-money conviction.
+# $100 floor filters bot dust while keeping real smart-money accumulation.
+SW_MIN_BUY_USD = 100         # Minimum buy size for single-wallet signals
 
 # Noisy wallets excluded from single-wallet mode (same as whale_convergence.py)
-SW_NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7"}
+# 2026-03-09: added SM_10 — in NOISY_WALLETS for convergence (0% WR) but was leaking
+# through into single-wallet mode, generating 7/12 published signals with dust buys.
+SW_NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7", "SM_10"}
 
 # --- Single-wallet DexScreener filters (more permissive than convergence mode) ---
 # Convergence hunts for micro-cap pumps. Single-wallet tracks smart money broadly.
@@ -238,6 +244,15 @@ def apply_quality_filters(signal: dict, dex_data: dict) -> tuple[bool, str]:
     change_1h = price_change.get("h1", 0) or 0
     if change_1h > FILTER_MAX_PUMP_1H:
         return False, f"already pumped: +{change_1h:.1f}% in 1h > {FILTER_MAX_PUMP_1H}%"
+
+    # --- Cascade dump guard: skip if down >20% in 6h (distribution, not accumulation) ---
+    # Timeframe analysis 2026-03-09: LABUBU was -11.8% at 1h → -30.4% at 24h (cascading rug).
+    # WAR was also -9.6% at 1h but recovered +10.9% at 24h (healthy dip).
+    # The key distinguisher: if already down >20% in 6h it's distribution, not accumulation.
+    # DexScreener returns h6 (6h) as the closest to 4h for price change data.
+    change_6h = price_change.get("h6", 0) or 0
+    if change_6h < -20:
+        return False, f"cascading dump: {change_6h:.1f}% in 6h (likely distribution, not accumulation)"
 
     # --- Token age: > 7 days (Week 1 fix, was 3 days) ---
     pair_created_ms = dex_data.get("pairCreatedAt", 0) or 0
@@ -615,8 +630,11 @@ def get_new_single_wallet_signals(state: dict) -> list[dict]:
         if score < SW_MIN_QUALITY_SCORE:
             continue
 
-        # Skip zero-amount (parsing failures)
-        if r.get("amount_usd", 0) == 0 and r.get("amount_sol", 0) == 0:
+        # Skip zero-amount (parsing failures) and dust trades (no conviction)
+        amount_usd = r.get("amount_usd", 0) or 0
+        if amount_usd == 0 and r.get("amount_sol", 0) == 0:
+            continue
+        if amount_usd < SW_MIN_BUY_USD:
             continue
 
         # Must be within lookback window
