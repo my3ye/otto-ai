@@ -12,7 +12,7 @@ import os
 import sys
 import time
 from datetime import datetime, timezone
-from collections import defaultdict
+from collections import defaultdict, Counter
 from typing import Optional
 
 SIGNAL_NAME = "SM_12_whale_convergence"
@@ -144,6 +144,8 @@ def load_buy_signals() -> list[dict]:
                 "wallet": wallet,
                 "amount_usd": amount_usd,
                 "signal": r.get("signal"),
+                # fee_payer: stored by live_watcher since Week 1 fix — used for coordinator detection
+                "fee_payer": r.get("fee_payer", ""),
             })
 
     return sorted(records, key=lambda r: r["ts"])
@@ -185,6 +187,19 @@ def detect_convergence(records: list[dict]) -> list[dict]:
 
             if len(unique_wallets) < MIN_WALLETS:
                 continue
+
+            # --- Fee-payer cluster check (+8-12% WR) ---
+            # If 3+ converging wallets share the same feePayer, it's a coordinated
+            # insider pump (one coordinator paying fees for multiple sub-accounts).
+            # Organic convergence = each wallet is its own feePayer (distinct addresses).
+            # Only applies if fee_payer data is present (live_watcher stores it).
+            fee_payers = [b.get("fee_payer", "") for b in unique_wallets.values()
+                          if b.get("fee_payer")]
+            if len(fee_payers) >= 3:
+                most_common_fp, fp_count = Counter(fee_payers).most_common(1)[0]
+                if fp_count >= 3 and most_common_fp:
+                    # Coordinated: skip this convergence signal
+                    continue
 
             # Deduplicate convergence events at same token+approx_time
             dedup_key = (token, window_start // 3600)  # Same hour

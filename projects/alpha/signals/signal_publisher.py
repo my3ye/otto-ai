@@ -119,9 +119,10 @@ FILTER_MIN_MARKET_CAP   = 100_000    # $100K minimum market cap
 FILTER_MAX_MARKET_CAP   = 3_000_000  # $3M maximum market cap
 FILTER_MIN_LIQUIDITY    = 100_000    # $100K minimum pool liquidity
 FILTER_VOLUME_SPIKE_MIN = 3.0        # h1 vol must be >= 3x (h24/24) average
-# Week 1 fix: was >25% in 6h → now >15% in 1h. DexScreener has no 2h field; h1 is the
-# correct proxy. If a token pumped >15% in the last hour we're already late — skip it.
-FILTER_MAX_PUMP_1H      = 15.0       # Skip if price already up >15% in last 1h
+# Week 1 fix v2: tightened from 15% → 10%. Our 0% WR at T+1h shows we're entering after
+# a 10-15% move has already happened. 10% h1 filter cuts late entries more aggressively.
+# DexScreener has no 2h field; h1 is the correct proxy for recent price action.
+FILTER_MAX_PUMP_1H      = 10.0       # Skip if price already up >10% in last 1h (tightened from 15%)
 # Week 1 fix: raised from 3→7 days. Most rugs happen in the first week; 3-day floor
 # still exposed us to peak rug window. 7 days eliminates the majority of rug risk.
 FILTER_MIN_TOKEN_AGE_DAYS = 7        # Token must be > 7 days old (was 3)
@@ -288,8 +289,9 @@ def apply_quality_filters(signal: dict, dex_data: dict) -> tuple[bool, str]:
         if vol_liq_ratio > FILTER_MAX_VOL_LIQ_RATIO:
             return False, f"wash-trade suspect: 24h_vol/liq={vol_liq_ratio:.1f}x > {FILTER_MAX_VOL_LIQ_RATIO}x (vol=${h24_vol:,.0f}, liq=${liq:,.0f})"
 
-    # --- Already-pumped filter: skip if >15% up in last 1h (Week 1 fix, was >25% in 6h) ---
-    # DexScreener has no 2h field; h1 is the proxy. >15% in 1h = we are already late.
+    # --- Already-pumped filter: skip if >10% up in last 1h (Week 1 fix v2, was 15%) ---
+    # 0% WR at T+1h confirms we're entering after the initial 10-15% move. 10% is the
+    # more precise threshold — anything above that and we are already late.
     price_change = dex_data.get("priceChange", {})
     change_1h = price_change.get("h1", 0) or 0
     if change_1h > FILTER_MAX_PUMP_1H:
