@@ -66,34 +66,53 @@ TIP_WALLET = os.environ.get("SIGNAL_TIP_WALLET", "CONFIGURE_TIP_WALLET_ADDRESS")
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHANNEL = os.environ.get("TELEGRAM_CHANNEL", "")
 
+
+# --- Load strategy config overrides (auto-updated by pipeline_executor.py) ---
+def _load_strategy_config() -> dict:
+    """Load strategy_config.json from parent alpha dir. Returns {} if missing."""
+    config_path = Path(__file__).resolve().parents[1] / "strategy_config.json"
+    if config_path.exists():
+        try:
+            return json.loads(config_path.read_text())
+        except Exception:
+            pass
+    return {}
+
+_STRATEGY = _load_strategy_config()
+_SW_CFG   = _STRATEGY.get("single_wallet", {})
+_QF_CFG   = _STRATEGY.get("quality_filters", {})
+_TPSL_CFG = _STRATEGY.get("tp_sl", {})
+_CONV_CFG = _STRATEGY.get("convergence", {})
+
+
 # --- Signal detection thresholds (kept from original) ---
 # Week 1 fix: raised from 3→4 (research shows 3-wallet signals had no discriminating power)
-MIN_WALLET_COUNT = 4
-MIN_TOTAL_USD = 1_000
-CONFIDENCE_LEVELS = {"ULTRA", "HIGH"}
+MIN_WALLET_COUNT = _CONV_CFG.get("min_wallet_count", 4)
+MIN_TOTAL_USD = _CONV_CFG.get("min_total_usd", 1_000)
+CONFIDENCE_LEVELS = set(_CONV_CFG.get("confidence_levels", ["ULTRA", "HIGH"]))
 LOOKBACK_HOURS = 2
 
 # --- Single-wallet signal mode thresholds ---
-SW_MIN_QUALITY_SCORE = 0.6   # Grade A + score >= 0.6
+SW_MIN_QUALITY_SCORE = _SW_CFG.get("min_quality_score", 0.6)   # Grade A + score >= threshold
 SW_LOOKBACK_HOURS = 2        # Only look at last 2 hours of signals.jsonl
 # Timeframe analysis 2026-03-09: min $100 buy required for single-wallet signals.
 # 9/12 published signals were dust trades ($0.003-$0.32) with no smart-money conviction.
 # $100 floor filters bot dust while keeping real smart-money accumulation.
-SW_MIN_BUY_USD = 100         # Minimum buy size for single-wallet signals
+SW_MIN_BUY_USD = _SW_CFG.get("min_buy_usd", 100)         # Minimum buy size for single-wallet signals
 
 # Noisy wallets excluded from single-wallet mode (same as whale_convergence.py)
 # 2026-03-10: SM_10 REMOVED — confirmed 83% WR directional trader. Dust problem
 # was fixed by SW_MIN_BUY_USD=$100. SM_10 is now Tier 1 (publish immediately).
-SW_NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7"}
+SW_NOISY_WALLETS = set(_SW_CFG.get("noisy_wallets", ["SM_1", "SM_2", "SM_4", "SM_7"]))
 
 # --- Single-wallet DexScreener filters (more permissive than convergence mode) ---
 # Convergence hunts for micro-cap pumps. Single-wallet tracks smart money broadly.
-SW_FILTER_MIN_MARKET_CAP   = 500_000    # $500K — filter obvious junk/rugs
+SW_FILTER_MIN_MARKET_CAP   = _SW_CFG.get("min_market_cap", 500_000)
 # No upper mcap bound — smart money buys mid/large caps too
-SW_FILTER_MIN_LIQUIDITY    = 50_000     # $50K minimum pool liquidity
-SW_FILTER_VOLUME_SPIKE_MIN = 1.0        # h1 vol must be >= 1.0x hourly average (lowered from 1.5 — was filtering 7/8 candidates)
-SW_FILTER_MAX_PUMP_6H      = 40.0       # Skip if already up >40% in 6h (already too late)
-SW_FILTER_MIN_TOKEN_AGE_DAYS = 1        # Token must be at least 1 day old
+SW_FILTER_MIN_LIQUIDITY    = _SW_CFG.get("min_liquidity", 50_000)
+SW_FILTER_VOLUME_SPIKE_MIN = _SW_CFG.get("volume_spike_min", 1.0)
+SW_FILTER_MAX_PUMP_6H      = _SW_CFG.get("max_pump_6h", 40.0)
+SW_FILTER_MIN_TOKEN_AGE_DAYS = _SW_CFG.get("min_token_age_days", 1)
 
 # Stablecoins and large-caps to skip (subset of whale_convergence BLOCKED_TOKENS)
 SW_BLOCKED_TOKENS = {
@@ -109,23 +128,23 @@ SW_BLOCKED_TOKENS = {
 }
 
 # --- TP/SL levels (Phase 1 fix: replace 4h time exits) ---
-TP1_PCT = 0.10   # +10%
-TP2_PCT = 0.25   # +25%
-TP3_PCT = 0.50   # +50%
-SL_PCT  = 0.15   # -15% (stored as positive, applied as negative)
+TP1_PCT = _TPSL_CFG.get("tp1_pct", 0.10)
+TP2_PCT = _TPSL_CFG.get("tp2_pct", 0.25)
+TP3_PCT = _TPSL_CFG.get("tp3_pct", 0.50)
+SL_PCT  = _TPSL_CFG.get("sl_pct",  0.15)
 
 # --- Quality filter thresholds ---
-FILTER_MIN_MARKET_CAP   = 100_000    # $100K minimum market cap
-FILTER_MAX_MARKET_CAP   = 3_000_000  # $3M maximum market cap
-FILTER_MIN_LIQUIDITY    = 100_000    # $100K minimum pool liquidity
-FILTER_VOLUME_SPIKE_MIN = 3.0        # h1 vol must be >= 3x (h24/24) average
+FILTER_MIN_MARKET_CAP   = _QF_CFG.get("min_market_cap",   100_000)
+FILTER_MAX_MARKET_CAP   = _QF_CFG.get("max_market_cap",   3_000_000)
+FILTER_MIN_LIQUIDITY    = _QF_CFG.get("min_liquidity",    100_000)
+FILTER_VOLUME_SPIKE_MIN = _QF_CFG.get("volume_spike_min", 3.0)
 # Week 1 fix v2: tightened from 15% → 10%. Our 0% WR at T+1h shows we're entering after
 # a 10-15% move has already happened. 10% h1 filter cuts late entries more aggressively.
 # DexScreener has no 2h field; h1 is the correct proxy for recent price action.
-FILTER_MAX_PUMP_1H      = 10.0       # Skip if price already up >10% in last 1h (tightened from 15%)
+FILTER_MAX_PUMP_1H      = _QF_CFG.get("max_pump_1h",      10.0)
 # Week 1 fix: raised from 3→7 days. Most rugs happen in the first week; 3-day floor
 # still exposed us to peak rug window. 7 days eliminates the majority of rug risk.
-FILTER_MIN_TOKEN_AGE_DAYS = 7        # Token must be > 7 days old (was 3)
+FILTER_MIN_TOKEN_AGE_DAYS = _QF_CFG.get("min_token_age_days", 7)
 # Week 1 fix: NEW — reject wash-traded tokens. If 24h volume > 20x liquidity the pool
 # is being churned artificially. Real organic volume rarely exceeds 10x liquidity/day.
 FILTER_MAX_VOL_LIQ_RATIO = 20.0      # 24h_vol / liquidity cap (wash-trade guard)

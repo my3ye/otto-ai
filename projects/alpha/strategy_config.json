@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "updated_at": "2026-03-10T00:00:00Z",
+  "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
+  "changes_log": [
+    {
+      "ts": "2026-03-10T00:00:00Z",
+      "change": "Initial config — baseline values from Week 1 fix v2",
+      "rationale": "Seeding from manually-tuned values after Week 1 signal quality fix"
+    }
+  ],
+  "convergence": {
+    "min_wallet_count": 4,
+    "min_total_usd": 1000,
+    "confidence_levels": ["ULTRA", "HIGH"]
+  },
+  "single_wallet": {
+    "min_quality_score": 0.6,
+    "min_buy_usd": 100,
+    "noisy_wallets": ["SM_1", "SM_2", "SM_4", "SM_7"],
+    "min_market_cap": 500000,
+    "min_liquidity": 50000,
+    "volume_spike_min": 1.0,
+    "max_pump_6h": 40.0,
+    "min_token_age_days": 1
+  },
+  "quality_filters": {
+    "min_market_cap": 100000,
+    "max_market_cap": 3000000,
+    "min_liquidity": 100000,
+    "volume_spike_min": 3.0,
+    "max_pump_1h": 10.0,
+    "min_token_age_days": 7
+  },
+  "tp_sl": {
+    "tp1_pct": 0.10,
+    "tp2_pct": 0.25,
+    "tp3_pct": 0.50,
+    "sl_pct": 0.15
+  },
+  "auto_update": {
+    "enabled": true,
+    "min_closed_signals": 5,
+    "win_rate_tighten_threshold": 0.40,
+    "win_rate_relax_threshold": 0.65,
+    "quality_score_step": 0.05,
+    "quality_score_min": 0.55,
+    "quality_score_max": 0.80,
+    "max_changes_per_cycle": 2
+  }
+}
