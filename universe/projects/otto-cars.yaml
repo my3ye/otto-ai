@@ -1,0 +1,69 @@
+id: otto-cars
+name: "OTTO CARS"
+archetype: "The Fleet — community-governed mobility for the new civilization"
+inception_article: null
+
+identity:
+  tagline: "Build your own car. Own the fleet. Govern the roads."
+  philosophy: >
+    The taxi companies take 25%. The car manufacturers obsolete your vehicle in
+    3 years. Otto Cars changes both. Community-governed automated taxis where
+    earnings flow to contributors. Custom super cars built to order with
+    pre-configured bases, community governed.
+  key_quote: "Your city's mobility, owned by your city."
+  what_it_is: >
+    Two-layer mobility ecosystem. (1) Otto Taxis: community-governed automated
+    taxi network. Zero-commission rides. Earnings distributed to vehicle contributors,
+    governance participants, and maintenance nodes. (2) Otto Super Cars: Build Your
+    Own Car platform with pre-configured bases. Custom specs, community-governed
+    production, delivered by Otto Factories.
+  what_it_is_not: >
+    Not Uber with a token. Not a car brand competing on aesthetics. Not mobility
+    that extracts from cities rather than building them.
+  features:
+    - "Automated taxi network — zero commission, community governed"
+    - "Build Your Own Car — pre-configured bases, custom specs"
+    - "Community treasury earns from fleet operation"
+    - "Governance: route decisions, pricing, fleet expansion voted by contributors"
+    - "Integration with Otto Factories for vehicle production"
+    - "Integration with Ottolabs robotics for maintenance"
+
+brand:
+  domain: ""
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#FF6B00"
+  aesthetic: "Industrial precision meets clean design. Not luxury — sovereign utility."
+  voice: "Practical, bold, community-forward. Speaks to builders and commuters equally."
+
+technical:
+  repo: ""
+  stack: []
+  live_url: ""
+  status: concept
+
+ecosystem:
+  category: platform
+  provides:
+    - "Community mobility infrastructure"
+    - "Vehicle production via Otto Factories"
+    - "Fleet governance framework"
+  depends_on: ["ottolabs", "505-systems", "oneon"]
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Added by Mev — community-governed automated taxis + custom super cars (Build Your Own Car with pre-configured bases)."
+
+open_questions:
+  - "Which city / region for first taxi network pilot?"
+  - "What are the 'pre-configured bases' for Build Your Own Car?"
+  - "Legal framework for autonomous vehicle operation?"
+  - "How do vehicle contributors earn — token? Revenue share?"
+  - "Relationship to Tusita: does every Tusita community get an Otto Cars fleet?"

@@ -1,0 +1,228 @@
+# MY3YE Universe — Project Registry
+# Source of truth for all ecosystem projects, personas, and relationships.
+# Version changes tracked in changelog.md
+#
+# Schema version: 1
+# Last updated: 2026-03-11
+
+schema_version: 2
+
+# ── Ecosystem Identity ────────────────────────────────────────────────────────
+
+ecosystem:
+  name: MY3YE
+  tagline: "The frequency is transmitting."
+  philosophy: "Not a company. A declaration of intent — a living ecosystem of decentralized projects."
+  founder: Mev
+  copyright: "Open Copyright — All Rights Reserved to All"
+  inception_date: "2026-03-05"
+  inception_articles: 14
+  total_projects: 18  # 14 original + 3 new (Otto UI, Cars, Billboards) + Assistive Tech
+
+# ── Project Index ─────────────────────────────────────────────────────────────
+# Each entry references a detailed YAML in projects/
+# Categories: core | platform | life | business
+
+projects:
+  # Core Infrastructure
+  my3ye:
+    file: projects/my3ye.yaml
+    category: core
+    status: active
+    one_liner: "The Vision — overarching ecosystem container"
+
+  otto:
+    file: projects/otto.yaml
+    category: core
+    status: active
+    one_liner: "Continuous thought on chain, governed by community"
+
+  oneon:
+    file: projects/oneon.yaml
+    category: core
+    status: early
+    one_liner: "Sovereign identity and communication network"
+
+  tusita:
+    file: projects/tusita.yaml
+    category: core
+    status: early
+    one_liner: "Physical civilization — sovereign island communities"
+
+  505-systems:
+    file: projects/505-systems.yaml
+    category: core
+    status: early
+    one_liner: "Governance organism — DAO backbone for the ecosystem"
+
+  ottolabs:
+    file: projects/ottolabs.yaml
+    category: core
+    status: concept
+    one_liner: "Means of production — devices, robots, factories, farms, energy"
+
+  # Platforms
+  otto-music:
+    file: projects/otto-music.yaml
+    category: platform
+    status: concept
+    one_liner: "Decentralized music ecosystem"
+
+  otto-travel:
+    file: projects/otto-travel.yaml
+    category: platform
+    status: concept
+    one_liner: "Zero-commission decentralized travel"
+
+  otto-market:
+    file: projects/otto-market.yaml
+    category: platform
+    status: concept
+    one_liner: "Decentralized commerce marketplace"
+
+  otto-properties:
+    file: projects/otto-properties.yaml
+    category: platform
+    status: concept
+    one_liner: "Tokenized real estate with renter equity"
+
+  # Life & Culture
+  shakrah:
+    file: projects/shakrah.yaml
+    category: life
+    status: early
+    one_liner: "Holistic wellness ecosystem"
+
+  panik:
+    file: projects/panik.yaml
+    category: life
+    status: early
+    one_liner: "Sovereign protection — decentralized emergency mesh"
+
+  koink:
+    file: projects/koink.yaml
+    category: life
+    status: concept
+    one_liner: "Meme tokenomics engine — the Trojan Horse"
+
+  pipi:
+    file: projects/pipi.yaml
+    category: life
+    status: concept
+    one_liner: "Cultural mascot — The Perspicacious Pink Pepe Pig"
+
+  # Platforms (continued)
+  otto-ui:
+    file: projects/otto-ui.yaml
+    category: platform
+    status: concept
+    one_liner: "Universal interface layer — shared design system for all projects"
+
+  otto-cars:
+    file: projects/otto-cars.yaml
+    category: platform
+    status: concept
+    one_liner: "Community-governed automated taxis + Build Your Own Car"
+
+  otto-billboards:
+    file: projects/otto-billboards.yaml
+    category: platform
+    status: concept
+    one_liner: "Decentralized billboard network — physical broadcast layer"
+
+  # Business Entities
+  assistive-tech:
+    file: projects/assistive-tech.yaml
+    category: business
+    status: live
+    one_liner: "AI-powered tech services (WebAssist, TechAssist, etc.)"
+
+# ── Persona Index ─────────────────────────────────────────────────────────────
+# X account personas, each linked to a project
+
+personas:
+  maitrieye:
+    file: personas/maitrieye.yaml
+    project: my3ye
+    x_handle: "@maitrieye"
+    status: active
+
+  otto-assist:
+    file: personas/otto-assist.yaml
+    project: otto
+    x_handle: "@OttoAssist"
+    status: blocked  # 226 error, cooling down
+
+  # Future personas (add as accounts are created)
+  # pipi:
+  #   file: personas/pipi.yaml
+  #   project: pipi
+  #   x_handle: TBD
+  #   status: planned
+
+# ── Relationships ─────────────────────────────────────────────────────────────
+
+relationships:
+  - from: oneon
+    to: all
+    type: provides
+    what: "Identity, comms, publishing layer"
+
+  - from: otto
+    to: all
+    type: provides
+    what: "Intelligence and agent infrastructure"
+
+  - from: ottolabs
+    to: all
+    type: provides
+    what: "Hardware, compute mesh, devices"
+
+  - from: 505-systems
+    to: all
+    type: provides
+    what: "Governance framework"
+
+  - from: koink
+    to: all
+    type: provides
+    what: "Fair tokenomics standard"
+
+  - from: tusita
+    to: all
+    type: provides
+    what: "Physical convergence point"
+
+  - from: panik
+    to: [tusita, oneon]
+    type: protects
+    what: "Emergency mesh for citizens and users"
+
+  - from: shakrah
+    to: [tusita, oneon]
+    type: supports
+    what: "Wellness for community members"
+
+  - from: pipi
+    to: koink
+    type: mascot
+    what: "Face of the chaos layer"
+
+# ── Tokens ────────────────────────────────────────────────────────────────────
+
+tokens:
+  TUSITA:
+    governs: "Tusita commons"
+    type: governance
+  KOINK:
+    governs: "Community treasury, meme ecosystem"
+    type: utility + meme
+    mechanics: "Anti-whale caps, graduated sell taxes, diamond hands multiplier"
+
+# ── Status Legend ──────────────────────────────────────────────────────────────
+# live      = deployed, users can interact
+# active    = being built, has code/content
+# early     = repo exists, shell/placeholder
+# concept   = inception article only, no implementation
+# blocked   = development paused (with reason)
+# planned   = not yet started

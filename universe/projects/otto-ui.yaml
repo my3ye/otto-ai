@@ -1,0 +1,64 @@
+id: otto-ui
+name: "OTTO UI"
+archetype: "The Interface — universal front-end for the entire ecosystem"
+inception_article: null
+
+identity:
+  tagline: "One interface. Every protocol. Every device."
+  philosophy: >
+    Every project in the ecosystem needs a face. Otto UI is the shared design
+    system, component library, and UX philosophy that ties them all together.
+    Sovereignty should feel consistent, not fragmented.
+  key_quote: "The interface is not the experience. But it is how the experience begins."
+  what_it_is: >
+    Universal interface layer for the MY3YE ecosystem. Shared design system,
+    component library, and UX patterns used across all projects. Ensures visual
+    and interaction coherence from Tusita dashboards to Panik App to Otto Markets.
+    Also serves as the branded UI for Otto AI itself.
+  what_it_is_not: >
+    Not a standalone product. Not another design tool. The connective tissue
+    between every project's user experience.
+
+brand:
+  domain: ""
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#4A9EFF"
+  aesthetic: "Clean, modular, minimal. Interface disappears and lets the content breathe. Panik aesthetic is the reference point."
+  voice: "Functional, confident. The interface speaks through clarity, not words."
+
+technical:
+  repo: ""
+  stack: ["Next.js", "React", "Tailwind CSS"]
+  live_url: ""
+  status: concept
+  notes:
+    - "Panik App landing page aesthetic is reference design for whole ecosystem"
+    - "otto-web at otto.lk uses the Panik aesthetic — this is the prototype"
+
+ecosystem:
+  category: platform
+  provides:
+    - "Shared design system across all projects"
+    - "Component library"
+    - "UX consistency layer"
+  depends_on: ["otto"]
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Added by Mev — Universal Interface for the entire ecosystem."
+  - date: "2026-03-06"
+    note: "Panik App landing page aesthetic became reference for otto.lk rebuild, demonstrating the need for a unified design system."
+
+open_questions:
+  - "Will Otto UI be open sourced as a standalone library?"
+  - "How does it relate to existing component libraries (shadcn, etc.)?"
+  - "Does it get its own domain/documentation site?"
+  - "What's the relationship between Otto UI and the Management System (mev.otto.lk)?"

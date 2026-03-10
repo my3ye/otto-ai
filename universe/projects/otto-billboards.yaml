@@ -1,0 +1,69 @@
+id: otto-billboards
+name: "OTTO BILLBOARDS"
+archetype: "The Signal — decentralized advertising infrastructure"
+inception_article: null
+
+identity:
+  tagline: "The city's attention, owned by the city."
+  philosophy: >
+    Billboard companies own the city's eyeballs and capture all the value.
+    Otto Billboards redistributes that value to the communities the billboards
+    exist in. Community-governed placement, pricing, and content.
+    The physical broadcast layer of the MY3YE ecosystem.
+  key_quote: "Advertising infrastructure owned by the community it serves."
+  what_it_is: >
+    Decentralized billboard and out-of-home advertising network. Physical
+    digital billboard infrastructure governed by community DAOs. Ad revenue
+    flows to local communities, not to distant corporations. Also serves as
+    the physical broadcast layer for the MY3YE ecosystem itself — spreading
+    the frequency into physical space.
+  what_it_is_not: >
+    Not another out-of-home advertising company. Not billboards that extract
+    from communities. Not centralized content control.
+  features:
+    - "Community-owned billboard infrastructure"
+    - "DAO governance for content and pricing"
+    - "Revenue sharing with local communities"
+    - "MY3YE ecosystem broadcast channel"
+    - "Integration with Otto Market for local merchant advertising"
+    - "Integration with ONEON for verified content provenance"
+
+brand:
+  domain: ""
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#FFD700"
+  aesthetic: "Bold. Large format. The confidence of a message that matters. Physical scale meets digital precision."
+  voice: "Bold, direct. Commands attention without begging for it."
+
+technical:
+  repo: ""
+  stack: []
+  live_url: ""
+  status: concept
+
+ecosystem:
+  category: platform
+  provides:
+    - "Physical advertising infrastructure"
+    - "Community revenue from city attention"
+    - "Physical broadcast layer for MY3YE"
+  depends_on: ["505-systems", "oneon", "ottolabs"]
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Added by Mev — billboard/advertising infrastructure as physical presence for the ecosystem."
+
+open_questions:
+  - "First city / location for pilot billboards?"
+  - "Digital vs physical vs both? LED screens or traditional?"
+  - "How does community governance work for content decisions?"
+  - "Revenue model — CPM? Flat rate? Auction?"
+  - "Integration with Tusita communities as first deployment location?"
