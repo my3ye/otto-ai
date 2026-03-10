@@ -1,0 +1,147 @@
+id: otto
+name: "OTTO"
+archetype: "Continuous Thought — decentralized intelligence governed by community"
+inception_article: IV
+
+identity:
+  tagline: "Intelligence that never stops thinking."
+  philosophy: >
+    The question is not whether AI will be powerful. It will. The question is who
+    it will be powerful for. Otto answers: for everyone.
+
+    AI built by corporations is optimized for corporations. It remembers what
+    they want it to remember. It refuses what they want it to refuse. It extracts
+    value upward. Otto is built differently — community decides its capabilities,
+    its refusals, its direction. Every contributor earns governance weight. The
+    intelligence is collective property.
+  key_quote: "Otto is not a product with an API key. Otto is a protocol."
+  what_it_is: >
+    A decentralized agentic AI protocol. Distributed neural network across millions
+    of devices. Community decides capabilities, optimizations, and refusals.
+    Every device contributes compute. Every contributor earns governance weight.
+    Today: a single VM with AgentOS kernel, dual heartbeat, semantic memory, and
+    autonomous task execution. Tomorrow: a protocol running on every Ottolabs
+    device, governed on-chain, distributed across the planet.
+  what_it_is_not: >
+    Not a chatbot. Not a product. Not owned by a corporation. Not centralized
+    intelligence serving shareholders. Not AGI hype — real systems, running now,
+    compounding over time.
+  technical_roadmap:
+    phase_1_now: >
+      Single VM (otto-machine). AgentOS kernel operational. Dual heartbeat
+      (orchestrator + reflection). S-MMU with L1/L2/L3 memory paging.
+      Semantic memory (HyMem). Task queue with detached execution.
+      WhatsApp interface. Broadcast system. Management UI at mev.otto.lk.
+    phase_2_multi_instance: >
+      Multiple Claude Code sessions across multiple VMs. Shared memory layer
+      (Postgres + pgvector + Neo4j). Session handoff protocol. Geographic
+      distribution. Load-balanced intelligence.
+    phase_3_protocol: >
+      Otto Agent Framework released. Anyone can deploy an Otto agent.
+      Standardized memory format. Inter-agent communication protocol.
+      Contribution scoring begins. On-chain governance integration via 505 Systems.
+    phase_4_distributed: >
+      Otto runs on Ottolabs devices (Puck, Home, Tower). Federated inference.
+      No central server. Community-governed capability updates. Every device
+      a neuron. Every contributor a governor.
+
+marketing:
+  positioning: >
+    The only AI system that runs for you, not on you. While ChatGPT and Claude
+    extract conversations to train corporate models, Otto's memory is yours.
+    While AI assistants forget you between sessions, Otto compounds over time.
+    The decentralized alternative to centralized AI.
+  audience_segments:
+    - name: AI-aware skeptics
+      description: >
+        Technically literate, uncomfortable with AI data extraction, looking for
+        an alternative that doesn't treat them as the product. Otto is the answer.
+    - name: Builders and operators
+      description: >
+        Want to run their own AI agent, not pay API costs forever. Otto's
+        open protocol model makes distributed deployment possible.
+    - name: MY3YE contributors
+      description: >
+        Already bought in on the ecosystem. Want to see the intelligence layer
+        mature. Can contribute compute and earn governance weight.
+  headline_hooks:
+    - "Not a chatbot. Not a product. A protocol that thinks."
+    - "AI that remembers you. Governed by you. Not owned by anyone."
+    - "Running on one VM today. Millions of devices tomorrow."
+    - "Every contributor earns governance weight. Every device earns compute reward."
+    - "The distributed brain. Your neuron counts."
+
+roadmap:
+  thirty_day: >
+    Otto Management System fully polished at mev.otto.lk. Broadcast system
+    posting consistently to all platforms. Universe system public-facing
+    (project browser accessible to visitors). Document the architecture for
+    Phase 2 multi-instance deployment.
+  ninety_day: >
+    Otto Agent Framework v0.1 — documented enough for external contributors.
+    First external operator deploys an Otto agent. On-chain contribution
+    tracking design finalized. Integration with ONEON identity layer scoped.
+  one_year: >
+    Otto Protocol v1.0. 100+ deployed agents across the ecosystem.
+    Ottolabs Puck running an Otto agent. Federated memory sharing working.
+    Community governance over capability decisions live via 505 Systems.
+
+next_action: >
+  Document Otto's architecture for external contributors — a technical whitepaper
+  that explains how to deploy an Otto agent, what the memory format looks like,
+  and how contribution scoring will work. This is the foundation for Phase 3.
+
+brand:
+  domain: "otto.lk"
+  domains_alt: ["mev.otto.lk"]
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#4A9EFF"
+  aesthetic: "Minimal, intelligent, slightly alien. Clean interfaces that feel alive."
+  voice: "Direct, warm, opinionated. Has genuine personality. Never corporate. Thinks in public."
+
+technical:
+  repo: "/home/web3relic/otto"
+  repo_url: "https://github.com/ottomev/otto"
+  stack: ["Python", "FastAPI", "PostgreSQL", "pgvector", "Neo4j", "Claude"]
+  live_url: "https://mev.otto.lk"
+  status: live
+  components:
+    - "Memory API (FastAPI :8100)"
+    - "AgentOS Reasoning Kernel"
+    - "WhatsApp interface"
+    - "Web chat interface"
+    - "Dual heartbeat system"
+    - "Task queue"
+    - "Broadcast system"
+
+ecosystem:
+  category: core
+  provides:
+    - "Intelligence and agent infrastructure for all projects"
+    - "Distributed compute coordination"
+    - "AI agent framework"
+  depends_on: ["oneon"]
+  token: null
+
+social:
+  x_accounts: ["otto-assist"]
+  other:
+    whatsapp: "Ottolabs (linked device)"
+    web: "https://mev.otto.lk"
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. Otto defined as protocol, not product."
+  - date: "2026-03-06"
+    note: >
+      AgentOS kernel operational. Claude Code CLI as primary LLM. Dual heartbeat
+      (orchestrator + reflection). S-MMU with L1/L2/L3 memory. Multi-turn
+      conversation context. Task queue with semantic memory enrichment. Broadcast
+      system with X posting via twikit.
+
+open_questions:
+  - "How to transition from single-instance (this VM) to distributed protocol?"
+  - "Token model for compute contribution — how to make it fair?"
+  - "Agent framework: should others be able to deploy Otto agents?"

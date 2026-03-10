@@ -278,6 +278,80 @@ Revenue Engine:      Assistive Technologies (WebAssist → TechAssist → etc.)
 
 ---
 
+---
+
+## PHASE 1 NARRATIVE EXPANSION — 2026-03-11
+
+The following expansions were added to the universe YAML files in Phase 1:
+
+### What was added to each project YAML
+
+**MY3YE** (`my3ye.yaml`)
+- Expanded `identity.philosophy` with manifesto-depth reasoning
+- Added `identity.manifesto` — the civilizational declaration
+- Added `identity.audience` — three hooks (intellectuals, influencers, builders)
+- Added `marketing` section: 3 segments, 5 headlines, positioning statement
+- Added `roadmap` section: 30-day, 90-day, 1-year milestones
+- Added `next_action`: Publish all 14 inception articles via Broadcast System
+
+**OTTO** (`otto.yaml`)
+- Expanded `identity.philosophy` with extraction vs community framing
+- Added `identity.technical_roadmap` — 4 phases (now → multi-instance → protocol → distributed)
+- Added `marketing` section: 3 segments, 5 headlines, positioning vs ChatGPT/Claude
+- Added `roadmap` section: 30-day, 90-day, 1-year milestones
+- Added `next_action`: Technical whitepaper for Phase 3 agent framework
+
+**ONEON** (`oneon.yaml`)
+- Expanded `identity.philosophy` with sovereignty-vs-convenience framing
+- Added `identity.five_layer_architecture` — all 5 layers detailed
+- Added `identity.waitlist_strategy` — dual purpose (community + contributor ID)
+- Added `identity.chain_decision` — Solana vs custom L2 analysis + recommendation
+- Added `marketing` section + `roadmap` section
+- Added `next_action`: Wire waitlist backend to Postgres
+
+**TUSITA** (`tusita.yaml`)
+- Expanded `identity.philosophy` with systems-vs-utopia framing
+- Added `identity.first_location` — Sri Lanka specific framing
+- Added `identity.governance_model` — DPC + $TUSITA mechanics
+- Added `identity.progression` — Islander/Steward/Founder/Sovereign detailed
+- Added `marketing` section + `roadmap` section
+- Added `next_action`: Publish application form and governance model
+
+**505 Systems** (`505-systems.yaml`)
+- Expanded `identity.philosophy` with contribution-vs-capital framing
+- Added `identity.governance_core` — DPC formula, proposal lifecycle, framework options
+- Framework comparison: Aragon vs Custom Solana vs Snapshot+Gnosis, with recommendations
+- Added `marketing` section + `roadmap` section
+- Added `next_action`: Deploy Snapshot+Gnosis Safe instance immediately
+
+**OTTOLABS** (`ottolabs.yaml`)
+- Expanded `identity.philosophy` with automation ownership framing
+- Added `identity.devices[Otto Puck].description` — detailed Puck spec + manufacturing approach
+- Added `identity.devices[all]` — descriptions for all 7 device types
+- Expanded `identity.robotics_tiers` — 4 tiers with names and descriptions
+- Added `identity.manufacturing_model` — DAO-governed factory model
+- Added `marketing` section + `roadmap` section
+- Added `next_action`: Finalize Puck hardware specification
+
+### What was added to persona YAMLs
+
+**maitrieye.yaml**
+- Added 13 new `post_examples` covering: Otto Cars (community-owned vs Uber), Otto Billboards (community attention infrastructure), Otto UI (universal interface), and 505 Systems governance
+
+**otto-assist.yaml**
+- Added 13 new `post_examples` covering: AgentOS/S-MMU architecture, session compaction, HyMem salience decay, RL2F feedback loops, heartbeat autonomy, federated inference tier design, ONEON 5-layer architecture, 505 Systems DPC, and distributed protocol design
+
+### Needs Mev input (from Phase 1)
+
+The following questions emerged from Phase 1 that need Mev's direction before Phase 2 can fully complete:
+1. **Tusita first location**: Which island/coast in Sri Lanka? Is there a partner/contact?
+2. **ONEON chain decision**: Solana vs custom L2? Is there a timeline constraint?
+3. **Ottolabs Puck**: What ARM board is preferred? Is there an ODM contact in SL?
+4. **505 Systems governance bootstrap**: Approve Snapshot+Gnosis Safe for immediate deployment?
+5. **Broadcast System credentials**: Required for publishing inception articles as next_action on MY3YE
+
+---
+
 *Detailed brand bibles per project: ~/otto/universe/projects/<id>.yaml*
 *Persona voice guides: ~/otto/universe/personas/<id>.yaml*
 *Registry (index): ~/otto/universe/registry.yaml*

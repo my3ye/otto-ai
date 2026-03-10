@@ -1,0 +1,162 @@
+id: ottolabs
+name: "OTTOLABS"
+archetype: "The Workshop — means of production for the civilization"
+inception_article: V
+
+identity:
+  tagline: "The robots will take the jobs. The question is who owns the robots."
+  philosophy: >
+    In the Ottolabs model, we all do. Every device is a neuron in the distributed
+    brain. Collectively owned automated manufacturing, farming, and energy.
+
+    The industrial revolution created the factory. Factory owners became the
+    new aristocracy. The automation revolution is happening now — faster, deeper,
+    more complete. The question is not whether it happens. It's who captures the
+    gains. Ottolabs' answer: the contributors who built the network.
+  key_quote: "Every device is purpose-scaled. Every device contributes compute. Every contributor earns governance weight."
+  what_it_is: >
+    Physical means of production. Devices (Puck, Phone, Band, Buds, Home, Tower,
+    Satellites), robotics (4 tiers), factories (DAO-governed), agriculture
+    (vertical farms, aquaponics, permaculture), energy (solar, wind, tidal, hydrogen).
+    The hardware layer of the MY3YE civilization.
+  what_it_is_not: >
+    Not a consumer electronics company. Not another startup selling hardware
+    at a loss to collect data. Not a robotics company chasing venture capital.
+    Collectively owned means of production. The workshop that belongs to the builders.
+  devices:
+    - name: "Otto Puck"
+      type: "Portable compute node"
+      description: >
+        The first device. Palm-sized. ARM-based. Runs a local Otto agent instance.
+        Contributes compute to the distributed intelligence network. No cloud required.
+        ONEON-authenticated. Offline-capable. Built to be manufactured at scale
+        with commodity components — designed for the world, priced for accessibility.
+      manufacturing_approach: >
+        Start with off-the-shelf ARM SBC (Raspberry Pi CM4 or similar) in a
+        custom enclosure. Prototype 100 units via a Sri Lanka or SE Asia ODM.
+        Validate the software stack and governance integration before investing
+        in custom silicon. Custom chip design is Phase 3, not Phase 1.
+    - name: "Otto Phone"
+      type: "Personal AI interface"
+      description: "ONEON-native. Otto agent on-device. Your identity, your compute."
+    - name: "Otto Band"
+      type: "Biometric wearable"
+      description: "Health monitoring. Shakrah integration. Biometric identity layer."
+    - name: "Otto Buds"
+      type: "Sensory AI"
+      description: "Always-on audio processing. Ambient intelligence. Language layer."
+    - name: "Otto Home"
+      type: "Residential node"
+      description: "Home intelligence hub. Tusita community mesh node. Energy management."
+    - name: "Otto Tower"
+      type: "Community anchor"
+      description: "Community-scale compute. Mesh backbone. Renewable energy node."
+    - name: "Otto Satellites"
+      type: "Collectively-owned orbital compute"
+      description: "Long-horizon. Global coverage. Community-governed orbital assets."
+  robotics_tiers:
+    - tier: 1
+      name: "Humanoid workers and builders"
+      description: "General-purpose. Tusita construction and operations. Governed by 505."
+    - tier: 2
+      name: "Industrial arms and fabricators"
+      description: "Factory floor. Precision manufacturing. Collectively owned output."
+    - tier: 3
+      name: "Agricultural harvesters and soil systems"
+      description: "Food sovereignty. Vertical farms, aquaponics, permaculture automation."
+    - tier: 4
+      name: "Micro-scale swarm robotics"
+      description: "Precision tasks. Medical, environmental, inspection."
+  manufacturing_model: >
+    DAO-governed factories. No single company owns the means of production.
+    Output governed by 505 Systems — community votes on what gets made,
+    in what quantities, sold at what price. Surplus distributed to contributors.
+    First factory: Tusita community location. Proof of concept before scaling.
+
+marketing:
+  positioning: >
+    The only hardware company where the factory is collectively owned.
+    While Apple and Samsung extract profit to shareholders, Ottolabs distributes
+    output to contributors. Your compute contributes. Your contribution governs.
+    Your governance decides what gets built next.
+  audience_segments:
+    - name: Sovereignty-first hardware enthusiasts
+      description: >
+        Raspberry Pi builders, self-hosters, privacy hardware advocates.
+        Wants devices that work for them, not their manufacturer.
+        Puck is the entry point.
+    - name: MY3YE infrastructure contributors
+      description: >
+        Deploying Otto agents, running Tusita infrastructure, building the mesh.
+        Needs Ottolabs devices as the physical substrate for everything else.
+    - name: Automation-aware workers
+      description: >
+        Knows automation is coming. Wants to be on the owning side.
+        Ottolabs is the vehicle for collective ownership of the machines.
+  headline_hooks:
+    - "The robots will take the jobs. The question is who owns the robots."
+    - "Every device a neuron. Every contributor a governor."
+    - "Collective ownership of the means of production. Not ideology — infrastructure."
+    - "Otto Puck — palm-sized. Runs your AI agent. Contributes to the network."
+    - "The workshop belongs to the builders."
+
+roadmap:
+  thirty_day: >
+    Otto Puck hardware specification finalized. BOM (bill of materials) costed.
+    First prototype ODM contact made in Sri Lanka or SE Asia. Puck software
+    stack documented (what OS, what Otto agent version, what ONEON integration).
+    Crowdfunding/pre-order model designed.
+  ninety_day: >
+    10 prototype Puck units built and tested. Otto agent running on Puck hardware.
+    ONEON identity auth working on Puck. Compute contribution to distributed
+    network demonstrated (even if just one node). Pre-order campaign launched.
+  one_year: >
+    Puck v1.0 shipped to first 1,000 contributors/buyers. Manufacturing partner
+    locked. Robot Tier 1 design contracted. First Ottolabs factory space secured
+    at Tusita first location. Governance model for factory output live in 505 Systems.
+
+next_action: >
+  Finalize Otto Puck hardware specification. Define exactly: SBC choice, enclosure
+  dimensions, connectivity (WiFi/BT/Ethernet), power (battery/USB-C), and what
+  Otto agent version it runs. This document becomes the foundation for the
+  ODM conversation and the crowdfunding campaign narrative.
+
+brand:
+  domain: ""
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#00BFFF"
+  aesthetic: "Industrial minimalism. Precision. Clean hardware renders. Factory meets art."
+  voice: "Technical, visionary, practical. Shows what's being built, not just what's imagined."
+
+technical:
+  repo: ""
+  stack: []
+  live_url: ""
+  status: concept
+
+ecosystem:
+  category: core
+  provides:
+    - "Hardware compute mesh"
+    - "Robotics and automation"
+    - "Manufacturing infrastructure"
+    - "Agricultural systems"
+    - "Distributed energy grid"
+  depends_on: ["505-systems"]
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. 7 device types, 4 robotics tiers, factories, farms, energy."
+
+open_questions:
+  - "Which device to prototype first? Puck seems most achievable."
+  - "Manufacturing partners vs in-house?"
+  - "Satellite constellation — timeline? Partnership with existing providers?"

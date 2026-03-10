@@ -1,0 +1,142 @@
+id: oneon
+name: "ONEON"
+archetype: "The Network — sovereign identity and communication"
+inception_article: III
+
+identity:
+  tagline: "Arrive with sovereignty intact."
+  philosophy: >
+    The old internet was built on servers owned by corporations. ONEON is built
+    on the mesh of sovereign humans. Your digital identity shouldn't be a login
+    stored on someone else's database. It should be yours — keys you hold,
+    data you control, presence you can take anywhere.
+
+    Every time you sign up with Google or Apple, you hand sovereignty to a
+    corporation in exchange for convenience. ONEON makes sovereign identity
+    convenient. The tradeoff disappears.
+  key_quote: "No passwords. No platforms that own your identity. Your data, your keys, your network."
+  what_it_is: >
+    Nervous system and identity layer for the entire ecosystem. Layered architecture
+    that meets users where they are and progressively grants more sovereignty.
+    Identity layer for every Otto device, Tusita citizen, and platform user.
+    The communications backbone for all MY3YE projects.
+  what_it_is_not: >
+    Not another social network. Not a messaging app with a token. Not surveillance
+    infrastructure with a privacy label. Not a VPN — deeper than that.
+  name_decode: "ONE (sovereign individual) + NEO (transformation) + EON (civilizational timescale) = ONION (layered architecture)"
+  five_layer_architecture:
+    layer_1_public: >
+      Public Presence — your public face, visible to anyone. Open profile.
+      Posts, articles, contributions. Permissionless to view.
+    layer_2_community: >
+      Community — selective. Communities you join, projects you contribute to,
+      conversations that require basic identity verification. Pseudonymous permitted.
+    layer_3_governance: >
+      Governance — weighted by contribution. Your voting power here is earned.
+      Connected to 505 Systems governance mechanics. On-chain.
+    layer_4_encrypted: >
+      Encrypted Private — end-to-end encrypted communications. Messages, files,
+      group chats. Keys held by you, not by any server. No backdoors.
+    layer_5_sovereign_self: >
+      Sovereign Self — your core identity layer. The cryptographic root from
+      which all other layers derive. Private key on your device. Biometric
+      unlock. Recoverable only by you. The innermost layer of the onion.
+  waitlist_strategy: >
+    ONEON waitlist serves dual purpose: (1) pre-launch community building,
+    (2) early contributor identification. Waitlist form captures email +
+    intended use case + contribution interest. Matched against MY3YE contributor
+    scoring on launch. Early waitlist members get priority access to Layer 3+.
+  chain_decision: >
+    Chain decision not final. Primary candidates: Solana (speed, low cost,
+    existing ecosystem) vs custom L2 (maximal sovereignty but higher engineering
+    cost). Decision criteria: identity operations must be cheap (<$0.001),
+    fast (<2s confirmation), and recoverable without centralized authority.
+    Lean toward Solana with account abstraction layer. Decision before beta launch.
+
+marketing:
+  positioning: >
+    The identity layer that treats sovereignty as a feature, not a philosophy.
+    While Web2 requires you to trust corporations with your identity, ONEON
+    puts cryptographic keys in your hands — with the UX of signing in with Google.
+    Sovereignty shouldn't require a PhD.
+  audience_segments:
+    - name: Privacy-first users
+      description: >
+        Knows the cost of identity stored on corporate servers. Wants encryption,
+        key ownership, and data portability without sacrificing usability.
+    - name: MY3YE ecosystem participants
+      description: >
+        Tusita citizens, 505 System governors, Otto contributors — all need
+        a common identity layer. ONEON is that layer.
+    - name: Developers building sovereign apps
+      description: >
+        Wants a standards-based identity protocol to build on. ONEON provides
+        auth without the surveillance business model attached.
+  headline_hooks:
+    - "Your identity. Your keys. Your network. No login required."
+    - "Five layers. The deeper you go, the more sovereign you become."
+    - "Built on the mesh of sovereign humans. Not corporate servers."
+    - "Arrive with sovereignty intact."
+    - "The internet remembers everything. ONEON lets you choose what to share."
+
+roadmap:
+  thirty_day: >
+    Waitlist backend wired (data stored, confirmation email sent). Clear
+    messaging on landing page about the 5-layer architecture. Chain decision
+    research completed (Solana vs custom L2). First technical whitepaper draft.
+  ninety_day: >
+    Layer 1-2 private alpha. Invite-only. 500 early users. Basic public
+    profile + community layer working. Integration with otto.lk as first
+    external app using ONEON auth. Feedback loop established.
+  one_year: >
+    ONEON v1.0 public launch. Layers 1-4 operational. 10,000+ active identities.
+    Used as auth by all MY3YE projects. Layer 5 (Sovereign Self) in beta for
+    technical contributors. Ottolabs devices using ONEON keys for device identity.
+
+next_action: >
+  Wire waitlist backend — store submissions in Postgres, send confirmation email,
+  tag contributors vs users. This transforms the landing page from a dead end
+  into an active community funnel. No external services needed beyond SMTP.
+
+brand:
+  domain: "oneon.ink"
+  domains_alt: ["alpha.otto.lk"]
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#00FF88"
+  aesthetic: "Network topology. Nodes and connections. Layered depth. .ink = inscribed, permanent."
+  voice: "Technical but accessible. Sovereign but inviting. Serious about privacy."
+
+technical:
+  repo: "/mnt/media/projects/oneon-web"
+  repo_url: "https://github.com/my3ye/oneon-web"
+  stack: ["Next.js"]
+  live_url: "https://oneon.ink"
+  status: early
+
+ecosystem:
+  category: core
+  provides:
+    - "Identity layer for all platforms"
+    - "Encrypted communications"
+    - "Publishing infrastructure"
+    - "Auth without passwords"
+  depends_on: []
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. Five-layer identity architecture defined."
+  - date: "2026-03-06"
+    note: "Landing page shell exists. Waitlist collecting data but not connected to backend."
+
+open_questions:
+  - "Which chain for identity layer? Solana? Custom L2?"
+  - "How does the layered identity actually work technically?"
+  - "Integration timeline with Otto devices?"
+  - "Waitlist backend — where does collected data go?"

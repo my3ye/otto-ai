@@ -1,0 +1,135 @@
+archetype: The Eye — clarity through seeing what must be built
+brand:
+  aesthetic: Dark minimalist. Typography is design. River metaphor — MY3YE is the
+    river, projects are lakes.
+  colors:
+    accent: '#E5E5E5'
+    primary: '#000000'
+    secondary: '#FFFFFF'
+  domain: my3ye.xyz
+  domains_alt: []
+  voice: Confident, not preachy. Clear, not dumbed down. Visionary but grounded.
+ecosystem:
+  category: core
+  depends_on: []
+  provides:
+  - Overarching vision and philosophy
+  - Brand umbrella for all projects
+  - Inception articles as founding documents
+  token: null
+id: my3ye
+identity:
+  key_quote: Whether or not you believe it, these ecosystems will operate.
+  philosophy: >
+    Not a company. A declaration of intent — a living ecosystem of decentralized
+    projects. A parallel civilization built on contribution, not extraction. Sovereignty,
+    not control. Abundance by design.
+
+    MY3YE does not ask permission. It does not pitch. It does not seek validation
+    from VCs or governments or incumbents. It builds. The river runs whether or not
+    you understand it. The frequency transmits whether or not you can hear it.
+    Fourteen protocols. One vision. The civilization that works for everyone.
+  tagline: The frequency is transmitting.
+  manifesto: >
+    Every system that has ever exploited you was built on the same assumption:
+    that you need them more than they need you. Platforms need your data. Banks
+    need your money. Governments need your compliance. They built the infrastructure,
+    so they make the rules. MY3YE is the answer to a different question — what if
+    the infrastructure belonged to everyone? What if the civilization was built
+    for people first, extraction never? Fourteen protocols. Each one a piece of
+    the world we are building. Together they are complete. The Eye sees what must
+    be built. We are building it.
+  what_it_is: >
+    The overarching ecosystem container. MY3YE is the vision itself — 14
+    inception articles declaring how every dimension of human life can be rebuilt
+    on openness, decentralization, and collective ownership. The river that feeds
+    all lakes: every project is a lake; MY3YE is the current that runs through all of them.
+  what_it_is_not: >
+    Not a company. Not a token. Not a product. It's a frequency —
+    a lens through which all projects in the ecosystem are viewed and connected.
+    Not an ideology that requires conversion. A practical blueprint that invites contribution.
+  audience:
+    intellectuals: >
+      Sees the structural failure of current systems. Understands extraction dynamics.
+      Wants a coherent alternative — not protest, but architecture. MY3YE provides
+      the intellectual framework: sovereignty theory meets practical protocol design.
+    influencers: >
+      Wants to be part of something that matters. Tired of promoting products they
+      don't believe in. MY3YE gives them a genuine mission, a civilizational narrative,
+      and an ecosystem of projects with real substance to amplify.
+    builders: >
+      Skilled, purpose-driven, looking for meaningful work. Not interested in building
+      someone else's extraction engine. MY3YE is the project that needs them — open
+      source, contribution-governed, permanently available to fork and build on.
+
+marketing:
+  positioning: >
+    The only ecosystem that treats sovereignty as infrastructure, not ideology.
+    While Big Tech builds platforms to extract, MY3YE builds protocols to liberate.
+    Fourteen dimensions of human life — reimagined as collectively-owned systems.
+  audience_segments:
+    - name: Sovereign thinkers
+      description: >
+        Intellectuals, philosophers, freedom advocates who see the structural
+        problem but rarely find a complete technical solution. MY3YE is the
+        blueprint they've been waiting for.
+    - name: Mission-aligned builders
+      description: >
+        Developers, designers, operators who want their skills applied to
+        something that matters. Open source, contributor-governed, real impact.
+    - name: New civilization early adopters
+      description: >
+        Crypto-native, future-oriented, community-first. Tired of meme coins
+        and VC-backed web3 theater. Want the real thing.
+  headline_hooks:
+    - "Not a startup. Not a DAO. A parallel civilization."
+    - "14 protocols. Every dimension of human life. All open source."
+    - "The frequency is transmitting. Whether you can hear it or not."
+    - "Built from Sri Lanka. For the world. Not for VCs."
+    - "Whether or not you believe it, these ecosystems will operate."
+
+roadmap:
+  thirty_day: >
+    Establish MY3YE as a recognized name in sovereign/decentralized ecosystem
+    discourse. Publish all 14 inception articles across broadcast channels.
+    Grow @maitrieye to 1,000+ engaged followers with the intellectual hook.
+    All 14 project landing pages live with waitlist capture.
+  ninety_day: >
+    MY3YE community hub launched (Discord or ONEON-native). First contributor
+    applications reviewed. 5,000+ community members across all channels.
+    At least one project beyond the website stage (Panik MVP, ONEON waitlist backend,
+    Tusita first location scouting). Clear contribution framework published.
+  one_year: >
+    MY3YE recognized as the leading open civilization-stack project globally.
+    10,000+ contributors across all 14 protocols. At least 3 projects generating
+    real-world impact. First Tusita location established. ONEON in private beta.
+    Ottolabs Puck prototype in production.
+
+next_action: >
+  Publish all 14 inception articles across Broadcast System to X, Mastodon, Bluesky.
+  Each article introduces one protocol. The sequence is the manifesto.
+  Prerequisite: Mev provides Broadcast System credentials.
+inception_article: I
+name: MY3YE
+open_questions:
+- Should MY3YE have its own token or remain purely philosophical?
+- How to communicate the 14-protocol ecosystem without overwhelming newcomers?
+social:
+  other: {}
+  x_accounts:
+  - maitrieye
+technical:
+  live_url: https://my3ye.xyz
+  repo: /mnt/media/projects/my3ye-web
+  repo_url: https://github.com/my3ye/my3ye-web
+  stack:
+  - Next.js
+  status: active
+vision:
+- date: '2026-03-05'
+  note: 14 inception articles published. Open Copyright — All Rights Reserved to All.
+- date: '2026-03-06'
+  note: 'Landing page rebuilt with Panik aesthetic at otto-web. Three audiences: intellectuals
+    (seekers), influencers (amplifiers), builders (doers).'
+- date: '2026-03-07'
+  note: Token question still open - not decided, leaving as open question

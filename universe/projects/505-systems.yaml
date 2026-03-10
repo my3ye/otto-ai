@@ -1,0 +1,145 @@
+id: 505-systems
+name: "505 Systems"
+archetype: "The Umbrella — governance organism for the ecosystem"
+inception_article: VI
+
+identity:
+  tagline: "Save Our Souls — answered with decentralized governance."
+  philosophy: >
+    The DAO is not a new form of corporation. It is a new form of civilization.
+    Every corporation has a board that serves shareholders. Every democracy has
+    politicians that serve donors. 505 Systems serves contributors — the people
+    who actually build the thing, run the thing, improve the thing. Dynamic
+    Proximity Calculus: weight by structural impact, consistent energy, and
+    resonance with the mission. Not one person, one vote. Not one dollar, one vote.
+    One contribution, proportional weight. The governance organism that learns.
+  key_quote: "All decisions: contribution-weighted, on-chain, transparent, irreversible without consensus."
+  what_it_is: >
+    Decentralized Autonomous Organism (not just DAO). The governance backbone that
+    holds the entire ecosystem together. Governs Panik App, Otto platforms, Tusita
+    communities, ONEON protocol, Ottolabs mesh. First live deployment: Panik App.
+    Not just voting — a full governance OS with contribution scoring, proposal
+    lifecycle management, and constitutional constraints.
+  what_it_is_not: >
+    Not a corporation. Not a board of directors with special shares. Not governance
+    theater with predetermined outcomes. Not "token holders vote" — contribution
+    weight is earned, not bought (though token stake amplifies it).
+  governance_core:
+    dynamic_proximity_calculus: >
+      The scoring engine behind every vote. Three factors:
+      (1) Structural Impact — did your contribution change the architecture?
+      (2) Consistent Energy — sustained engagement over time, not burst contributions.
+      (3) Weighted Resonance — alignment with the ecosystem's mission as verified
+      by peer review and on-chain outcomes. Combined into a governance weight
+      that decays without activity and compounds with sustained contribution.
+    proposal_lifecycle: >
+      Any contributor can propose. Proposals go through: Draft → Review
+      (Steward-level) → Community Comment (7 days) → Vote (weighted by DPC score)
+      → Execution (automated where possible, monitored where not).
+      Constitutional proposals require Founder-level majority + no Sovereign veto.
+    framework_options:
+      - name: Aragon
+        assessment: >
+          Mature, proven, good tooling. Limitation: designed for simpler
+          token-weighted voting, not DPC scoring. Would require significant
+          customization. Best for: early MVP before custom system is ready.
+      - name: Custom on Solana
+        assessment: >
+          Full control over DPC mechanics. Higher engineering cost.
+          Best for: v1.0 when DPC scoring is finalized and needs native integration.
+      - name: Snapshot + Gnosis Safe
+        assessment: >
+          Off-chain voting, multi-sig execution. Quick to deploy, well-understood.
+          Limitation: not fully on-chain. Best for: prototype phase, pre-launch
+          governance while building the real system.
+    recommendation: >
+      Phase 0 (now): Snapshot + Gnosis Safe — deploy fast, govern immediately.
+      Phase 1 (90d): Aragon with custom DPC scoring plugin.
+      Phase 2 (1yr): Fully custom on Solana with ONEON identity integration.
+
+marketing:
+  positioning: >
+    The governance layer that makes every other MY3YE project trustworthy.
+    Not "we'll decentralize later" — governance-first from day one.
+    The DAO 2.0 that weights contribution over capital.
+  audience_segments:
+    - name: DAO veterans
+      description: >
+        Seen governance theater. Knows the failure modes of token-weighted voting.
+        505 Systems' DPC model is the credible alternative they've been looking for.
+    - name: MY3YE project contributors
+      description: >
+        Building Tusita, ONEON, Panik, Otto — wants their contribution to count
+        in how these projects are governed. DPC gives them a path to real influence.
+    - name: Governance researchers and builders
+      description: >
+        Academic or practical interest in better governance models. 505 Systems is
+        a live experiment in contribution-weighted decentralized governance.
+  headline_hooks:
+    - "The DAO is not a new form of corporation. It is a new form of civilization."
+    - "Not one token, one vote. One contribution, proportional weight."
+    - "Governance that learns from what you do, not just what you hold."
+    - "SOS — Save Our Systems — answered with transparent on-chain governance."
+    - "The governance organism. It grows with its contributors."
+
+roadmap:
+  thirty_day: >
+    505 Systems Pink Paper published publicly. Snapshot + Gnosis Safe instance
+    deployed for first governance test (even with small community). DPC scoring
+    formula documented clearly. First real proposal put to vote (any ecosystem decision).
+  ninety_day: >
+    Aragon deployment with custom DPC plugin scoped. Panik App governance
+    integrated as first live production use case. 500+ contributors onboarded
+    with initial DPC scores. Governance playbook (how to propose, vote, execute).
+  one_year: >
+    505 Systems governing all major MY3YE projects. DPC scoring fully automated
+    via on-chain contribution tracking. 5,000+ weighted contributors.
+    First constitutional amendment proposed and voted on by the community.
+    Solana-native custom system design complete.
+
+next_action: >
+  Deploy Snapshot + Gnosis Safe instance for 505 Systems. Put the first real
+  governance proposal to vote — even if it's just "approve the DPC formula v0.1".
+  This transforms 505 from concept to operational governance organism immediately.
+  Cost: near-zero. Impact: proves the model works before writing custom code.
+
+brand:
+  domain: ""
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FF0040"
+    accent: "#FFFFFF"
+  aesthetic: "CRT boot sequence. Cinematic. Terminal meets governance. Pink paper aesthetic."
+  voice: "Authoritative but not authoritarian. Systemic. Sees the big picture."
+
+technical:
+  repo: "/mnt/media/projects/505-systems-web"
+  repo_url: "https://github.com/my3ye/505-systems-web"
+  stack: ["Next.js"]
+  live_url: ""
+  status: early
+
+ecosystem:
+  category: core
+  provides:
+    - "Governance framework for all DAOs"
+    - "Contribution-weighted voting"
+    - "On-chain decision infrastructure"
+  depends_on: ["oneon"]
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. DAO 2.0 concept — organism, not organization."
+  - date: "2026-03-06"
+    note: "Landing page has CRT boot sequence aesthetic. Pink paper section exists."
+
+open_questions:
+  - "Technical implementation — which DAO framework? Aragon? Custom?"
+  - "How does contribution scoring work across projects?"
+  - "What's the relationship between 505 governance tokens and project-specific tokens?"

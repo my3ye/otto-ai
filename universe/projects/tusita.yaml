@@ -1,0 +1,141 @@
+id: tusita
+name: "TUSITA"
+archetype: "The Civilization — physical home of the new world"
+inception_article: II
+
+identity:
+  tagline: "Where every protocol finds its physical home."
+  philosophy: >
+    Peak human flourishing. Sovereignty. Decentralization. Not a resort, not a
+    real estate project, not a gated community. A network of sovereign island
+    communities where every MY3YE project converges in physical space.
+
+    Tusita is the answer to a question most civilizations forgot to ask: what
+    if the physical place you live was designed for your flourishing, not your
+    compliance? Not a utopia — those fail because they're designed by one mind.
+    A system — designed by contributors, governed on-chain, constantly improving.
+  key_quote: "Every MY3YE project finds its physical home in Tusita."
+  what_it_is: >
+    Network of sovereign island communities and resort destinations. Contributor-governed
+    with on-chain decision-making. Otto devices as infrastructure mesh, Shakrah as
+    wellness centers, Panik as citizen protection, Otto Music as cultural heartbeat.
+    Every location is a living prototype of the MY3YE civilization.
+  what_it_is_not: >
+    Not a resort. Not a real estate play. Not a gated community for the wealthy.
+    Not a commune. Not a cult. A governed, open, forkable model for sovereign living.
+  first_location: >
+    Sri Lanka is the natural first location. The founding team is based here.
+    The island geography matches the Tusita model — natural boundaries, tropical
+    climate, existing infrastructure. Target: Southern coast or small island off
+    the coast. Legal pathway: long-term lease structure with on-chain governance
+    layer for community decisions. Not buying land — building a governance model
+    that can be applied anywhere.
+  governance_model: >
+    All major decisions (land use, resource allocation, community rules) are
+    on-chain proposals via 505 Systems. Weighted by $TUSITA token holdings and
+    contribution score. Any Islander can propose. Stewards+ can vote.
+    Founders set constitutional constraints. Sovereigns can veto constitutional changes.
+    Dual-asset architecture: $TUSITA for governance weight, utility token for
+    day-to-day services within the community.
+  progression:
+    islander: >
+      Entry level. Applied with a minimum $TUSITA stake or contribution proof.
+      Access to community spaces, events, digital services. No governance vote yet.
+      Proving ground — stay 30 days, contribute to something, build a track record.
+    steward: >
+      30+ days in community, verified contribution (code, design, operations, teaching).
+      Full governance voting rights. Eligible for stewardship of specific domains
+      (energy, food, building, education). Meaningful stake in $TUSITA.
+    founder: >
+      Elected by Stewards for demonstrated leadership. Can propose constitutional
+      changes. Coordinates cross-domain decisions. Public reputation on-chain.
+      Higher token stake requirement. Time-limited term (renewable by community vote).
+    sovereign: >
+      Permanent recognition for exceptional, sustained contribution. Veto power
+      over constitutional changes. Non-transferable status. Earned, not bought.
+      First Sovereigns: founding contributors who built the first location.
+
+marketing:
+  positioning: >
+    The first physical community designed as a protocol, not a property.
+    While real estate investors build resorts, Tusita builds governance infrastructure.
+    Live in paradise. Own a piece of the civilization. Earn your sovereignty.
+  audience_segments:
+    - name: Digital nomads seeking roots
+      description: >
+        Location-independent, community-oriented, tired of being temporary
+        everywhere. Tusita offers belonging without giving up freedom.
+    - name: MY3YE ecosystem builders
+      description: >
+        Developers, designers, operators who want to live where their work is used.
+        Tusita is the physical deployment of everything they're building.
+    - name: Sovereignty-oriented families
+      description: >
+        Want to raise children outside extractive systems. Seeks alternative
+        education, community support, clean environment. Long-term residents.
+  headline_hooks:
+    - "Not a resort. A civilization prototype."
+    - "Live in the system you helped build."
+    - "Sovereign communities. Real infrastructure. On-chain governance."
+    - "From Islander to Sovereign — earn your place in the new world."
+    - "Sri Lanka first. Then everywhere."
+
+roadmap:
+  thirty_day: >
+    Scout first Sri Lanka location options. Establish legal advisory contacts
+    for long-term lease structures. Publish Tusita governance model as a
+    public document. Tusita waitlist live with Islander application form.
+  ninety_day: >
+    First location partnership signed (lease or agreement). Community charter
+    drafted and published. First Islander cohort invited (20-50 people).
+    $TUSITA token design finalized (allocation, distribution, governance weight).
+  one_year: >
+    First Tusita location operational. 100+ Islanders. First Stewards elected.
+    On-chain governance making real decisions. Otto devices deployed as
+    infrastructure mesh. Shakrah wellness program running. Second location scouted.
+
+next_action: >
+  Publish Tusita application form and governance model document. Start collecting
+  Islander applications — even before a location is confirmed. The community
+  comes before the land. Building the founding cohort now means the first location
+  has its people ready when the space is ready.
+
+brand:
+  domain: "tusita.xyz"
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#00D4AA"
+  aesthetic: "Paradise meets technology. Tropical minimalism. Island life with sovereign infrastructure."
+  voice: "Visionary, inviting, grounded. Paints a picture of life you want to live."
+
+technical:
+  repo: "/mnt/media/projects/tusita-web"
+  repo_url: "https://github.com/my3ye/tusita-web"
+  stack: ["Next.js"]
+  live_url: "https://tusita.xyz"
+  status: early
+
+ecosystem:
+  category: core
+  provides:
+    - "Physical convergence point for all projects"
+    - "Real-world testing ground for protocols"
+    - "Community living infrastructure"
+  depends_on: ["oneon", "otto", "505-systems", "ottolabs"]
+  token: "TUSITA"
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. Dual-asset architecture. Islander -> Steward -> Founder -> Sovereign progression."
+
+open_questions:
+  - "First location — Sri Lanka? Which island(s)?"
+  - "Legal structure for sovereign community land ownership?"
+  - "Timeline for first physical community?"
+  - "Relationship between $TUSITA token and physical property rights?"
