@@ -82,9 +82,9 @@ SW_LOOKBACK_HOURS = 2        # Only look at last 2 hours of signals.jsonl
 SW_MIN_BUY_USD = 100         # Minimum buy size for single-wallet signals
 
 # Noisy wallets excluded from single-wallet mode (same as whale_convergence.py)
-# 2026-03-09: added SM_10 — in NOISY_WALLETS for convergence (0% WR) but was leaking
-# through into single-wallet mode, generating 7/12 published signals with dust buys.
-SW_NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7", "SM_10"}
+# 2026-03-10: SM_10 REMOVED — confirmed 83% WR directional trader. Dust problem
+# was fixed by SW_MIN_BUY_USD=$100. SM_10 is now Tier 1 (publish immediately).
+SW_NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7"}
 
 # --- Single-wallet DexScreener filters (more permissive than convergence mode) ---
 # Convergence hunts for micro-cap pumps. Single-wallet tracks smart money broadly.
@@ -138,10 +138,78 @@ MAX_SIGNALS_PER_DAY = 3
 # Backtest: pippin appeared 3x as convergence, returned +19-27% each time.
 CONVERGENCE_SEEN_TTL_HOURS = 72  # Prune entries older than 72h
 
+# --- Wallet quality tier system ---
+# Research 2026-03-10: Only SM_10 is a proven directional trader (83% WR).
+# All other wallets are LP positions, JIT bots, or MEV bundlers with no edge.
+#
+# Tier 1 — proven directional traders: publish immediately
+# Tier 2 — convergence (4+ wallets): publish with convergence tag
+# Tier 3 — single unvetted wallet: log but DO NOT publish to @OttoSignals
+TIER_1_WALLETS = {"SM_10"}           # Proven 83% WR — highest confidence
+MIN_PUBLISHER_QUALITY_SCORE = 50     # Gate: only publish signals scoring >= 50/100
+
 
 # ---------------------------------------------------------------------------
 # State management
 # ---------------------------------------------------------------------------
+
+def compute_publisher_quality_score(
+    wallet: str,
+    signal_type: str,
+    wallet_count: int = 1,
+    convergence_count: int = 1,
+    dex_data: dict | None = None,
+) -> int:
+    """
+    Compute publisher-level quality score (0-100) for a signal.
+
+    Wallet tier (base score):
+      Tier 1 — SM_10 (proven 83% WR):           60 points
+      Tier 2 — convergence (N wallets):          10 * wallet_count
+      Tier 3 — single unvetted wallet:           10 points
+
+    Bonuses (from DexScreener data):
+      Token age:    min(age_days, 15) points     (older = more trusted)
+      Volume spike: min(spike_ratio * 3, 20) pts (volume spike = conviction)
+      Repeat convergence: +10 per repeat detection (pippin x3 → +27%)
+
+    Gate: MIN_PUBLISHER_QUALITY_SCORE = 50
+      SM_10: 60 + bonuses → always >= 50 (publish)
+      4-wallet convergence + 7-day token + 2x spike: 40+7+6 = 53 (publish)
+      5-wallet convergence: 50 + bonuses (publish)
+      Single unvetted: 10 + bonuses = max ~35 (blocked)
+    """
+    # --- Base score from wallet tier ---
+    if wallet in TIER_1_WALLETS:
+        base = 60                               # Tier 1: proven directional trader
+    elif signal_type == "convergence":
+        base = 10 * max(wallet_count, 1)       # Tier 2: 4 wallets=40, 5 wallets=50
+    else:
+        base = 10                               # Tier 3: single unvetted wallet
+
+    # --- Repeat convergence bonus (+10 per additional detection) ---
+    if convergence_count > 1:
+        base += (convergence_count - 1) * 10
+
+    # --- DexScreener bonuses ---
+    if dex_data:
+        # Token age bonus (up to 15 points)
+        pair_created_ms = dex_data.get("pairCreatedAt", 0) or 0
+        if pair_created_ms > 0:
+            age_days = (time.time() * 1000 - pair_created_ms) / (1000 * 86400)
+            base += min(int(age_days), 15)
+
+        # Volume spike bonus (up to 20 points: spike_ratio * 3, capped at 20)
+        vol = dex_data.get("volume", {})
+        h1_vol  = vol.get("h1", 0) or 0
+        h24_vol = vol.get("h24", 0) or 0
+        if h24_vol > 0:
+            avg_hourly = h24_vol / 24
+            spike_ratio = h1_vol / avg_hourly if avg_hourly > 0 else 0
+            base += min(int(spike_ratio * 3), 20)
+
+    return min(base, 100)
+
 
 def load_state() -> dict:
     if STATE_FILE.exists():
@@ -507,6 +575,7 @@ def format_signal_post(signal: dict, dex_data: dict | None, tp_sl: dict | None) 
 
 📡 Source: {wallets} smart money wallets converged in {window}min window
 💵 Whale buys: {format_usd(total_usd)} aggregate
+🏆 Quality: {signal.get("publisher_quality_score", "?")}/100 (Tier 2 — Convergence)
 🕐 Detected: {time_str}
 
 📈 Chart: {dex_url}
@@ -604,14 +673,21 @@ def format_single_wallet_post(signal: dict, dex_data: dict | None, tp_sl: dict |
     if change_1h != 0 or change_24h != 0:
         momentum = f"📈 1h: {change_1h:+.1f}%  |  24h: {change_24h:+.1f}%"
 
-    # Score display (1 decimal)
-    score_str = f"{quality_score:.2f}"
+    # Publisher quality score + tier badge
+    publisher_score = signal.get("publisher_quality_score", 0)
+    is_tier1 = wallet in TIER_1_WALLETS
+    if is_tier1:
+        tier_badge = f"⭐ Tier 1 — Proven Smart Money (83% WR)"
+        alert_header = f"⭐ TIER 1 SIGNAL — {wallet}"
+    else:
+        tier_badge = f"Quality: {publisher_score}/100"
+        alert_header = f"🐋 Smart Money Alert — {wallet}"
 
     # Links
     dex_url  = f"https://dexscreener.com/solana/{token}"
     bird_url = f"https://birdeye.so/token/{token}?chain=solana"
 
-    post = f"""🐋 Smart Money Alert — {wallet}
+    post = f"""{alert_header}
 
 📍 Token: {token_name} ({token_symbol})
 💰 MCap: {format_usd(mcap)}  |  Liquidity: {format_usd(liq)}
@@ -626,7 +702,7 @@ def format_single_wallet_post(signal: dict, dex_data: dict | None, tp_sl: dict |
 ⏱️ Hold: 24-48h  |  {be_note}
 
 💼 Buy: {buy_str}
-🏆 Signal Quality: {score_str}/1.0  (Grade A)
+🏆 {tier_badge}
 🕐 Detected: {time_str}
 
 📈 Chart: {dex_url}
@@ -690,12 +766,18 @@ def get_new_single_wallet_signals(state: dict) -> list[dict]:
         if not wallet or wallet in SW_NOISY_WALLETS:
             continue
 
-        # Grade A + score threshold
-        if r.get("quality_grade") != "A":
-            continue
+        # --- Wallet quality tier gate ---
+        # Tier 1 wallets (SM_10) bypass Grade A requirement — proven 83% WR.
+        # Other wallets still require Grade A + score >= 0.6 (unvetted = Tier 3, blocked).
+        is_tier1 = wallet in TIER_1_WALLETS
         score = r.get("quality_score", 0)
-        if score < SW_MIN_QUALITY_SCORE:
-            continue
+        if not is_tier1:
+            if r.get("quality_grade") != "A":
+                continue
+            if score < SW_MIN_QUALITY_SCORE:
+                continue
+        # Tier 3 single-wallet signals (non-Tier-1, non-Grade-A) are blocked above.
+        # They will be logged by live_watcher but not published to @OttoSignals.
 
         # Skip zero-amount (parsing failures) and dust trades (no conviction)
         amount_usd = r.get("amount_usd", 0) or 0
@@ -713,9 +795,14 @@ def get_new_single_wallet_signals(state: dict) -> list[dict]:
         if ts < cutoff_ts:
             continue
 
-        # Keep best signal per token
+        # Keep best signal per token (Tier 1 always wins over non-Tier-1)
         existing = best_per_token.get(token)
-        if existing is None or score > existing.get("quality_score", 0):
+        prefer_this = (
+            existing is None
+            or (is_tier1 and existing.get("wallet", "") not in TIER_1_WALLETS)
+            or score > existing.get("quality_score", 0)
+        )
+        if prefer_this:
             best_per_token[token] = r
 
     signals = list(best_per_token.values())
@@ -951,6 +1038,21 @@ async def run(dry_run: bool = False, test_mode: bool = False,
                 continue
             print(f"[publisher] PASSES filters: {reason}")
 
+        # --- Publisher quality score (wallet tier + convergence count + token age + volume) ---
+        pub_score = compute_publisher_quality_score(
+            wallet="",
+            signal_type="convergence",
+            wallet_count=signal["wallet_count"],
+            convergence_count=signal.get("convergence_count", 1),
+            dex_data=dex_data,
+        )
+        signal["publisher_quality_score"] = pub_score
+        print(f"[publisher] Quality score: {pub_score}/100 (wallets={signal['wallet_count']}, conv_count={signal.get('convergence_count', 1)})")
+        if pub_score < MIN_PUBLISHER_QUALITY_SCORE:
+            print(f"[publisher] BLOCKED by quality tier: score={pub_score} < {MIN_PUBLISHER_QUALITY_SCORE} (need more wallets or older token)")
+            save_state(state)
+            continue
+
         tp_sl = None
         if dex_data:
             price_usd = float(dex_data.get("priceUsd", 0) or 0)
@@ -1003,9 +1105,26 @@ async def run(dry_run: bool = False, test_mode: bool = False,
             token = signal["token"]
             wallet = signal.get("wallet", "?")
             score  = signal.get("quality_score", 0)
-            print(f"[publisher] [SINGLE-WALLET] Processing: {token[:20]}... | {wallet} | score={score:.3f}")
+            is_tier1_signal = wallet in TIER_1_WALLETS
+            tier_label = "TIER 1 ⭐" if is_tier1_signal else "Tier 3"
+            print(f"[publisher] [SINGLE-WALLET] Processing: {token[:20]}... | {wallet} ({tier_label}) | watcher_score={score:.3f}")
 
             dex_data = await fetch_dex_data(token)
+
+            # --- Publisher quality score (wallet tier + token age + volume) ---
+            pub_score = compute_publisher_quality_score(
+                wallet=wallet,
+                signal_type="single_wallet",
+                wallet_count=1,
+                convergence_count=1,
+                dex_data=dex_data,
+            )
+            signal = dict(signal)
+            signal["publisher_quality_score"] = pub_score
+            print(f"[publisher] Quality score: {pub_score}/100 ({tier_label})")
+            if pub_score < MIN_PUBLISHER_QUALITY_SCORE:
+                print(f"[publisher] BLOCKED by quality tier: score={pub_score} < {MIN_PUBLISHER_QUALITY_SCORE} ({tier_label} → not publishing)")
+                continue
 
             if not no_filters:
                 if dex_data is None:

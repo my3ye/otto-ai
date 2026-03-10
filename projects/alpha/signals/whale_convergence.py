@@ -31,8 +31,11 @@ SIGNAL_LOOKBACK_HOURS = 2
 
 # BUG FIX 5: Noisy wallets — SM_1 (254 trades, all SELL/UNKNOWN) and
 # SM_2 (700 trades, all SELL/UNKNOWN). Zero buys → pollute convergence signals.
-# Analysis 2026-02-23: SM_4, SM_7, SM_10 also noisy — 0% WR across every signal.
-NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7", "SM_10"}
+# Analysis 2026-02-23: SM_4, SM_7 also noisy — 0% WR across every signal.
+# 2026-03-10: SM_10 REMOVED from NOISY_WALLETS — research confirmed SM_10 is the
+# ONLY real directional trader in the pool (83% WR, +0.22 SOL realized). It was added
+# to noisy wallets due to dust buys — that problem is now fixed by MIN_BUY_USD=$500.
+NOISY_WALLETS = {"SM_1", "SM_2", "SM_4", "SM_7"}
 
 # Stablecoins, base tokens, and large-cap tokens — never convergence signals
 # Large-caps (BTC, ETH, SOL wrappers, major DeFi) cannot hit +25% TP in 4h window

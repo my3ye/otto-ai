@@ -63,6 +63,7 @@
 - **FeePayer-filtered discovery (2026-03-08, commit 26edeea)**: New `wallet_discovery.py` at `~/otto/projects/alpha/`. Query trending token's SWAP txs → extract feePayer wallets → score with pair tracking. First run: 7 tokens → 260 candidates → 11 QUALIFIED traders (avg 76% WR vs 30% before). Key insight: querying token mint's txs gives feePayers = real traders (not LP positions).
 - **DexScreener endpoint for trending**: `GET /token-boosts/top/v1` then `GET /latest/dex/tokens/{addr}` for pair data. No API key needed.
 - **Results file**: `~/otto/projects/alpha/discovered_traders.json` — new discoveries. `winrate_pair_tracking_results.json` — existing pool scoring.
+- **Signal quality tier system (2026-03-10)**: `TIER_1_WALLETS = {"SM_10"}` in signal_publisher.py. SM_10 removed from NOISY_WALLETS in whale_convergence.py AND SW_NOISY_WALLETS in signal_publisher.py. `compute_publisher_quality_score()` returns 0-100. Gate: `MIN_PUBLISHER_QUALITY_SCORE = 50`. SM_10=60+bonuses (always passes), 4-wallet convergence=40+bonuses (passes with old/high-vol token), unvetted single=10+bonuses (never passes). Tier 3 single-wallet signals are logged but not published.
 
 ## Conventions
 
