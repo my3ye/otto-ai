@@ -924,6 +924,20 @@ def record_signal_performance(signal: dict, dex_data: dict | None, tp_sl: dict |
         "closed_at":       None,
     }
 
+    # Check for duplicate signal_id before appending to prevent re-notification
+    if PERF_FILE.exists():
+        for line in PERF_FILE.read_text().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                existing = json.loads(line)
+                if existing.get("signal_id") == sig_id:
+                    print(f"[publisher] Skipping duplicate performance entry: {sig_id} ({token_symbol})")
+                    return
+            except Exception:
+                continue
+
     with open(PERF_FILE, "a") as f:
         f.write(json.dumps(entry) + "\n")
 

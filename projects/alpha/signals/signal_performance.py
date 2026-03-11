@@ -23,8 +23,9 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-SIGNALS_DIR = Path(__file__).parent
-PERF_FILE   = SIGNALS_DIR / "signal_performance.jsonl"
+SIGNALS_DIR  = Path(__file__).parent
+PERF_FILE    = SIGNALS_DIR / "signal_performance.jsonl"
+SENT_FILE    = SIGNALS_DIR / "_sent_notifications.json"
 
 # Load env
 ENV_PATH = Path.home() / "memory" / ".env"
@@ -82,6 +83,37 @@ def save_all_signals(entries: list[dict]):
 def get_open_signals() -> list[dict]:
     """Return only signals with status='open'."""
     return [e for e in load_all_signals() if e.get("status") == "open"]
+
+
+# ---------------------------------------------------------------------------
+# Sent notification tracking — dedup guard keyed by signal_id:event
+# ---------------------------------------------------------------------------
+
+def load_sent_notifications() -> set:
+    """Load set of already-sent notification keys (e.g. 'abc123:tp1')."""
+    if not SENT_FILE.exists():
+        return set()
+    try:
+        data = json.loads(SENT_FILE.read_text())
+        return set(data.get("sent", []))
+    except Exception:
+        return set()
+
+
+def mark_notification_sent(key: str):
+    """Persist a notification key so it is never re-fired."""
+    try:
+        if SENT_FILE.exists():
+            data = json.loads(SENT_FILE.read_text())
+        else:
+            data = {"sent": []}
+        sent = data.get("sent", [])
+        if key not in sent:
+            sent.append(key)
+        data["sent"] = sent
+        SENT_FILE.write_text(json.dumps(data, indent=2))
+    except Exception:
+        pass  # Don't crash the check loop on tracking failure
 
 
 # ---------------------------------------------------------------------------
@@ -245,6 +277,8 @@ async def check_open_signals(dry_run: bool = False):
     - 72h: Force-close with timeout exit
     """
     now_ts = time.time()
+    # Load sent-notification dedup set once per run
+    sent_keys = load_sent_notifications()
     open_signals = get_open_signals()
 
     if not open_signals:
@@ -333,43 +367,57 @@ async def check_open_signals(dry_run: bool = False):
         # We detect the *highest* TP hit so far to avoid double-posting.
         # Order: TP3 > TP2 > TP1 > SL
 
-        outcome_msg = None
-        new_status  = None
+        outcome_msg  = None
+        new_status   = None
+        notify_key   = None  # sent-notification dedup key
 
         # TP3 hit (only if TP2 was already hit)
-        if tp3_p and current_price >= tp3_p and not updated_sig.get("tp3_hit") and updated_sig.get("tp2_hit"):
+        if (tp3_p and current_price >= tp3_p
+                and not updated_sig.get("tp3_hit")
+                and updated_sig.get("tp2_hit")
+                and f"{sig_id}:tp3" not in sent_keys):
             print(f" | TP3 HIT")
             updated_sig["tp3_hit"]   = True
             updated_sig["status"]    = "tp3_hit"
             updated_sig["final_pnl"] = pnl_pct
             updated_sig["closed_at"] = int(now_ts)
             new_status  = "tp3_hit"
+            notify_key  = f"{sig_id}:tp3"
             outcome_msg = build_tp_message(sig, 3, current_price, pnl_pct)
 
         # TP2 hit (only if TP1 was already hit)
-        elif tp2_p and current_price >= tp2_p and not updated_sig.get("tp2_hit") and updated_sig.get("tp1_hit"):
+        elif (tp2_p and current_price >= tp2_p
+                and not updated_sig.get("tp2_hit")
+                and updated_sig.get("tp1_hit")
+                and f"{sig_id}:tp2" not in sent_keys):
             print(f" | TP2 HIT")
             updated_sig["tp2_hit"] = True
             updated_sig["status"]  = "tp2_hit"
+            notify_key  = f"{sig_id}:tp2"
             outcome_msg = build_tp_message(sig, 2, current_price, pnl_pct)
 
         # TP1 hit
-        elif tp1_p and current_price >= tp1_p and not updated_sig.get("tp1_hit"):
+        elif (tp1_p and current_price >= tp1_p
+                and not updated_sig.get("tp1_hit")
+                and f"{sig_id}:tp1" not in sent_keys):
             print(f" | TP1 HIT")
             updated_sig["tp1_hit"]          = True
             updated_sig["stop_moved_to_be"] = True
             # After TP1, move SL to breakeven
             updated_sig["sl_price"]         = entry_p
             updated_sig["status"]           = "tp1_hit"
+            notify_key  = f"{sig_id}:tp1"
             outcome_msg = build_tp_message(sig, 1, current_price, pnl_pct)
 
         # SL hit — check against current effective SL (may be breakeven after TP1)
-        elif current_price <= updated_sig.get("sl_price", sl_p):
+        elif (current_price <= updated_sig.get("sl_price", sl_p)
+                and f"{sig_id}:sl" not in sent_keys):
             print(f" | SL HIT (effective SL={format_price(updated_sig.get('sl_price', sl_p))})")
             updated_sig["sl_hit"]    = True
             updated_sig["status"]    = "sl_hit"
             updated_sig["final_pnl"] = pnl_pct
             updated_sig["closed_at"] = int(now_ts)
+            notify_key  = f"{sig_id}:sl"
             outcome_msg = build_sl_message(sig, current_price, pnl_pct)
 
         else:
@@ -381,6 +429,10 @@ async def check_open_signals(dry_run: bool = False):
             updates_made += 1
             all_entries[idx] = updated_sig
             if not dry_run:
+                # Mark as sent BEFORE posting to prevent concurrent re-fires
+                if notify_key:
+                    mark_notification_sent(notify_key)
+                    sent_keys.add(notify_key)
                 ok = await post_to_telegram(outcome_msg)
                 if ok:
                     posts_sent += 1
