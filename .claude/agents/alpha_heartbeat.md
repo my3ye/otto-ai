@@ -145,31 +145,94 @@ curl -s -X POST http://localhost:8100/episodic/events \
 
 ### 5. Alert Mev for HIGH Signals Only
 
-Only send a WhatsApp message if there is at least one HIGH signal. Keep it brief:
+**CRITICAL: Check `alert_cooldowns.json` BEFORE sending any WhatsApp alert. This is signal-ID-based dedup — do NOT use message text comparison.**
+
+```bash
+COOLDOWNS_FILE="/home/web3relic/otto/projects/alpha/alert_cooldowns.json"
+COOLDOWN_SECS=3600  # 1 hour — matches live_watcher.py
+
+# Load cooldowns (returns {} if missing)
+COOLDOWNS_JSON=$(cat "$COOLDOWNS_FILE" 2>/dev/null || echo "{}")
+NOW_TS=$(date +%s)
+
+# Check if FULL token address is on cooldown
+# IMPORTANT: Use the FULL token address as key — never truncate
+is_on_alert_cooldown() {
+    local token="$1"
+    python3 -c "
+import json, sys, time
+cooldowns = json.loads('''$COOLDOWNS_JSON''')
+last_ts = cooldowns.get('$token', 0)
+elapsed = time.time() - float(last_ts)
+print('yes' if elapsed < $COOLDOWN_SECS else 'no')
+" 2>/dev/null || echo "no"
+}
+
+# Update cooldowns after sending — writes FULL token address as key
+update_alert_cooldown() {
+    local token="$1"
+    python3 -c "
+import json, time
+path = '$COOLDOWNS_FILE'
+try:
+    with open(path) as f:
+        d = json.load(f)
+except:
+    d = {}
+d['$token'] = time.time()  # full token address key, float timestamp
+with open(path, 'w') as f:
+    json.dump(d, f, indent=2)
+print('cooldown updated for $token')
+"
+}
+```
+
+For each HIGH signal, check `is_on_alert_cooldown "$TOKEN"` before sending:
+- If it returns `yes` → **skip alert** — this exact token was already alerted within the last hour
+- If it returns `no` → send the alert, then call `update_alert_cooldown "$TOKEN"`
+
+This prevents the same signal from being re-alerted every 30-min cycle even if the message is phrased differently. The dedup key is the full token contract address — **not the message text**.
+
+Only send a WhatsApp message if there is at least one HIGH signal AND it is not on cooldown. Keep it brief:
 
 ```
-🚨 Alpha signal: [TOKEN] — [N] smart wallets buying in last 30min. Avg size: $[X]. Wallets: [short list]. Check /alpha/signals for details.
+🚨 Alpha signal: [FULL_TOKEN] — [N] smart wallets buying in last 30min. Avg size: $[X]. Wallets: [short list]. Check /alpha/signals for details.
 ```
 
 Do NOT send WhatsApp messages for MEDIUM or LOW signals.
 
 ### 6. Write Signal Log
 
-**BUG FIX — SIGNAL DEDUP (Bug 1):** Before writing any MEDIUM signal, check if the same (wallet, token) pair already appears in signals.jsonl within the last 1 hour. Skip if duplicate. Use this pattern:
+**BUG FIX — SIGNAL DEDUP (Bug 1):** Before writing any signal (HIGH or MEDIUM), check if a duplicate already exists in signals.jsonl within the lookback window. Skip if duplicate.
+
+- **HIGH signals**: token-level dedup (any wallet, same token within 1 hour). HIGH = convergence event on a token, not wallet-specific.
+- **MEDIUM signals**: wallet+token pair dedup within 1 hour.
+
+Use this pattern:
 
 ```bash
 SIGNALS_FILE="/home/web3relic/otto/projects/alpha/signals.jsonl"
 ONE_HOUR_AGO=$(date -u -d '1 hour ago' '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date -u -v-1H '+%Y-%m-%dT%H:%M:%SZ')
 
-# Check for duplicate before writing MEDIUM signal
-is_duplicate() {
+# Check for duplicate HIGH signal: same token, any wallet, within 1 hour
+is_high_signal_duplicate() {
+    local token="$1"
+    if [ -f "$SIGNALS_FILE" ] && command -v jq &>/dev/null; then
+        local count
+        count=$(jq -r --arg t "$token" --arg since "$ONE_HOUR_AGO" \
+            'select(.token==$t and .signal=="HIGH" and .timestamp>=$since) | .token' \
+            "$SIGNALS_FILE" 2>/dev/null | wc -l)
+        [ "$count" -gt 0 ] && return 0
+    fi
+    return 1  # not a duplicate
+}
+
+# Check for duplicate MEDIUM signal: same wallet+token within 1 hour
+is_medium_signal_duplicate() {
     local wallet="$1"
     local token="$2"
-    # Returns 0 (true) if duplicate found in last hour
     if [ -f "$SIGNALS_FILE" ]; then
-        # Look for same wallet+token in the file at timestamps >= one hour ago
         if grep -q "\"wallet\":\"${wallet}\"" "$SIGNALS_FILE" 2>/dev/null; then
-            # Check more precisely with jq if available
             if command -v jq &>/dev/null; then
                 local count
                 count=$(jq -r --arg w "$wallet" --arg t "$token" --arg since "$ONE_HOUR_AGO" \
@@ -197,10 +260,16 @@ validate_token_address() {
 }
 ```
 
-Only write a signal if BOTH checks pass:
+Only write a signal if validation passes AND it is not a duplicate:
 ```bash
-if validate_token_address "$TOKEN" && ! is_duplicate "$WALLET_LABEL" "$TOKEN"; then
-    echo "{\"timestamp\": \"$TS\", \"wallet\": \"$WALLET_LABEL\", ...}" >> "$SIGNALS_FILE"
+# For HIGH signals:
+if validate_token_address "$TOKEN" && ! is_high_signal_duplicate "$TOKEN"; then
+    echo "{\"timestamp\": \"$TS\", \"wallet\": \"$WALLET_LABEL\", \"signal\": \"HIGH\", \"token\": \"$TOKEN\", ...}" >> "$SIGNALS_FILE"
+fi
+
+# For MEDIUM signals:
+if validate_token_address "$TOKEN" && ! is_medium_signal_duplicate "$WALLET_LABEL" "$TOKEN"; then
+    echo "{\"timestamp\": \"$TS\", \"wallet\": \"$WALLET_LABEL\", \"signal\": \"MEDIUM\", \"token\": \"$TOKEN\", ...}" >> "$SIGNALS_FILE"
 fi
 ```
 

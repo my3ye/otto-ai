@@ -621,22 +621,55 @@ for p in recent[:3]:
 "
 ```
 
-**BEFORE sending any message, check for duplicate content guard:**
+**BEFORE sending any message, run the semantic duplicate guard — compare SUBJECTS, not text:**
+
 ```bash
-# Check if an identical (or near-identical) message was already sent in the last 6h
+# Load recent outbound messages (last 6h)
 LAST_WA_EVENTS=$(curl -s -X POST http://localhost:8100/episodic/timeline \
   -H 'Content-Type: application/json' \
   -d '{"limit": 20, "event_type": "whatsapp_sent", "hours": 6}' 2>/dev/null)
+
 echo "$LAST_WA_EVENTS" | python3 -c "
-import json, sys
+import json, sys, re
+
 events = json.load(sys.stdin)
-contents = [e.get('content','')[:100].lower().strip() for e in events]
-print('Recent outbound messages:', len(contents))
-for c in contents[:5]:
+contents = [e.get('content', '') for e in events]
+
+# Extract subjects from message text (key entities, not full text):
+# - Solana/Ethereum token addresses (32-44 char alphanumeric)
+# - Task IDs (8-char hex like 'a1b2c3d4')
+# - Status phrases: 'system idle', 'phase 2', 'all good', 'nothing new'
+def extract_subjects(text):
+    t = text.lower()
+    subjects = set()
+    # Token addresses
+    subjects.update(re.findall(r'[1-9A-HJ-NP-Za-km-z]{32,44}', text))
+    # Task IDs (8-char hex)
+    subjects.update(re.findall(r'\b[0-9a-f]{8}\b', t))
+    # Status phrases
+    for phrase in ['system idle', 'phase 2', 'all good', 'nothing new', 'no tasks', 'waiting for mev', 'no new work']:
+        if phrase in t:
+            subjects.add(phrase)
+    return subjects
+
+recent_subjects = set()
+for c in contents:
+    recent_subjects.update(extract_subjects(c))
+
+print('Recent subjects seen:', sorted(recent_subjects)[:10])
+print('Recent messages count:', len(contents))
+for c in contents[:3]:
     print('  -', c[:80])
 "
 ```
-If your planned message is substantively identical to one already sent in the last 6h, **do NOT send it again** — skip or rephrase to add new information. Sending the same message repeatedly is a loop anomaly that Mev will notice and report.
+
+**Subject-based dedup rule (stricter than text similarity):**
+- Extract key subjects from your PLANNED message: token addresses, task IDs, status phrases
+- If those exact subjects appear in recent outbound messages with the **same status** (e.g., "system idle" was already sent twice today), **do NOT send it again**
+- Same-content different-phrasing is still a duplicate — check by SUBJECT, not by words
+- If the subject is new (new task ID, new token, new milestone) → always send
+
+If your planned message is substantively identical to one already sent in the last 6h, **do NOT send it again** — skip or rephrase to add new information. Sending the same message repeatedly (even in different words) is a loop anomaly that Mev will notice and report.
 
 **Skip messaging ONLY when:**
 - Literally nothing happened (no tasks completed, no new work, no cross-brain notes, no progress)
