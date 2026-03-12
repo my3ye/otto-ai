@@ -103,3 +103,82 @@
   - TP3: +50%+ (let 33% run — captures the fat right tail)
   - Trail stop after TP1: move SL to breakeven
 - Use fractional Kelly (50% of calculated f*) in practice — reduces variance 4x while keeping 75% of returns
+
+## Context Engineering 2026 Research (2026-03-12)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_context_engineering_2026.md
+
+### 4-Strategy consensus (Anthropic + LangChain)
+Write → Select → Compress → Isolate. All production agent systems in 2026 use this framework.
+
+### Key papers
+- AgeMem (arXiv 2601.01885): RL-driven unified LTM+STM. Memory ops as tool actions. Best for long-horizon.
+- A-MEM (arXiv 2502.12110, NeurIPS 2025): Zettelkasten memory graph. New memories update related old memories.
+- HiAgent: hierarchical working memory chunked by subgoals.
+
+### Critical findings for Otto
+- "Lost in the middle": 30%+ performance degradation when key facts buried mid-context. Always put critical info at START or END.
+- Tool RAG: 3x better tool selection accuracy when tools fetched semantically vs all-at-once. Otto loads all tools simultaneously — gap.
+- Sub-agent output: should be compressed to 1,000-2,000 token summaries before handoff, not raw output.
+- Memory evolution: new memories should update related existing memories (A-MEM) — Otto is append-only.
+- Context < 50% full rule: degradation accelerates past 50% capacity.
+- MCP = universal standard (97M downloads/month). A2A = cross-agent handoff protocol.
+
+### Otto gaps vs 2026 consensus
+1. No Tool RAG (load all tools simultaneously)
+2. No memory evolution (append-only, no cross-linking updates)
+3. No learned memory management (heuristic decay vs RL-driven)
+4. Sub-agent output not compressed before heartbeat ingestion
+5. Position bias not explicitly engineered in SMMU ordering
+
+## On-Chain Alpha Strategies Research (2026-03-09)
+
+Research file: ~/otto/projects/alpha/ONCHAIN_ALPHA_STRATEGIES_RESEARCH.md
+
+### Strategy 1: MEV Sandwich Detection as Buy Signal
+- 16/20 top sandwiched tokens are pump.fun launches (vanity suffix `pump`)
+- Sandwich activity = demand proof signal (MEV bots only attack hot tokens)
+- Jito tip spikes (781 SOL/day low vs 60,801 SOL peak) correlate with memecoin cycles
+- Detection: Helius getTransactions() — parse tx[0]/tx[2] same signer, tx[1] different buyer = sandwich
+- Sandwiched.me expanding but no confirmed public API for per-token stats
+- Use as +confidence multiplier only. Complexity: 3/5.
+
+### Strategy 2: Liquidation Cascade Detection
+- Kamino SDK open source: github.com/Kamino-Finance — reads all position health factors on-chain
+- Marginfi: `lending_account_pulse_health` instruction reads health (individual query only)
+- Q1 2025: $1.7B liquidated in 6 weeks. Only ~9 active liquidators = cascade amplification risk
+- NOT for meme coins (collateral = SOL, jitoSOL, USDC). Use as macro risk-off signal.
+- Buy signal: 2-4h AFTER cascade completes (oversold mean reversion). Complexity: 4/5.
+
+### Strategy 3: Whale Accumulation Beyond Convergence (5 patterns — all free Helius)
+- Wallet funding pattern: master wallet SOL → new unfunded wallets = buy in 2-24h (LEAD TIME ADVANTAGE)
+- Cold storage transfer: post-buy token move to non-DEX wallet = long conviction
+- LP removal: usually bearish rug (93% of pools). Contrarian buy only if non-creator removes + passes all rug filters
+- Fee-payer cluster: 3+ "different" wallets share same fee payer = ONE entity (COORDINATED, not organic). Add to convergence processor. 2 days work.
+- SOL unstaking: large unstake events = whale liquidity incoming (28h lead time)
+
+### Strategy 4: Cross-Chain Bridge Flow (Wormhole/deBridge)
+- Macro signal only (7-30 day timescale). NOT token-level signal.
+- USDC inflow to Solana = "dry powder on hold". $10.1B bridge volume by Feb 2025, USDC supply +110%.
+- Use as ecosystem regime filter: HOT/NORMAL/COLD. Apply stricter convergence filters in COLD mode.
+- Free data: DefiLlama /api/bridgevolume/solana. Complexity: 2/5. Edge: +5-8% win rate.
+
+### Strategy 5: Pump.fun Bonding Curve Graduation (HIGHEST NEW VALUE)
+- Academic study: arXiv 2602.14860 (Feb 2026) — 655,770 tokens, 0.63% graduation rate
+- Graduation: ~85 SOL raised. Token balance 206.9M-246.5M remaining = 95-100% progress = imminent
+- Since March 2025: graduates route to PumpSwap (not Raydium)
+- STRONGEST predictor: liquidity velocity = SOL per trade (few trades to reach high vSol = graduation likely)
+- Key signal: 50 SOL reached in <50 trades = very high graduation probability
+- Bot ratio <30% + zero dump events + 70%+ progress = pre-graduation candidate
+- Median graduation time: 4.4 minutes. Must detect early or lose the move to snipers.
+- Detection: Helius websocket on pump.fun program ID 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P (FREE)
+- Formula: curve_progress = (vSol_balance / 85) * 100
+- Post-graduation entry: possible 30-120s after (first 30s is sniper-dominated)
+- Win rate estimate: 45-55% at T+30min with quality filters. Complexity: 3/5.
+
+### Implementation priority order
+1. Pump.fun graduation monitor (highest priority — new signal type, strong academic backing)
+2. Fee-payer cluster check on convergence signals (2 days, already have data)
+3. Wallet funding monitor — SOL transfers to new wallets from tracked whales (2 days)
+4. Bridge flow regime flag via DefiLlama API (1 day)
+5. MEV sandwich rate as confirmation layer (3/5 complexity, lower urgency)

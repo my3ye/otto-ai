@@ -1,12 +1,13 @@
-"""Shared context building logic — same core context for Claude and Gemini brains.
+"""Shared context building logic — token-budgeted memory assembly.
 
+The source parameter controls which tiers are included:
 
-Both brains read from the same memory tiers. The source parameter controls
-which brain-specific sections are included:
+  source="startup"|"compact"|"resume"  → full context (all tiers)
+  source="whatsapp"                     → lightweight: Tiers 0-6, skip
+                                          task queue, pending directives, reasoning chain
 
-  source="startup"|"compact"|"resume"  → full Claude context (all tiers)
-  source="whatsapp"                     → Gemini-optimized: Tiers 0-6, skip
-                                          task queue, cross-brain notes, reasoning chain
+The S-MMU (kernel/smmu.py) replaces this for kernel-mode context assembly,
+but this module is still used for legacy fallback and the /context/inject endpoint.
 """
 
 import json
@@ -30,7 +31,7 @@ _SECTION_COMPRESS_LIMITS: list[tuple[str, int]] = [
     ("Knowledge graph",   5),   # graphiti facts
     ("Principles",        3),   # learned principles
     ("Key facts",         5),   # A-RAG semantic facts
-    ("Structured Graph",  5),   # G2CP cross-brain nodes
+    ("Structured Graph",  5),   # G2CP structured graph nodes
     ("Recent reasoning",  2),   # reasoning chain entries
     ("Recent events",     3),   # episodic events
     ("Mission & Goals",   5),   # mission/goal facts
@@ -100,7 +101,7 @@ def compress_context_text(text: str, target_tokens: int) -> tuple[str, int, int]
 
     Compresses least-critical sections first until the result fits within
     target_tokens.  High-priority sections (PURPOSE, PRIORITIES, Directives,
-    Working Memory, Identity, Task Queue, Cross-brain notes) are never touched.
+    Working Memory, Identity, Task Queue, Pending directives) are never touched.
 
     Returns (compressed_text, original_token_count, compressed_token_count).
     """
@@ -133,19 +134,19 @@ async def build_context_text(
     source: str = "startup",
     format: str = "full",
 ) -> str:
-    """Build token-budgeted context text for Claude or Gemini.
+    """Build token-budgeted context text.
 
-    Priority tiers (same order for both brains):
+    Priority tiers:
       0a  PURPOSE — immutable identity anchor
       0b  PRIORITIES — ranked what Mev wants
       0c  Active Directives from Mev
       0d  Working Memory (other core_memory slots, sorted by recency)
       1   Identity facts (semantic_memories.category='identity')
       2   Mission & goals (semantic_memories.category in mission/goal/decision)
-      3   Pending questions (Claude→Mev)
-      3b  Cross-brain notes (Gemini→Claude) — Claude only
-      3c  Task queue — Claude only
-      3d  Reasoning chain — Claude only
+      3   Pending questions (Otto→Mev)
+      3b  Pending directives (from gateway) — full context only
+      3c  Task queue — full context only
+      3d  Reasoning chain — full context only
       4   Last session summary
       5   Recent high-importance events
       6   High-confidence semantic facts
@@ -153,7 +154,7 @@ async def build_context_text(
       8   Procedures
 
     format="full"    — full verbosity (default, for Claude Code sessions)
-    format="compact" — same information, shorter snippets (for WhatsApp/Gemini)
+    format="compact" — same information, shorter snippets (for lightweight contexts)
     """
     is_whatsapp = source == "whatsapp"
     is_compact = format == "compact"
@@ -270,10 +271,10 @@ async def build_context_text(
                 break
         _add("")
 
-    # ── Tier 3: Pending questions (Claude→Mev, always) ───────────────────
+    # ── Tier 3: Pending questions (Otto→Mev, always) ────────────────────
     pending_rows = await pool.fetch(
         """SELECT question, intent FROM pending_questions
-           WHERE resolved_at IS NULL AND direction = 'claude_to_gemini'
+           WHERE resolved_at IS NULL AND direction IN ('claude_to_gemini', 'outbound')
            ORDER BY asked_at DESC LIMIT 5""",
     )
     if pending_rows:
@@ -283,16 +284,16 @@ async def build_context_text(
                 break
         _add("")
 
-    # ── Tier 3b: Cross-brain notes (Claude only) ─────────────────────────
+    # ── Tier 3b: Pending directives (full context only) ────────────────
     if not is_whatsapp:
         crossbrain_rows = await pool.fetch(
             """SELECT id, question, intent, context, metadata FROM pending_questions
-               WHERE resolved_at IS NULL AND direction = 'gemini_to_claude'
+               WHERE resolved_at IS NULL AND direction IN ('gemini_to_claude', 'inbound')
                ORDER BY asked_at DESC LIMIT 10""",
         )
         if crossbrain_rows:
-            _add("[Otto] Messages from WhatsApp brain (Gemini -> Claude):")
-            _add("  These are things Mev said via WhatsApp that need your attention:")
+            _add("[Otto] Pending directives from gateway:")
+            _add("  These are things Mev said that need your attention:")
             for r in crossbrain_rows:
                 urgency = "NORMAL"
                 if r["metadata"] and isinstance(r["metadata"], dict):
@@ -476,7 +477,7 @@ async def build_context_text(
         except Exception:
             pass
 
-    # ── Tier 6c: Structured cross-brain graph (G2CP — both brains) ───────
+    # ── Tier 6c: Structured graph (G2CP) ─────────────────────────────────
     if used < max_tokens * 0.75:
         try:
             graph_rows = await pool.fetch(
@@ -487,7 +488,7 @@ async def build_context_text(
                    LIMIT 15""",
             )
             if graph_rows:
-                _add("[Otto] Structured Graph (cross-brain nodes):")
+                _add("[Otto] Structured Graph:")
                 for r in graph_rows:
                     node_type = r["node_type"]
                     raw = r["content"]
@@ -501,14 +502,14 @@ async def build_context_text(
                     else:
                         content = {}
                     text = content.get("text") or content.get("value") or r["name"]
-                    brain = r["source_brain"]
+                    source = r["source_brain"]
                     if node_type == "directive":
                         cat = content.get("category", "directive").upper()
-                        if not _add(f"  [DIRECTIVE/{cat}] (from {brain}, P{r['priority']}) {text[:_snippet]}"):
+                        if not _add(f"  [DIRECTIVE/{cat}] (P{r['priority']}, {source}) {text[:_snippet]}"):
                             break
                     elif node_type == "decision":
                         by = content.get("decided_by", "?")
-                        if not _add(f"  [DECISION] (by {by}, from {brain}) {text[:_snippet]}"):
+                        if not _add(f"  [DECISION] (by {by}) {text[:_snippet]}"):
                             break
                     elif node_type == "task_state":
                         status = content.get("status", "?")
@@ -548,6 +549,27 @@ async def build_context_text(
 
     if source == "compact":
         _add("[Otto] Context was compacted. Full memory available via API at localhost:8100.")
+
+    # ── Position bias mitigation ("lost in middle" — 30% degradation at middle positions) ──
+    # Append the single highest-relevance retrieved fact at the very END of context.
+    # Exploits primacy+recency effect: critical facts at START and END outperform middle-only.
+    # Reference: arXiv 2501 Liu et al.; Redis "Context Rot" analysis (2025)
+    try:
+        if not is_whatsapp:
+            anchor_facts = await hymem_briefing_facts(
+                pool=pool,
+                query="Otto mission current priority active work blocker",
+                limit=1,
+                min_confidence=0.75,
+                top_k_detailed=1,
+                excluded_categories=("identity",),
+            )
+            if anchor_facts:
+                top = anchor_facts[0]
+                _add("")
+                _add(f"[Otto] Key context anchor: [{top['category']}] {top['display_content'][:250]}")
+    except Exception:
+        pass
 
     pct = round(used / 200000 * 100, 1)
     _add(f"[Otto] Context: ~{used} tokens ({pct}% of 200k context, budget: {max_tokens})")
