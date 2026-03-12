@@ -1,12 +1,17 @@
 {
   "version": 1,
-  "updated_at": "2026-03-10T00:00:00Z",
+  "updated_at": "2026-03-12T12:40:00Z",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
     {
       "ts": "2026-03-10T00:00:00Z",
       "change": "Initial config — baseline values from Week 1 fix v2",
       "rationale": "Seeding from manually-tuned values after Week 1 signal quality fix"
+    },
+    {
+      "ts": "2026-03-12T12:40:00Z",
+      "change": "Lowered TP1_TARGET from 10.0% to 5.5%",
+      "rationale": "Research Iter 28: TP1=10% is mathematically unattainable within 2h window — 90.9% expiry rate despite 81.8% win rate. Tokens reach only ~5.5% avg PnL. Lowering TP1 to 5.5% to match actual price action."
     }
   ],
   "convergence": {
@@ -33,7 +38,7 @@
     "min_token_age_days": 7
   },
   "tp_sl": {
-    "tp1_pct": 0.10,
+    "tp1_pct": 0.055,
     "tp2_pct": 0.25,
     "tp3_pct": 0.50,
     "sl_pct": 0.15

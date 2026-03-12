@@ -53,7 +53,7 @@ MAX_ACTION_ITEMS = 3       # Keep only 3 most recent/relevant action items
 MAX_FINDINGS    = 15       # Cap stored findings
 
 # TP/SL thresholds (match signal publisher)
-TP1_PCT = 0.10   # +10%
+TP1_PCT = 0.055  # +5.5% (Iter 28: 10% unattainable within 2h window, avg max reach ~5.5%)
 TP2_PCT = 0.25   # +25%
 TP3_PCT = 0.50   # +50%
 SL_PCT  = -0.15  # -15%
@@ -291,7 +291,7 @@ def update_signal_performance() -> dict:
                 newly_closed += 1
             elif tp1_hit:
                 sig["status"] = "closed_tp1"
-                sig["final_pnl"] = round(TP1_PCT * 100, 1)  # +10%
+                sig["final_pnl"] = round(TP1_PCT * 100, 1)  # +5.5%
                 sig["closed_at"] = datetime.now(timezone.utc).isoformat()
                 newly_closed += 1
             else:
@@ -593,6 +593,54 @@ def send_whatsapp(msg: str):
         log(f"WhatsApp send failed: {e}")
 
 
+# ── Auto-spawn fix task for repeated unacted findings ─────────────────────────
+def spawn_fix_task(finding: str, top_action: str, repeat_count: int) -> bool:
+    """
+    If a HIGH finding's top_action has been reported 2+ iterations without a fix task,
+    spawn one via the memory API task queue.
+    Returns True if task was successfully created.
+    """
+    import urllib.request
+    import urllib.error
+
+    title = f"[Alpha Auto-Fix] {top_action[:80]}"
+    prompt = (
+        f"Research pipeline has reported the following finding {repeat_count} consecutive "
+        f"iterations without a fix being implemented:\n\n"
+        f"Finding: {finding}\n"
+        f"Top action: {top_action}\n\n"
+        f"Implement this fix now in the alpha signal pipeline. "
+        f"Check strategy_config.json, signal_publisher.py, and pipeline_executor.py. "
+        f"Make the specific config or code change indicated by the top action. "
+        f"Verify the change is correct and commit it."
+    )
+
+    payload = json.dumps({
+        "title": title,
+        "prompt": prompt,
+        "priority": 7,
+        "model": "sonnet",
+        "max_budget_usd": 2.0,
+        "tags": ["alpha", "auto-fix", "research-pipeline"],
+    }).encode("utf-8")
+
+    try:
+        req = urllib.request.Request(
+            "http://localhost:8100/tasks",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            result = json.loads(resp.read().decode("utf-8"))
+            task_id = result.get("id", "?")
+            log(f"Auto-spawned fix task {task_id}: {title[:60]}")
+            return True
+    except Exception as e:
+        log(f"Failed to spawn fix task: {e}")
+        return False
+
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     log("=== Research Pipeline v2 Starting ===")
@@ -711,6 +759,33 @@ def main():
             top_action = findings.get("top_action", "")
             if top_action and top_action not in state["action_items"]:
                 state["action_items"].append(top_action)
+
+            # REPEAT SAFEGUARD: If same top_action seen 2+ iters without fix, spawn a task.
+            # This prevents research findings from being reported indefinitely without action.
+            if top_action and findings.get("significance") == "HIGH":
+                action_key = top_action.strip()[:50]
+                repeat_tracker = state.setdefault("repeat_tracker", {})
+                entry = repeat_tracker.get(action_key, {"count": 0, "task_spawned": False, "first_iter": iteration})
+                entry["count"] += 1
+                if entry["count"] >= 2 and not entry["task_spawned"]:
+                    log(f"REPEAT SAFEGUARD: '{action_key[:50]}' seen {entry['count']} times — spawning fix task")
+                    spawned = spawn_fix_task(
+                        finding=findings.get("primary_finding", ""),
+                        top_action=top_action,
+                        repeat_count=entry["count"],
+                    )
+                    if spawned:
+                        entry["task_spawned"] = True
+                repeat_tracker[action_key] = entry
+                state["repeat_tracker"] = repeat_tracker
+            elif top_action:
+                # Non-HIGH or new finding — reset tracker for this key if it was previously HIGH
+                action_key = top_action.strip()[:50]
+                repeat_tracker = state.get("repeat_tracker", {})
+                if action_key in repeat_tracker and repeat_tracker[action_key].get("task_spawned"):
+                    # Task was spawned and presumably fixed — reset counter
+                    del repeat_tracker[action_key]
+                    state["repeat_tracker"] = repeat_tracker
     else:
         log(f"Phase 2: Skipping Claude research (no new closures, {hours_since_claude:.1f}h since last call)")
 
