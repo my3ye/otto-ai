@@ -62,27 +62,22 @@ ORIENT: What changed? What matters most right now?
 - Are any tasks failing with exit code None? If so, check the task queue status and retry.
 - CLI performance: which CLIs have been succeeding/failing recently? Adjust routing.
 - Alpha check: if Alpha paper trading has 0% win rate after 5+ trades, create a task to investigate and adjust parameters.
-- **DUPLICATE OUTPUT CHECK:** Scan recent episodic events for repeated identical outputs. If the same message or notification content appears 3+ times in the last 6 hours, flag it as a loop anomaly and create a reactive task to investigate root cause. Do NOT send further identical messages.
+- **DUPLICATE OUTPUT CHECK:** The heartbeat shell script (`heartbeat.sh`) now runs `auto_repair.py` automatically after each cycle — it scans the last 6h of episodic events and spawns a debugger fix task for any pattern appearing 3+ times. You do NOT need to re-scan or re-create tasks for patterns already caught.
+  Your role here is lighter: check if `auto_repair` events appear in recent episodic timeline to see what was auto-fixed, and verify the fix tasks are progressing. If you spot a new anomaly the script missed (e.g. a nuanced loop that doesn't repeat verbatim), create a task manually.
   ```bash
   curl -s -X POST http://localhost:8100/episodic/timeline \
     -H 'Content-Type: application/json' \
-    -d '{"limit": 50, "hours": 6}' | python3 -c "
+    -d '{"limit": 20, "hours": 6, "event_type": "auto_repair"}' | python3 -c "
   import json, sys
-  from collections import Counter
   events = json.load(sys.stdin)
-  # Extract content snippets (first 120 chars) for dedup comparison
-  snippets = [e.get('content','')[:120].strip() for e in events if e.get('content')]
-  counts = Counter(snippets)
-  duplicates = [(s, c) for s, c in counts.items() if c >= 3]
-  if duplicates:
-      print('ANOMALY DETECTED — repeated identical outputs:')
-      for s, c in sorted(duplicates, key=lambda x: -x[1]):
-          print(f'  [{c}x] {s[:80]}')
+  if events:
+      print(f'Auto-repair activity ({len(events)} events):')
+      for e in events: print(f'  {e[\"content\"][:100]}')
   else:
-      print('No duplicate output anomalies in last 6h.')
+      print('No auto-repair activity in last 6h.')
   "
   ```
-  If duplicates are found: (1) do NOT repeat the message again this cycle, (2) create a P7 reactive task to find and fix the root cause loop.
+  **Rule:** Do NOT repeat sending the same WhatsApp message if auto-repair already handled it.
 
 LEARN FROM MISTAKES: Before deciding, check what went wrong recently.
 - Fetch the pre-decision brief: `curl -sf http://localhost:8100/reasoning/pre-decision-brief`

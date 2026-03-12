@@ -1,8 +1,22 @@
 {
-  "last_published_ts": 0,
+  "last_published_ts": 1772994604,
   "total_published": 9,
   "published_today": 0,
-  "today_date": "2026-03-10",
+  "today_date": "2026-03-12",
   "published_tokens_today": [],
-  "convergence_seen": {}
+  "convergence_seen": {},
+  "published_signal_ids": [
+    "0462b53f4b1b",
+    "42cedbe6aaaf",
+    "f8e10eb970e5",
+    "07a69fcf2e70",
+    "09fe49ef6802",
+    "04ee1d30435c",
+    "33a7a3950337",
+    "c86a6b183ff8",
+    "5ed775a98ee7",
+    "00e7edbd6405",
+    "dabdf56148ea",
+    "4de8a1db4b24"
+  ]
 }

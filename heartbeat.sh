@@ -25,7 +25,23 @@ if [ -f "$LOCK_FILE" ]; then
     fi
 fi
 
-# ── Rate limit awareness: skip cycle if API was rate-limited recently ──────────
+# ── Self-healing: ensure sibling timers are enabled ──────────────────────────
+for TIMER in otto-reflection.timer otto-maintenance.timer; do
+    if ! systemctl is-active "$TIMER" &>/dev/null; then
+        echo "$(date -Iseconds) HEAL: $TIMER was inactive — re-enabling" >> "$LOG_FILE"
+        sudo systemctl enable --now "$TIMER" 2>/dev/null || true
+    fi
+done
+
+# ── Rate limit awareness: check API endpoint first, fall back to sentinel ──────
+API="http://localhost:8100"
+RATE_LIMITED=$(curl -sf "${API}/kernel/providers/rate-limited" 2>/dev/null | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('rate_limited','false'))" 2>/dev/null || echo "false")
+if [ "$RATE_LIMITED" = "True" ] || [ "$RATE_LIMITED" = "true" ]; then
+    REMAINING=$(curl -sf "${API}/kernel/providers/rate-limited" 2>/dev/null | python3 -c "import json,sys; print(json.load(sys.stdin).get('remaining_seconds',0))" 2>/dev/null || echo "?")
+    echo "$(date -Iseconds) SKIP: Rate limit backoff active — ${REMAINING}s remaining. Cycle suppressed." >> "$LOG_FILE"
+    exit 0
+fi
+# Fallback: sentinel file
 RATE_LIMIT_FILE="/tmp/otto-rate-limited"
 if [ -f "$RATE_LIMIT_FILE" ]; then
     RATE_LIMIT_TS=$(grep -oE '^[0-9]+' "$RATE_LIMIT_FILE" 2>/dev/null || echo "0")
@@ -43,6 +59,10 @@ echo $$ > "$LOCK_FILE"
 trap 'rm -f "$LOCK_FILE"' EXIT
 
 echo "$(date -Iseconds) Otto heartbeat starting..." >> "$LOG_FILE"
+
+# Report start to kernel
+curl -sf -X POST "${API}/kernel/agents/orchestrator/started" >> "$LOG_FILE" 2>&1 || \
+    echo "$(date -Iseconds) WARNING: Could not report agent start to kernel" >> "$LOG_FILE"
 
 # Run Claude Code CLI as Otto's autonomous brain
 # Timeout after 10 minutes to prevent hangs from blocking future cycles
@@ -62,6 +82,9 @@ timeout 600s /home/web3relic/.local/bin/claude \
     --agent heartbeat \
     --dangerously-skip-permissions \
     --model opus \
+    --fallback-model sonnet \
+    --no-session-persistence \
+    --effort high \
     -p "$HEARTBEAT_PROMPT" \
     >> "$LOG_FILE" 2>&1
 EXIT_CODE=$?
@@ -72,10 +95,24 @@ elif [ $EXIT_CODE -ne 0 ]; then
 fi
 
 # Detect rate limit in output — write sentinel to suppress next cycle
-if grep -qiE "429|rate.limit|RateLimitError|overloaded_error|too_many_requests" "$LOG_FILE" 2>/dev/null; then
+# Pattern must match actual API errors, NOT the agent's own status reports like "Rate limit | expired"
+if grep -qE "HTTP 429|RateLimitError|overloaded_error|too_many_requests|rate_limit_exceeded|\"error\".*rate" "$LOG_FILE" 2>/dev/null; then
     date +%s > "$RATE_LIMIT_FILE"
     echo "$(date -Iseconds) Rate limit detected — sentinel written to ${RATE_LIMIT_FILE}. Next heartbeat cycle will be skipped." >> "$LOG_FILE"
 fi
+
+# ── Auto-repair: detect repeat error patterns and spawn fix tasks ─────────────
+# Runs deterministically every cycle — no LLM judgment needed.
+# If a notification/error content appears 3+ times in the last 6h, spawn a debugger task.
+echo "$(date -Iseconds) Running auto-repair scan..." >> "$LOG_FILE"
+python3 "${OTTO_DIR}/tools/auto_repair.py" >> "$LOG_FILE" 2>&1 || \
+    echo "$(date -Iseconds) WARNING: auto_repair.py failed — continuing." >> "$LOG_FILE"
+
+# Report completion to kernel
+HB_SUCCESS="true"
+[ $EXIT_CODE -ne 0 ] && HB_SUCCESS="false"
+curl -sf -X POST "${API}/kernel/agents/orchestrator/completed?success=${HB_SUCCESS}" >> "$LOG_FILE" 2>&1 || \
+    echo "$(date -Iseconds) WARNING: Could not report agent completion to kernel" >> "$LOG_FILE"
 
 echo "$(date -Iseconds) Otto heartbeat completed." >> "$LOG_FILE"
 
