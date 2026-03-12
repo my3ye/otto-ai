@@ -646,11 +646,28 @@ def main():
         except Exception:
             pass
 
+    # DEDUP GUARD: Skip Claude call if the last 3+ findings share the same top_action.
+    # This prevents burning budget on identical analyses when data hasn't changed.
+    # Use 50-char prefix — LLM rephrases diverge after char ~50-60, but intent is stable.
+    recent_findings = state.get("findings", [])[-3:]
+    recent_actions = [f.get("top_action", "").strip()[:50] for f in recent_findings]
+    # If all 3 most recent top_actions are non-empty and identical (by 50-char prefix), skip
+    all_same_action = (
+        len(recent_actions) >= 3
+        and len(set(a for a in recent_actions if a)) == 1
+        and not newly_closed  # Only skip if no new data this cycle
+    )
+    if all_same_action:
+        log(f"Phase 2: Skipping Claude call — last {len(recent_actions)} findings have identical top_action prefix (data unchanged)")
+
     should_research = (
-        newly_closed > 0                        # New closures = new data to analyze
-        or not state.get("first_run_done")      # First run ever
-        or hours_since_claude >= 12             # Been 12+ hours since last analysis
-        or perf_stats.get("closed_signals", 0) > 0 and iteration <= 2  # First 2 iters with data
+        not all_same_action  # Don't call if data is clearly stale (same finding repeated)
+        and (
+            newly_closed > 0                        # New closures = new data to analyze
+            or not state.get("first_run_done")      # First run ever
+            or hours_since_claude >= 12             # Been 12+ hours since last analysis
+            or perf_stats.get("closed_signals", 0) > 0 and iteration <= 2  # First 2 iters with data
+        )
     )
 
     findings = None
@@ -743,13 +760,34 @@ def main():
         save_state(state)
 
     elif significance == "HIGH" and findings:
-        msg = (
-            f"[Research - HIGH] Iter {iteration}\n"
-            f"Finding: {findings.get('primary_finding', '')[:200]}\n"
-            f"WR: {perf_stats.get('win_rate_pct', 'N/A')}% ({perf_stats.get('closed_signals', 0)} signals)\n"
-            f"Action: {findings.get('top_action', '')[:150]}"
-        )
-        send_whatsapp(msg)
+        # DEDUP GUARD: Only notify if this top_action hasn't been notified recently.
+        # Key: normalized first 50 chars of top_action — stable across LLM rephrasing.
+        top_action_key = findings.get("top_action", "").strip()[:50]
+        notified_actions = state.get("notified_actions", {})
+        last_notified_ts = notified_actions.get(top_action_key, 0)
+        hours_since_notified = (time.time() - float(last_notified_ts)) / 3600 if last_notified_ts else 999
+
+        if hours_since_notified < 48:
+            log(
+                f"Phase 4: Skipping HIGH notification — same action already notified "
+                f"{hours_since_notified:.1f}h ago (dedup key: '{top_action_key[:50]}...')"
+            )
+        else:
+            msg = (
+                f"[Research - HIGH] Iter {iteration}\n"
+                f"Finding: {findings.get('primary_finding', '')[:200]}\n"
+                f"WR: {perf_stats.get('win_rate_pct', 'N/A')}% ({perf_stats.get('closed_signals', 0)} signals)\n"
+                f"Action: {findings.get('top_action', '')[:150]}"
+            )
+            send_whatsapp(msg)
+            # Record notification — persist via state
+            notified_actions[top_action_key] = time.time()
+            # Prune old entries (keep only last 20)
+            if len(notified_actions) > 20:
+                oldest_key = min(notified_actions, key=lambda k: notified_actions[k])
+                del notified_actions[oldest_key]
+            state["notified_actions"] = notified_actions
+            save_state(state)
 
     elif newly_closed > 0 and not is_first_run:
         log(f"Phase 4: {newly_closed} signals closed — no WhatsApp (not HIGH significance)")
