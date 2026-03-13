@@ -129,9 +129,9 @@ async def get_injection(
     """Token-budgeted context injection for hooks.
 
     Returns a plain text string with prioritized context that fits within
-    the token budget. Same content for Claude and Gemini — source parameter
-    controls which brain-specific sections are included (task queue, cross-brain
-    notes, and reasoning chain are omitted for source=whatsapp).
+    the token budget. The source parameter controls which sections are
+    included (task queue, pending directives, and reasoning chain are
+    omitted for source=whatsapp lightweight contexts).
 
     Priority order (all sources):
     0a. PURPOSE — always first
@@ -141,9 +141,9 @@ async def get_injection(
     1.  Identity facts — always included
     2.  Mission & goals — always included
     3.  Pending questions — always included
-    3b. Cross-brain notes (Claude only)
-    3c. Task queue (Claude only)
-    3d. Reasoning chain (Claude only)
+    3b. Pending directives (full context only)
+    3c. Task queue (full context only)
+    3d. Reasoning chain (full context only)
     4.  Last session summary — if budget allows
     5.  Recent high-importance events — filled until budget
     6.  High-confidence semantic facts — filled until budget
@@ -159,15 +159,14 @@ async def get_unified_context(
     max_tokens: int = Query(default=15000, description="Token budget for context"),
     source: str = Query(default="startup", description="Brain source: startup/compact/resume (Claude) or whatsapp (Gemini)"),
 ):
-    """Unified structured context payload — same tiers for both Claude and Gemini brains.
+    """Unified structured context payload.
 
     Returns both a machine-readable structured payload AND the full context_text
-    string that each brain injects into its prompt. The source parameter controls
-    which brain-specific tiers are included (task queue, cross-brain notes,
-    reasoning chain are omitted for source=whatsapp).
+    string for prompt injection. The source parameter controls which tiers are
+    included (task queue, pending directives, reasoning chain are omitted for
+    source=whatsapp lightweight contexts).
 
-    This endpoint is the canonical source of truth for what each brain sees.
-    Compare /context/unified?source=startup vs ?source=whatsapp to verify parity.
+    Compare /context/unified?source=startup vs ?source=whatsapp to see tier differences.
     """
     pool = await get_pool()
     is_whatsapp = source == "whatsapp"
@@ -228,12 +227,12 @@ async def get_unified_context(
     except Exception as e:
         log.warning(f"semantic facts fetch error: {e}")
 
-    # ── Tier 3: Pending questions (Claude→Mev, both brains) ───────────────
+    # ── Tier 3: Pending questions (Otto→Mev) ──────────────────────────────
     pending_questions = []
     try:
         pq_rows = await pool.fetch(
             """SELECT question, intent, asked_at FROM pending_questions
-               WHERE resolved_at IS NULL AND direction = 'claude_to_gemini'
+               WHERE resolved_at IS NULL AND direction IN ('claude_to_gemini', 'outbound')
                ORDER BY asked_at DESC LIMIT 5"""
         )
         pending_questions = [{"question": r["question"], "intent": r["intent"],
@@ -242,8 +241,8 @@ async def get_unified_context(
     except Exception as e:
         log.warning(f"pending questions fetch error: {e}")
 
-    # ── Tier 3b/3c/3d: Claude-only sections ──────────────────────────────
-    cross_brain_notes = []
+    # ── Tier 3b/3c/3d: Full-context-only sections ────────────────────────
+    pending_directives = []
     task_queue = {"running": [], "unreviewed": [], "pending_count": 0}
     reasoning_chain = []
     if not is_whatsapp:
@@ -251,10 +250,10 @@ async def get_unified_context(
             cb_rows = await pool.fetch(
                 """SELECT question, intent, context, metadata, asked_at
                    FROM pending_questions
-                   WHERE resolved_at IS NULL AND direction = 'gemini_to_claude'
+                   WHERE resolved_at IS NULL AND direction IN ('gemini_to_claude', 'inbound')
                    ORDER BY asked_at DESC LIMIT 10"""
             )
-            cross_brain_notes = [
+            pending_directives = [
                 {"content": r["question"], "type": r["intent"],
                  "context": r["context"],
                  "urgency": (r["metadata"] or {}).get("urgency", "normal"),
@@ -262,7 +261,7 @@ async def get_unified_context(
                 for r in cb_rows
             ]
         except Exception as e:
-            log.warning(f"cross_brain fetch error: {e}")
+            log.warning(f"pending directives fetch error: {e}")
 
         try:
             t_running = await pool.fetch(
@@ -322,7 +321,7 @@ async def get_unified_context(
     except Exception as e:
         log.warning(f"last session fetch error: {e}")
 
-    # ── G2CP: Structured cross-brain graph nodes (both brains) ───────────
+    # ── G2CP: Structured graph nodes ──────────────────────────────────────
     structured_graph = []
     try:
         sg_rows = await pool.fetch(
@@ -382,8 +381,8 @@ async def get_unified_context(
         "max_tokens": max_tokens,
         "token_estimate": token_estimate,
         "parity_note": (
-            "Gemini (source=whatsapp) receives tiers 0a-0d, 1-6 + structured_graph (no task queue / cross-brain / reasoning). "
-            "Claude (source=startup) receives all tiers. Core identity+mission+directives+WM+structured_graph are identical."
+            "Lightweight (source=whatsapp) receives tiers 0a-0d, 1-6 + structured_graph (no task queue / directives / reasoning). "
+            "Full (source=startup) receives all tiers. Core identity+mission+directives+WM+structured_graph are shared."
         ),
         # Shared tiers (both brains)
         "purpose": purpose_row["content"] if purpose_row else None,
@@ -395,10 +394,11 @@ async def get_unified_context(
         "pending_questions": pending_questions,
         "last_session": last_session_summary,
         "recent_events": recent_events,
-        # G2CP: Structured cross-brain graph nodes — SAME for both brains
+        # G2CP: Structured graph nodes
         "structured_graph": structured_graph,
-        # Claude-only tiers
-        "cross_brain_notes": cross_brain_notes,
+        # Full-context-only tiers
+        "pending_directives": pending_directives,
+        "cross_brain_notes": pending_directives,  # backward compat alias
         "task_queue": task_queue if not is_whatsapp else None,
         "reasoning_chain": reasoning_chain if not is_whatsapp else None,
         # Full text for prompt injection

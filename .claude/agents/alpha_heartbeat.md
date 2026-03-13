@@ -89,6 +89,8 @@ cat /home/web3relic/otto/projects/alpha/wallets.json
 Parse the `wallets` array from this file. Use the `address` and `label` fields exactly as they appear.
 If the file doesn't exist, log a warning and skip scanning — do NOT hardcode wallets.
 
+**ACTIVE FILTER (2026-03-13):** Skip any wallet where `active` is `false`. Only scan wallets where `active` is `true` OR where the `active` field is absent (default = active). The `wallet_count` field in wallets.json reflects the current active count. Inactive wallets are confirmed LP/bot positions — scanning them wastes Helius API quota and produces noise signals.
+
 **BUG FIX — LABEL STANDARDIZATION (Bug 3):** Wallet labels in wallets.json are canonical `SM_X` format (e.g. SM_1, SM_2, ... SM_10). Always use the label exactly from the file. Never invent alternate formats like "SmartMoney_1", "Sol_Bigbrain_1", "SM1", or "SmartMoney_8". The `label` field in wallets.json is the single source of truth.
 
 ### 2. Scan Recent Transactions

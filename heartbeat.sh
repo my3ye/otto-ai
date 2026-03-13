@@ -69,8 +69,36 @@ curl -sf -X POST "${API}/kernel/agents/orchestrator/started" >> "$LOG_FILE" 2>&1
 cd "$OTTO_DIR"
 export OTTO_SESSION_TYPE=heartbeat
 
-# Build prompt — inject rate limit alert if recently hit (cap task creation)
-HEARTBEAT_PROMPT="Run your heartbeat. You are the orchestrator: review completed tasks, process cross-brain notes, create new tasks, launch pending tasks, message Mev with updates. Do NOT do heavy work yourself — delegate to tasks."
+# ── Unified context: fetch S-MMU quality context from kernel ─────────────
+# Same context pipeline as WhatsApp — purpose, priorities, directives, relevant memories,
+# position bias mitigation. This is the "unified brain" approach.
+UNIFIED_CONTEXT=""
+UNIFIED_CONTEXT_JSON=$(curl -sf "${API}/kernel/context?role=orchestrator&max_tokens=10000" 2>/dev/null || echo "")
+if [ -n "$UNIFIED_CONTEXT_JSON" ]; then
+    UNIFIED_CONTEXT=$(echo "$UNIFIED_CONTEXT_JSON" | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+    ctx = d.get('context_text', '')
+    tokens = d.get('token_count', 0)
+    if ctx:
+        print(ctx)
+        print(f'', file=sys.stderr)
+        print(f'[Unified context loaded: {tokens} tokens]', file=sys.stderr)
+except: pass
+" 2>>"$LOG_FILE" || echo "")
+fi
+
+# Build prompt — inject unified context + rate limit alert
+HEARTBEAT_PROMPT=""
+if [ -n "$UNIFIED_CONTEXT" ]; then
+    HEARTBEAT_PROMPT="[UNIFIED BRAIN CONTEXT — same memory pipeline as all Otto interfaces]
+${UNIFIED_CONTEXT}
+[END UNIFIED CONTEXT]
+
+"
+fi
+HEARTBEAT_PROMPT="${HEARTBEAT_PROMPT}Run your heartbeat. You are the orchestrator: review completed tasks, process cross-brain notes, create new tasks, launch pending tasks, message Mev with updates. Do NOT do heavy work yourself — delegate to tasks."
 if [ -f "$RATE_LIMIT_FILE" ]; then
     RL_TS=$(grep -oE '^[0-9]+' "$RATE_LIMIT_FILE" 2>/dev/null || echo "0")
     RL_MIN=$(( ( $(date +%s) - RL_TS ) / 60 ))
@@ -107,6 +135,20 @@ fi
 echo "$(date -Iseconds) Running auto-repair scan..." >> "$LOG_FILE"
 python3 "${OTTO_DIR}/tools/auto_repair.py" >> "$LOG_FILE" 2>&1 || \
     echo "$(date -Iseconds) WARNING: auto_repair.py failed — continuing." >> "$LOG_FILE"
+
+# ── Unified post-processing: same Phase 5 pipeline as WhatsApp ───────────────
+# Extracts lessons, logs episodic event, measures drift — unified brain.
+echo "$(date -Iseconds) Running unified post-processing..." >> "$LOG_FILE"
+# Extract last ~50 lines of agent output as summary for post-processing
+HB_SUMMARY=$(tail -50 "$LOG_FILE" 2>/dev/null | head -40 || echo "heartbeat cycle completed")
+curl -sf -X POST "${API}/kernel/post-process" \
+    -H "Content-Type: application/json" \
+    -d "$(python3 -c "
+import json, sys
+summary = sys.stdin.read()[:2000]
+print(json.dumps({'agent_id': 'orchestrator', 'summary': summary, 'source': 'heartbeat'}))
+" <<< "$HB_SUMMARY")" >> "$LOG_FILE" 2>&1 || \
+    echo "$(date -Iseconds) WARNING: Unified post-processing failed — continuing." >> "$LOG_FILE"
 
 # Report completion to kernel
 HB_SUCCESS="true"

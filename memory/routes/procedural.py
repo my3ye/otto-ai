@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from ..db import get_pool
 from ..models import ProcedureCreate, ProcedureOut, ProcedureOutcome
 from ..config import settings
+from ..llm import llm_chat, extract_json_array
 
 log = logging.getLogger("otto.procedural")
 router = APIRouter(prefix="/procedural", tags=["procedural"])
@@ -86,7 +87,7 @@ async def suggest_procedures(
     # This ensures suggest always works even when Gemini is down
     trust_based = [ProcedureOut(**p) for p in procedures[:3]]
 
-    if not settings.gemini_api_key or len(procedures) <= 3:
+    if not settings.kimi_api_key or len(procedures) <= 3:
         return trust_based
 
     # Optional: use Gemini for smarter semantic ranking
@@ -105,23 +106,12 @@ async def suggest_procedures(
 
     top_names: list[str] = []
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel(
-            "gemini-2.0-flash",
-            generation_config={"temperature": 0.0},
-        )
-        response = await asyncio.to_thread(model.generate_content, gemini_prompt)
-        text = response.text.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        parsed = json.loads(text)
-        if isinstance(parsed, list):
+        response = await llm_chat([{"role": "user", "content": gemini_prompt}], max_tokens=200)
+        parsed = extract_json_array(response)
+        if parsed:
             top_names = [str(n) for n in parsed[:3]]
     except Exception as e:
-        log.warning(f"Gemini ranking failed for suggest (using trust_score fallback): {e}")
+        log.warning(f"LLM ranking failed for suggest (using trust_score fallback): {e}")
         return trust_based
 
     # Map names back to full procedure objects

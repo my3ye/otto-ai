@@ -1,7 +1,7 @@
-"""G2CP graph node API routes — structured cross-brain communication.
+"""G2CP graph node API routes — structured kernel communication.
 
-Provides REST endpoints for reading/writing structured graph nodes.
-Both Claude and Gemini brains read from the same cross_brain_graph table.
+Provides REST endpoints for reading/writing structured graph nodes
+in the cross_brain_graph table (legacy name, now used by the unified kernel).
 """
 
 import logging
@@ -14,7 +14,7 @@ from ..graph_bridge import (
     write_decision,
     update_task_state,
     write_context,
-    write_from_cross_brain_note,
+    write_from_classified_note,
     get_recent_nodes,
     deactivate_node,
 )
@@ -27,13 +27,13 @@ class WriteNodeRequest(BaseModel):
     note_type: str  # directive, decision, task_state, context, goal, mission, etc.
     content: str
     context: str | None = None
-    source: str = "claude"
+    source: str = "kernel"
 
 
 class WriteDirectiveRequest(BaseModel):
     content: str
     priority: int = 8
-    source: str = "claude"
+    source: str = "kernel"
     category: str = "directive"
 
 
@@ -41,7 +41,7 @@ class WriteDecisionRequest(BaseModel):
     content: str
     decided_by: str = "otto"
     context: str | None = None
-    source: str = "claude"
+    source: str = "kernel"
 
 
 class UpdateTaskStateRequest(BaseModel):
@@ -49,18 +49,18 @@ class UpdateTaskStateRequest(BaseModel):
     title: str
     status: str
     summary: str = ""
-    source: str = "claude"
+    source: str = "kernel"
 
 
 class WriteContextRequest(BaseModel):
     key: str
     value: str
-    source: str = "claude"
+    source: str = "kernel"
 
 
 @router.get("")
 async def list_nodes(node_type: str | None = None, limit: int = 20):
-    """List recent active graph nodes. Both brains can read this."""
+    """List recent active graph nodes."""
     pool = await get_pool()
     types = [node_type] if node_type else None
     nodes = await get_recent_nodes(pool, node_types=types, limit=limit)
@@ -69,13 +69,12 @@ async def list_nodes(node_type: str | None = None, limit: int = 20):
 
 @router.post("")
 async def write_node(req: WriteNodeRequest):
-    """Write a cross-brain graph node from a classified note type.
+    """Write a structured graph node from a classified note type.
 
     This is the generic endpoint — maps note_type to the right write helper.
-    Idiomatic use: POST /graph/nodes with note_type from the cross-brain classifier.
     """
     pool = await get_pool()
-    node_id = await write_from_cross_brain_note(
+    node_id = await write_from_classified_note(
         pool,
         note_type=req.note_type,
         content=req.content,

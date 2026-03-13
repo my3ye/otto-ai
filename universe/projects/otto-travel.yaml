@@ -36,7 +36,62 @@ vision:
   - date: "2026-03-05"
     note: "Inception article published. Experience Ceylon as flagship destination."
 
+marketing:
+  positioning: >
+    Airbnb takes 20% from hosts. Booking.com takes 25%. Hotels.com takes 20%.
+    Otto Travel takes 0%. The host keeps everything. Their listing is an NFT —
+    owned, transferable, financeable, permanent. Reputation built on ONEON
+    travels with the host forever, not locked to a platform that can ban them
+    overnight. Experience Ceylon is the flagship: Sri Lanka curated from the
+    inside, not by an algorithm optimizing for commissions.
+  audience_segments:
+    - name: Property hosts losing 20-25% to platforms
+      description: >
+        Hosting on Airbnb or Booking.com but watching a fifth of every booking
+        disappear. Wants direct guest relationships, zero-commission listings,
+        and property ownership that doesn't depend on platform goodwill.
+    - name: Web3-native travelers
+      description: >
+        Wants to pay in crypto, build portable reputation across platforms,
+        and interact with hosts through smart contract escrow — no chargebacks,
+        no disputes mediated by a corporation.
+    - name: Experience Ceylon audience
+      description: >
+        Travelers who want authentic Sri Lanka — not resort packages or cookie-cutter
+        tours. Adventure, culture, local immersion. Tusita-connected community.
+  headline_hooks:
+    - "Airbnb takes 20%. We take 0%. The host keeps it all."
+    - "Your listing is an NFT. It lives in your wallet, not their server."
+    - "Experience Ceylon. Sri Lanka curated from the inside."
+    - "Portable reputation. Build it once, take it everywhere on ONEON."
+    - "Smart contract escrow. The money moves when the stay is confirmed."
+
+roadmap:
+  thirty_day: >
+    Launch Experience Ceylon waitlist — collect first 200 hosts and travelers
+    interested in Sri Lanka. Define smart contract escrow mechanism and
+    property NFT standard. Research legal status of short-term rentals
+    and crypto payments in Sri Lanka.
+  ninety_day: >
+    Technical whitepaper: property NFT standard, ONEON identity integration,
+    smart contract escrow flow, dispute resolution mechanism.
+    Experience Ceylon pilot design: 10-15 properties, curated host network,
+    booking flow prototype. ONEON integration for portable reputation.
+  one_year: >
+    Otto Travel v0.1: Experience Ceylon live. 50+ properties, working
+    booking flow with smart contract escrow, crypto payment support.
+    Property NFT minting for founding hosts. ONEON reputation system
+    in beta. Zero-commission model proven and documented for expansion
+    to second destination.
+
+next_action: >
+  Launch Experience Ceylon waitlist immediately — this is the zero-cost
+  step that builds host supply and validates demand before any technical
+  build. Simple landing page with email capture and host interest form.
+  Connects directly to MY3YE's Web3-first audience strategy.
+
 open_questions:
-  - "Is 'Experience Ceylon' the final name for the Sri Lanka product?"
-  - "How to bootstrap supply (hosts) without commission incentive?"
-  - "Smart contract escrow — which chain?"
+  - "Is 'Experience Ceylon' the final name — or a sub-brand within Otto Travel?"
+  - "Host bootstrap without commission — what's the incentive? Founding NFT? Revenue split from ecosystem?"
+  - "Smart contract escrow chain — Solana (Otto ecosystem default) or EVM for broader reach?"
+  - "Integration depth with Tusita — are Tusita properties automatically on Otto Travel?"

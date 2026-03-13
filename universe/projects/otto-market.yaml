@@ -37,7 +37,58 @@ vision:
   - date: "2026-03-05"
     note: "Inception article published."
 
+marketing:
+  positioning: >
+    Amazon charges 30-40% and deplatforms overnight. Shopify charges fees and owns
+    your customer data. Otto Market charges nothing and puts the storefront in your
+    wallet — an NFT you own, transfer, or finance. Discovery is earned by contribution,
+    not bought through ad auctions. Sellers compete on quality, not marketing budgets.
+    The marketplace that works for merchants, not against them.
+  audience_segments:
+    - name: Independent sellers frustrated with Amazon
+      description: >
+        High fees, arbitrary suspensions, and zero relationship with their customers.
+        Wants a platform that earns a living from the ecosystem, not from taxing sellers.
+    - name: Crypto-native merchants
+      description: >
+        Wants storefronts as on-chain assets — ownable, transferable, financeable.
+        Instant settlement in any token without chargebacks or payment processor fees.
+    - name: MY3YE ecosystem participants
+      description: >
+        Tusita residents, ONEON network members, Ottolabs contributors who want
+        commerce infrastructure that's part of the civilization stack, not bolted on.
+  headline_hooks:
+    - "Amazon takes 40%. We take 0%. Keep your storefront."
+    - "Your shop is an NFT. It lives in your wallet, not on their server."
+    - "Discovery by contribution, not ad budget."
+    - "Disputes resolved by community, not a faceless algorithm."
+    - "Fulfillment via Otto Robotics. Commerce with no corporate middlemen."
+
+roadmap:
+  thirty_day: >
+    Define MVP scope: digital goods first (zero physical logistics dependency).
+    Draft commerce protocol spec: storefront NFT standard, listing format, payment
+    flow. Research existing decentralized marketplace architecture (OpenSea, Origin,
+    WooCommerce on-chain). Community waitlist live on otto.lk.
+  ninety_day: >
+    First technical whitepaper published. Storefront NFT standard drafted and
+    community-reviewed. Prototype contract on Solana devnet: create storefront,
+    list item, purchase with escrow, release on delivery confirmation.
+    Dispute resolution mechanism designed (community jury pool spec).
+  one_year: >
+    Otto Market v0.1 mainnet. Digital goods only. 100 founding merchants.
+    ONEON identity integrated for portable seller/buyer reputation. Community
+    jury pilot for dispute resolution. Integration with Otto AI for seller
+    analytics and contribution-score discovery ranking.
+
+next_action: >
+  Define MVP scope with Mev — digital goods vs physical vs both. Digital goods
+  removes the fulfillment dependency and allows a working product on-chain
+  within 90 days. Physical commerce requires Otto Robotics or a bridge logistics
+  solution. Scope decision unlocks the whitepaper and contract design.
+
 open_questions:
-  - "MVP scope — digital goods first? Physical?"
-  - "Fulfillment logistics without Otto Robotics existing yet?"
-  - "Community jury dispute resolution — how does it actually work?"
+  - "MVP scope — digital goods first? Physical? Both?"
+  - "Fulfillment logistics without Otto Robotics existing yet — bridge with existing couriers?"
+  - "Community jury dispute resolution — staked jurors? Random selection from ONEON identity pool?"
+  - "Contribution-score discovery algorithm — how is contribution measured and ranked?"

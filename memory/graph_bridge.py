@@ -1,16 +1,16 @@
-"""Graph bridge — G2CP-style structured cross-brain communication.
+"""Graph bridge — G2CP-style structured kernel communication.
 
 Implements Graph-Grounded Context Protocol (G2CP, arXiv 2602.13370):
-- Both brains (Claude, Gemini) write typed graph nodes instead of lossy text
+- Kernel writes typed graph nodes for structured data persistence
 - Nodes stored in cross_brain_graph (PostgreSQL) for reliable retrieval
 - Also ingested to Graphiti for NLP entity/relationship extraction
-- Both brains read the same structured graph layer via context_builder
+- S-MMU reads the structured graph layer for context assembly
 
 Node types:
   directive   — mission/behavioral directive from Mev
   decision    — a decision made by Mev or Otto
-  task_state  — task status update from Claude brain
-  context     — working memory key/value shared between brains
+  task_state  — task status update from kernel
+  context     — working memory key/value
 """
 
 import json
@@ -38,7 +38,7 @@ _NOTE_TYPE_PRIORITY = {
     "general": 4,
 }
 
-# Node type classification for cross-brain notes
+# Node type classification for classified notes
 _NOTE_TYPE_TO_NODE = {
     "mission": "directive",
     "priority_change": "directive",
@@ -55,7 +55,7 @@ async def write_directive(
     pool,
     content: str,
     priority: int = 8,
-    source: str = "gemini",
+    source: str = "kernel",
     category: str = "directive",
 ) -> str | None:
     """Write a DirectiveNode to the cross-brain graph.
@@ -76,7 +76,7 @@ async def write_decision(
     content: str,
     decided_by: str = "mev",
     context: str | None = None,
-    source: str = "gemini",
+    source: str = "kernel",
 ) -> str | None:
     """Write a DecisionNode to the cross-brain graph.
 
@@ -152,17 +152,17 @@ async def write_context(
     return await _write_node(pool, "context", key, node_content, source, priority=5)
 
 
-async def write_from_cross_brain_note(
+async def write_from_classified_note(
     pool,
     note_type: str,
     content: str,
     context: str | None = None,
-    source: str = "gemini",
+    source: str = "kernel",
 ) -> str | None:
-    """Write a structured graph node from a classified cross-brain note.
+    """Write a structured graph node from a classified directive/decision note.
 
-    This is the main integration point: called from whatsapp.py when a
-    cross-brain note is created. Maps note_type to the appropriate node type
+    This is the main integration point: called from gateway persistence when
+    a directive is classified. Maps note_type to the appropriate node type
     and write helper.
 
     Returns the node id on success, None on failure.
@@ -192,6 +192,10 @@ async def write_from_cross_brain_note(
         await _ingest_to_graphiti(node_type, content, source)
 
     return node_id
+
+
+# Backward-compatible alias
+write_from_cross_brain_note = write_from_classified_note
 
 
 async def get_recent_nodes(
@@ -313,7 +317,7 @@ async def _ingest_to_graphiti(node_type: str, content: str, source_brain: str) -
                             "role_type": "user",
                             "role": source_brain,
                             "timestamp": ts,
-                            "source_description": f"Otto cross-brain {node_type}",
+                            "source_description": f"Otto kernel {node_type}",
                         }
                     ],
                 },

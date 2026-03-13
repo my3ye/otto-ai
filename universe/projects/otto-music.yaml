@@ -38,7 +38,65 @@ vision:
   - date: "2026-03-05"
     note: "Inception article published."
 
+marketing:
+  positioning: >
+    Spotify pays $0.003 per stream. Labels own your masters and take 80%.
+    Streaming platforms optimize discovery for their ad revenue, not your art.
+    Otto Music: artists own masters by default, smart contracts pay royalties
+    instantly on every play, and discovery is governed by community curation —
+    not ad spend. Early fans who surface great artists share in the success
+    of what they found. This is what the music industry looks like without
+    extraction.
+  audience_segments:
+    - name: Independent artists
+      description: >
+        Releasing music but getting $0.003/stream after years of work. Wants
+        direct fan relationships, ownership of masters, and royalties that
+        don't disappear through label and distributor layers.
+    - name: Music fans and curators
+      description: >
+        Discovers artists before they break, but currently receives nothing
+        for that cultural labor. Wants early-fan equity — a stake in the
+        artists they surface and champion.
+    - name: Tusita and ONEON community
+      description: >
+        Tusita needs a cultural soundtrack. ONEON members want community-governed
+        discovery rather than corporate algorithm. Otto Music is the sonic
+        identity of the civilization stack.
+  headline_hooks:
+    - "Spotify pays $0.003. We pay 100% on-chain, instantly."
+    - "Your masters belong to you. Not the label. Not the platform."
+    - "Discover first. Own first. Share in what you find."
+    - "AI tools that producers actually want — without giving up your rights."
+    - "The discovery algorithm is governed by listeners, not advertisers."
+
+roadmap:
+  thirty_day: >
+    Define music NFT standard and royalty flow: minting format, on-chain
+    royalty distribution mechanics, fan equity model. Research existing
+    platforms (Audius, Sound.xyz, Royal) for lessons and gaps.
+    Draft founding artist program — 10 artists to build with, not sell to.
+  ninety_day: >
+    Technical whitepaper: music NFT standard, royalty smart contract spec,
+    community discovery algorithm design, fan equity mechanics.
+    Prototype: mint a track on Solana, pay royalties on simulated play events.
+    ONEON identity integration design (portable artist reputation).
+  one_year: >
+    Otto Music v0.1 mainnet. First 50 artists with masters on-chain.
+    Royalty contracts live and paying. Community discovery algorithm in beta.
+    Fan equity pilot — early listeners receive token rewards for pre-breakout
+    discoveries. AI production tools (via Otto AI) in private alpha.
+    Tusita cultural programming launches first live events.
+
+next_action: >
+  Select chain for music NFTs — Solana (low fees, high throughput) vs
+  an EVM chain (wider tooling, existing music NFT ecosystem). This decision
+  gates the smart contract design. Parallel: identify 3-5 founding artists
+  willing to be public faces of the launch — credibility matters more than
+  technology for music audience acquisition.
+
 open_questions:
-  - "Which chain for music NFTs?"
-  - "How does the community-governed algorithm work?"
-  - "How do early fans 'share in success'? Revenue share? Token?"
+  - "Which chain for music NFTs — Solana, Base, or something else?"
+  - "Fan equity mechanics — token rewards, revenue share, or NFT price appreciation?"
+  - "Community-governed discovery algorithm — how are votes weighted? Listening time? Stake?"
+  - "AI production tools — build on Otto AI or integrate existing tools (Udio, Suno)?"

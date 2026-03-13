@@ -29,12 +29,12 @@ CONTEXT_CEILING=60000
 # Heartbeat sessions get a tighter budget to leave room for actual work
 OTTO_SESSION_TYPE="${OTTO_SESSION_TYPE:-}"
 case "$SOURCE" in
-  compact) MAX_TOKENS=4000 ;;   # Essentials after compaction
-  resume)  MAX_TOKENS=10000 ;;  # Medium on resume
-  *)       MAX_TOKENS=15000 ;;  # Full on startup
+  compact) MAX_TOKENS=5000 ;;    # Essentials after compaction
+  resume)  MAX_TOKENS=12000 ;;  # Medium on resume
+  *)       MAX_TOKENS=20000 ;;  # Full on startup
 esac
 if [ "$OTTO_SESSION_TYPE" = "heartbeat" ] || [ "$OTTO_SESSION_TYPE" = "reflection" ] || [ "$OTTO_SESSION_TYPE" = "alpha_heartbeat" ]; then
-  MAX_TOKENS=5000  # Keep heartbeat/reflection/alpha context lean — leaves budget for real work
+  MAX_TOKENS=10000  # Heartbeat/reflection context — enough for good decisions, leaves budget for work
 fi
 # Never exceed 30% ceiling
 if [ "$MAX_TOKENS" -gt "$CONTEXT_CEILING" ]; then

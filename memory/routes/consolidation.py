@@ -25,6 +25,7 @@ from pydantic import BaseModel
 
 from ..config import settings
 from ..db import get_pool
+from ..llm import llm_chat
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/memory", tags=["consolidation"])
@@ -38,7 +39,9 @@ _STALE_PATTERNS = re.compile(
 )
 
 # Cosine similarity threshold for duplicate detection.
-_DEDUP_THRESHOLD = 0.92
+# Raised from 0.92 to 0.96 — the lower threshold archived 524 of 588 memories
+# including critical infrastructure knowledge. Only merge truly identical content.
+_DEDUP_THRESHOLD = 0.96
 
 
 class ConsolidationResult(BaseModel):
@@ -51,18 +54,10 @@ class ConsolidationResult(BaseModel):
     ran_at: datetime
 
 
-# ── Gemini Flash helper ───────────────────────────────────────────────────────
-
-def _get_gemini_model():
-    import google.generativeai as genai  # lazy import
-    genai.configure(api_key=settings.gemini_api_key)
-    return genai.GenerativeModel(
-        "gemini-2.0-flash",
-        generation_config={"temperature": 0.1},
-    )
+# ── LLM helper ────────────────────────────────────────────────────────────────
 
 
-async def _gemini_summarize(events_text: str) -> str | None:
+async def _llm_summarize(events_text: str) -> str | None:
     """Summarize a batch of episodic events into 2-3 sentences."""
     prompt = (
         "You are an AI memory assistant. Summarize the following episodic events "
@@ -72,12 +67,10 @@ async def _gemini_summarize(events_text: str) -> str | None:
         "Return only the summary text (no JSON, no headers)."
     )
     try:
-        model = _get_gemini_model()
-        response = await asyncio.to_thread(model.generate_content, prompt)
-        text = response.text.strip()
+        text = await llm_chat([{"role": "user", "content": prompt}], max_tokens=300, temperature=0.1)
         return text if text else None
     except Exception as e:
-        logger.warning(f"Gemini summarization failed: {e}")
+        logger.warning(f"LLM summarization failed: {e}")
         return None
 
 
@@ -189,7 +182,7 @@ async def run_episodic_summarization() -> tuple[int, int]:
 
     Returns (events_summarized, summaries_created).
     """
-    if not settings.gemini_api_key:
+    if not settings.kimi_api_key:
         logger.warning("Episodic summarization skipped: no Gemini API key")
         return 0, 0
 
@@ -223,7 +216,7 @@ async def run_episodic_summarization() -> tuple[int, int]:
         ]
         events_text = f"Date: {day}\n" + "\n".join(lines)
 
-        summary = await _gemini_summarize(events_text)
+        summary = await _llm_summarize(events_text)
         if not summary:
             logger.warning(f"Summarization returned empty for {day}, skipping")
             continue

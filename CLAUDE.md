@@ -46,6 +46,15 @@ Your memory lives at `http://localhost:8100`. Key endpoints:
 | `/tasks/queue/status` | GET | Queue summary |
 | `/graph/messages` | POST | Ingest to knowledge graph |
 | `/graph/search` | POST | Search knowledge graph |
+| `/kernel/status` | GET | Kernel state, queue depth, drift |
+| `/kernel/interrupt` | POST | Submit interrupt to IVT |
+| `/kernel/process` | POST | Force-process next interrupt |
+| `/kernel/sync` | POST | Trigger Cognitive Sync Pulse |
+| `/kernel/l1` | GET | View current L1 cache |
+| `/kernel/drift` | GET | Drift measurements |
+| `/kernel/slices` | GET | Semantic slice inventory |
+| `/kernel/slices/rebuild` | POST | Rebuild CID slices |
+| `/kernel/providers` | GET | LLM provider status |
 
 ## WhatsApp (Mev Contact)
 
@@ -115,7 +124,6 @@ Keep messages short and clear. WhatsApp is for important updates, questions, and
 | PostgreSQL + pgvector | :5432 | Structured data + vector search |
 | Neo4j | :7474/:7687 | Knowledge graph |
 | Graphiti | :8000 | Temporal knowledge graph API |
-| Qdrant | :6333 | Vector similarity (available but unused) |
 | WhatsApp | :3001 | WhatsApp interface (systemd: whatsapp) |
 
 ## Conventions

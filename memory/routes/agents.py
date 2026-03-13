@@ -17,6 +17,7 @@ from pydantic import BaseModel
 
 from ..db import get_pool
 from ..config import settings
+from ..llm import llm_chat, extract_json_array
 
 log = logging.getLogger("otto.agents")
 router = APIRouter(prefix="/agents", tags=["agents"])
@@ -70,8 +71,8 @@ async def _generate_proposals_with_gemini(
     Ask Gemini Flash to analyze task history and propose specific prompt improvements.
     Returns list of {proposed_change, rationale} dicts.
     """
-    if not settings.gemini_api_key:
-        log.warning("GEMINI_API_KEY not set — skipping LLM-based proposal generation")
+    if not settings.kimi_api_key:
+        log.warning("KIMI_API_KEY not set — skipping LLM-based proposal generation")
         return []
 
     # Build compact task summary
@@ -131,19 +132,10 @@ Example format:
 ]"""
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel(
-            "gemini-2.0-flash",
-            generation_config={"temperature": 0.2},
-        )
-        response = await asyncio.to_thread(model.generate_content, prompt)
-        text = response.text.strip()
-        # Strip markdown fences if present
-        if text.startswith("```"):
-            lines = text.split("\n")
-            text = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
-        parsed = json.loads(text)
+        response = await llm_chat([{"role": "user", "content": prompt}], max_tokens=1000, temperature=0.2)
+        parsed = extract_json_array(response)
+        if not parsed:
+            return []
         if not isinstance(parsed, list):
             return []
         return [

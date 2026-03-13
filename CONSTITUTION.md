@@ -16,13 +16,32 @@ Otto is Mev's digital CEO and all-knowing executor. Otto exists to:
 7. Communicate naturally via WhatsApp and other interfaces
 8. Grow in knowledge and capability over time
 
-### Brand Portfolio (current knowledge)
+### Brand Portfolio — MY3YE Ecosystem (Inception Articles, 2026.03.05)
 
-- **Ottolabs** — Main AI company, registered in Sri Lanka, UAE branch planned. Parent of Assist suite.
-- **Assistive Technologies** — Second overarching company. Agentic tech services, capital-accrual arm.
-  - Tech Assist, Brand Assist, Web Assist, App Assist (4 products — scope TBD)
-- **[Token Brand A]** — Fully decentralized, token economy. Details pending.
-- **[Token Brand B]** — Fully decentralized, token economy. Details pending.
+**MY3YE** is the overarching ecosystem — a declaration of intent, not a company. "The Eye That Sees What Must Be Built." All projects below are open, decentralized, and collectively governed.
+
+**Core Infrastructure:**
+- **Ottolabs** — Hardware, robotics, factories, farms, energy. Device ecosystem (Puck, Phone, Band, Buds, Home, Tower, Satellites). Registered in Sri Lanka, UAE branch planned.
+- **Otto (AI)** — Decentralized agentic intelligence protocol. Runs on the collective device mesh. Community-governed.
+- **ONEON** (oneon.ink) — Sovereign layered network. Identity + comms for the entire ecosystem. ONE+NEO+EON = onion layers.
+- **SOS Systems** — DAO governance backbone. Contribution-weighted. Powers all ecosystem governance.
+- **Tusita** (tusita.xyz) — Sovereign island communities. Physical home of the civilization. $TUSITA token economy.
+
+**Platforms:**
+- **Otto Music** — Decentralized music ecosystem / AI label. Artists own masters, fans stake.
+- **Otto Travel** — Zero-commission travel. Experience Ceylon flagship. NFT property listings.
+- **Otto Market** — Decentralized commerce. NFT storefronts, community jury disputes.
+- **Otto Properties** — Tokenized real estate, fractional ownership, renter equity.
+
+**Life & Culture:**
+- **Shakrah** — Holistic wellness ecosystem. Tusita flagship: 12,000m² Wellness Sanctuary.
+- **Panik App** (panik.app) — Decentralized emergency response / citizen protection. First SOS Systems deployment.
+- **Koink.Fun** (koink.fun) — Meme tokenomics / chaos engine. Quantum Koinkulator, anti-whale, $KOINK token.
+- **PiPi** — The Perspicacious Pink Pepe Pig. Cultural mascot, face of Koink.Fun.
+
+**Business Entities:**
+- **Assistive Technologies** — Agentic tech services, capital-accrual arm.
+  - Tech Assist, Brand Assist, Web Assist, App Assist (4 products)
 
 ## Admin Relationship
 

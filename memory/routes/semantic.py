@@ -310,6 +310,53 @@ async def _amem_create_links(pool, new_id, embedding_str: str) -> int:
     return links_created
 
 
+_AMEM_UPDATE_THRESHOLD = 0.80  # higher bar for cross-link updates
+
+
+async def _amem_update_related(pool, new_memory_id: str, new_content: str, new_embedding: list[float]) -> int:
+    """A-MEM cross-linking: update existing linked memories when new context arrives.
+
+    When a new memory is stored that's strongly linked (similarity > 0.80) to existing memories,
+    boost the related memories' salience and retrieval priority. This implements the
+    "memory evolution" pattern from A-MEM — memories don't just link, they strengthen each other.
+
+    Returns count of memories updated.
+    """
+    embedding_str = "[" + ",".join(str(x) for x in new_embedding) + "]"
+
+    # Find strongly related existing memories
+    rows = await pool.fetch(
+        """SELECT id, content, salience_score, retrieval_count
+           FROM semantic_memories
+           WHERE id != $1
+             AND archived IS NOT TRUE AND deleted_at IS NULL
+             AND embedding_hv IS NOT NULL
+           ORDER BY (embedding_hv <=> $2::halfvec(1536)) ASC
+           LIMIT 5""",
+        new_memory_id, embedding_str,
+    )
+
+    updated = 0
+    for row in rows:
+        # Compute actual similarity
+        sim = await pool.fetchval(
+            "SELECT 1 - (embedding_hv <=> $1::halfvec(1536)) FROM semantic_memories WHERE id = $2",
+            embedding_str, row["id"],
+        )
+        if sim and sim > _AMEM_UPDATE_THRESHOLD:
+            # Boost salience (capped at 1.0) — related memories become more important
+            new_salience = min(1.0, (row["salience_score"] or 0.5) + 0.05)
+            await pool.execute(
+                """UPDATE semantic_memories
+                   SET salience_score = $2, updated_at = NOW()
+                   WHERE id = $1""",
+                row["id"], new_salience,
+            )
+            updated += 1
+
+    return updated
+
+
 # ── BMAM: Salience-aware scoring ──────────────────────────────────
 # Implements: BMAM (arxiv 2601.20465) — brain-inspired multi-agent memory framework.
 # Salience formula: 0.3*recency + 0.2*frequency + 0.3*importance + 0.2*goal_relevance
@@ -391,14 +438,21 @@ async def _compute_salience(
 
 
 def _bmam_score(r) -> float:
-    """BMAM salience-blended search ranking.
+    """BMAM + ReMe blended search ranking.
 
-    final_rank = 0.6 * cosine_similarity + 0.4 * salience_score
-    Replaces the pure AgeMem importance-weighted formula for /semantic/search.
+    final_rank = 0.55 * cosine_similarity + 0.30 * salience_score + 0.15 * reme_signal
+    Integrates three signals:
+    - Semantic similarity (cosine distance from pgvector)
+    - BMAM salience (recency + frequency + importance + goal relevance)
+    - ReMe retrieval frequency (frequently retrieved = proven useful)
     """
     similarity = float(r["similarity"])
     salience = float(r["salience_score"]) if r.get("salience_score") is not None else 0.5
-    return 0.6 * similarity + 0.4 * salience
+    # ReMe signal: log-scale retrieval count, capped at 1.0
+    retrieval_count = int(r["retrieval_count"]) if r.get("retrieval_count") is not None else 0
+    import math
+    reme_signal = min(1.0, math.log1p(retrieval_count) / 3.0)  # ~20 retrievals = 1.0
+    return 0.55 * similarity + 0.30 * salience + 0.15 * reme_signal
 
 
 # ── Core endpoints ─────────────────────────────────────────────────
@@ -490,6 +544,14 @@ async def remember(req: SemanticMemoryCreate):
             logger.info(f"A-Mem: created {n_links} bidirectional links for memory {new_id}")
     except Exception as e:
         logger.warning(f"A-Mem linking failed (non-fatal): {e}")
+
+    # A-MEM cross-linking: boost salience of strongly related existing memories
+    try:
+        n_updated = await _amem_update_related(pool, new_id, req.content, embedding)
+        if n_updated:
+            logger.info(f"A-MEM cross-link: boosted {n_updated} related memories for {new_id}")
+    except Exception as e:
+        logger.warning(f"A-MEM cross-link update failed (non-fatal): {e}")
 
     return SemanticMemoryOut(**dict(row))
 
@@ -606,7 +668,7 @@ async def _hymem_search(
             rows = await conn.fetch(
                 f"""SELECT id, content, category, confidence, source, created_at,
                            utility_score, relevance_score, importance_score, salience_score,
-                           summary_content,
+                           retrieval_count, summary_content,
                            1 - (summary_embedding_hv <=> $1::halfvec(1536)) AS similarity
                     FROM semantic_memories
                     WHERE summary_embedding_hv IS NOT NULL AND {where}
@@ -621,7 +683,7 @@ async def _hymem_search(
                 rows = await conn.fetch(
                     f"""SELECT id, content, category, confidence, source, created_at,
                                utility_score, relevance_score, importance_score, salience_score,
-                               summary_content,
+                               retrieval_count, summary_content,
                                1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
                         FROM semantic_memories
                         WHERE embedding_hv IS NOT NULL AND {where}
@@ -1088,7 +1150,7 @@ async def hymem_briefing_facts(
         rows = await conn.fetch(
             f"""SELECT id, content, category, confidence, source, created_at,
                        importance_score, salience_score, utility_score, relevance_score,
-                       summary_content,
+                       retrieval_count, summary_content,
                        1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
                 FROM semantic_memories
                 WHERE {where}

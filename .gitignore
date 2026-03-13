@@ -21,3 +21,4 @@ node_modules/
 # Derived binary data (generated, not source)
 memory/svc_components.npz
 *.npz
+projects/alpha/research_state.json

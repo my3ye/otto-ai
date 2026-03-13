@@ -18,6 +18,7 @@ import numpy as np
 from ..config import settings
 from ..db import get_pool
 from ..embeddings import get_embedding, invalidate_svc_cache
+from ..llm import llm_chat, extract_json_array
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/memory", tags=["maintenance"])
@@ -53,22 +54,19 @@ class EvolveResult(BaseModel):
     ran_at: datetime
 
 
-# ── Gemini Flash helper ────────────────────────────────────────────────────────
-
-def _get_gemini_model():
-    import google.generativeai as genai  # lazy import to avoid startup errors
-    genai.configure(api_key=settings.gemini_api_key)
-    return genai.GenerativeModel(
-        "gemini-2.0-flash",
-        generation_config={"temperature": 0.1},
-    )
+# ── LLM helper ────────────────────────────────────────────────────────────────
 
 
 async def _gemini_extract_facts(events_text: str) -> list[dict]:
-    """Call Gemini Flash to extract permanent facts from episodic events.
+    """Extract permanent facts from episodic events with ProMem verification.
+
+    ProMem (arXiv:2601.04463): After initial extraction, generates self-questions
+    about the source text and checks whether extracted facts answer them. Gaps
+    trigger a targeted re-extraction pass, improving recall by ~15-25%.
 
     Returns list of {content, category, confidence} dicts. Empty list on failure.
     """
+    # ── Phase 1: Initial extraction (same as before) ──
     prompt = (
         "You are an AI memory assistant. Extract permanent facts from these episodic events "
         "that are worth storing in long-term memory.\n\n"
@@ -80,34 +78,74 @@ async def _gemini_extract_facts(events_text: str) -> list[dict]:
         "Skip trivial, obvious, or duplicate facts. Return [] if nothing is worth storing."
     )
     try:
-        model = _get_gemini_model()
-        response = await asyncio.to_thread(model.generate_content, prompt)
-        text = response.text.strip()
-        # Strip markdown code fences if present
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        facts = json.loads(text)
-        if not isinstance(facts, list):
-            return []
-        return facts
+        text = await llm_chat([{"role": "user", "content": prompt}], max_tokens=500, temperature=0.1)
+        facts = extract_json_array(text) or []
     except Exception as e:
-        logger.warning(f"Gemini extraction failed: {e}")
+        logger.warning(f"LLM extraction failed: {e}")
         return []
 
+    # ── Phase 2: ProMem self-questioning verification ──
+    # Only run if we got facts AND the source text is substantial enough
+    if not facts or len(events_text) < 100:
+        return facts
 
-# ── Decay ──────────────────────────────────────────────────────────────────────
+    try:
+        facts_summary = "\n".join(f"- {f.get('content', '')}" for f in facts)
+        verify_prompt = (
+            "Given these source events and the facts already extracted from them, "
+            "generate 2-3 verification questions that test whether the extraction "
+            "captured all important information.\n\n"
+            f"Source events:\n{events_text}\n\n"
+            f"Extracted facts:\n{facts_summary}\n\n"
+            "For each question, check if the extracted facts answer it. "
+            "Return a JSON array (no markdown) of objects: "
+            "{\"question\": \"...\", \"answered\": true/false, "
+            "\"missing_fact\": \"<1-2 sentence fact to fill the gap, or null if answered>\", "
+            "\"category\": \"<category if missing_fact>\", \"confidence\": <0.5-1.0 if missing>}. "
+            "Only flag genuinely important gaps — not trivia."
+        )
+        verify_text = await llm_chat(
+            [{"role": "user", "content": verify_prompt}],
+            max_tokens=400, temperature=0.1,
+        )
+        gaps = extract_json_array(verify_text) or []
+
+        # Collect unanswered gaps with valid missing facts
+        new_facts = []
+        for gap in gaps:
+            if not gap.get("answered", True) and gap.get("missing_fact"):
+                missing = str(gap["missing_fact"]).strip()
+                if len(missing) >= 10:
+                    new_facts.append({
+                        "content": missing,
+                        "category": str(gap.get("category", "observation")),
+                        "confidence": float(gap.get("confidence", 0.65)),
+                    })
+
+        if new_facts:
+            logger.info(f"ProMem: filled {len(new_facts)} gap(s) via self-questioning")
+            facts.extend(new_facts[:3])  # Cap at 3 gap-fills per batch
+
+    except Exception as e:
+        logger.warning(f"ProMem verification failed (non-fatal): {e}")
+
+    return facts
+
+
+# ── Decay (legacy fixed-rate) ──────────────────────────────────────────────────
+# NOTE: This is the legacy fixed-rate decay path. The newer category-aware adaptive
+# decay is available at POST /memory/adaptive-decay (see _run_adaptive_decay_logic).
+# This function is still called by the nightly evolve job for backward compatibility.
 
 async def run_decay() -> tuple[int, int]:
-    """Apply relevance decay and archive low-score memories.
+    """Apply relevance decay and archive low-score memories (legacy fixed-rate).
 
     Returns (decay_updated, archived).
     """
     pool = await get_pool()
 
-    # Decay: relevance_score *= 0.99 for non-identity/infrastructure facts
-    # not retrieved in 7+ days
+    # Legacy: relevance_score *= 0.99 for non-identity/infrastructure facts
+    # not retrieved in 7+ days (see /memory/adaptive-decay for category-aware version)
     decay_result = await pool.execute(
         """UPDATE semantic_memories
            SET relevance_score = GREATEST(0.1, relevance_score * 0.99),
@@ -144,7 +182,7 @@ async def run_consolidation() -> tuple[int, int]:
 
     Returns (events_consolidated, facts_stored).
     """
-    if not settings.gemini_api_key:
+    if not settings.kimi_api_key:
         logger.warning("Consolidation skipped: no Gemini API key configured")
         return 0, 0
 
@@ -180,6 +218,38 @@ async def run_consolidation() -> tuple[int, int]:
 
         # Extract facts
         facts = await _gemini_extract_facts(events_text)
+
+        # Filter reflection meta-noise: transient metrics, cycle status reports
+        # Root cause of evolve noise (9 cycles of symptom treatment, ~40+ wasted facts)
+        _NOISE_CATS = {"pipeline_status", "self_critique_metrics"}
+        _NOISE_MARKERS = [
+            "self-critique", "mars dual reflection", "adversarial check",
+            "currently idle", "system is currently idle",
+            "no tasks have been created", "0 tasks created",
+            "system health metrics", "glove system is clean",
+            # Phase 2: catch reflection meta-noise (cycle 129 fix)
+            "reflection cycle", "heartbeat cycle", "noise filter",
+            "deferral debt", "idle-inflated", "evolve noise",
+            "confirmed the alignment", "wasted fact extraction",
+            "mars sweep", "preflect sweep", "tame evaluator",
+            # Phase 3: catch alpha heartbeat transient operational noise (cycle 130 fix)
+            "nudge threshold", "nudge mev", "helius keys",
+            "live watcher", "paper trader", "medium signals",
+            "high signals", "sync pulse", "positions are currently",
+            "signals in the last", "keys have been exhausted",
+            # Phase 4: catch reflection self-metric reporting noise (cycle 131 fix)
+            "rl2f metric", "idle inflation", "reasoning accuracy",
+            "proposals related to", "recent critiques",
+            "blockers resolved", "mission aligned",
+            # Phase 5: catch evolve self-referential meta-noise (cycle 133 fix)
+            "facts stored", "noise pattern", "surface new noise",
+            "verification confirmed", "phase 4 verification",
+        ]
+        facts = [
+            f for f in facts
+            if f.get("category") not in _NOISE_CATS
+            and not any(m in str(f.get("content", "")).lower() for m in _NOISE_MARKERS)
+        ]
 
         for fact in facts[:5]:
             content = str(fact.get("content", "")).strip()
@@ -296,6 +366,15 @@ async def run_maintenance_job():
             f"archived={result.archived}, consolidated={result.events_consolidated}, "
             f"new_facts={result.facts_stored}"
         )
+
+        # AgentOS: trigger maintenance sync pulse
+        try:
+            from ..kernel.sync import run_sync_pulse
+            await run_sync_pulse(trigger="maintenance")
+            logger.info("AgentOS maintenance sync pulse completed")
+        except Exception as e:
+            logger.debug(f"AgentOS sync pulse skipped: {e}")
+
     except Exception as e:
         logger.error(f"Nightly maintenance failed: {e}", exc_info=True)
 
@@ -371,6 +450,147 @@ async def run_salience_decay():
     return SalienceDecayResult(updated=updated, ran_at=datetime.now(timezone.utc))
 
 
+# ── AgeMem RL-inspired adaptive decay ─────────────────────────────────────────
+
+# Category-specific decay rates (learned from Otto's usage patterns)
+# Lower = slower decay = more important categories
+_CATEGORY_DECAY = {
+    "identity": 0.0,          # Never decay identity
+    "infrastructure": 0.0,    # Never decay infrastructure
+    "directive": 0.005,       # Very slow — directives are critical
+    "mission": 0.005,         # Very slow — mission context
+    "decision": 0.01,         # Slow — decisions matter
+    "credential": 0.0,        # Never decay credentials
+    "capability": 0.01,       # Slow — capabilities are reference
+    "project": 0.015,         # Moderate — project context evolves
+    "learning": 0.02,         # Moderate — learnings age
+    "research": 0.02,         # Moderate — research findings age
+    "observation": 0.03,      # Faster — observations are transient
+    "system": 0.025,          # Moderate — system state changes
+    "relationship": 0.01,     # Slow — relationships are stable
+}
+_DEFAULT_DECAY = 0.02  # For unknown categories
+
+
+async def _run_adaptive_decay_logic() -> dict:
+    """Core adaptive decay logic — callable from endpoint and from evolve.
+
+    Returns dict with total_updated, category_breakdown, ran_at.
+    """
+    pool = await get_pool()
+
+    # Collect all distinct categories from DB to handle unknown ones too
+    cat_rows = await pool.fetch(
+        """SELECT DISTINCT category FROM semantic_memories
+           WHERE archived = FALSE AND deleted_at IS NULL"""
+    )
+    all_categories = {}
+    for r in cat_rows:
+        cat = r["category"]
+        if cat:
+            all_categories[cat] = _CATEGORY_DECAY.get(cat, _DEFAULT_DECAY)
+
+    total_updated = 0
+    category_stats = {}
+
+    for category, base_rate in all_categories.items():
+        if base_rate == 0.0:
+            continue  # Skip protected categories
+
+        # Retrieval-adjusted decay:
+        # - High retrieval (>10): decay at 0.5x base rate (frequently used = valuable)
+        # - Medium retrieval (3-10): decay at base rate
+        # - Low retrieval (0-2): decay at 1.5x base rate (rarely used = less valuable)
+        # - Zero retrieval + >14 days old: decay at 2x base rate (accelerated cleanup)
+
+        # High retrieval — slow decay
+        result = await pool.execute(
+            """UPDATE semantic_memories
+               SET relevance_score = GREATEST(0.1, relevance_score * (1.0 - $1)),
+                   salience_score = GREATEST(0.05, salience_score * (1.0 - $1)),
+                   updated_at = NOW()
+               WHERE category = $2
+                 AND archived = FALSE AND deleted_at IS NULL
+                 AND retrieval_count > 10
+                 AND (last_retrieved_at IS NULL OR last_retrieved_at < NOW() - INTERVAL '7 days')""",
+            base_rate * 0.5, category,
+        )
+        high_ret = int(result.split()[-1])
+
+        # Medium retrieval — base decay
+        result = await pool.execute(
+            """UPDATE semantic_memories
+               SET relevance_score = GREATEST(0.1, relevance_score * (1.0 - $1)),
+                   salience_score = GREATEST(0.05, salience_score * (1.0 - $1)),
+                   updated_at = NOW()
+               WHERE category = $2
+                 AND archived = FALSE AND deleted_at IS NULL
+                 AND retrieval_count BETWEEN 3 AND 10
+                 AND (last_retrieved_at IS NULL OR last_retrieved_at < NOW() - INTERVAL '7 days')""",
+            base_rate, category,
+        )
+        med_ret = int(result.split()[-1])
+
+        # Low retrieval — accelerated decay
+        result = await pool.execute(
+            """UPDATE semantic_memories
+               SET relevance_score = GREATEST(0.1, relevance_score * (1.0 - $1)),
+                   salience_score = GREATEST(0.05, salience_score * (1.0 - $1)),
+                   updated_at = NOW()
+               WHERE category = $2
+                 AND archived = FALSE AND deleted_at IS NULL
+                 AND retrieval_count < 3
+                 AND (last_retrieved_at IS NULL OR last_retrieved_at < NOW() - INTERVAL '7 days')""",
+            base_rate * 1.5, category,
+        )
+        low_ret = int(result.split()[-1])
+
+        # Zero retrieval + old — aggressive decay
+        result = await pool.execute(
+            """UPDATE semantic_memories
+               SET relevance_score = GREATEST(0.1, relevance_score * (1.0 - $1)),
+                   salience_score = GREATEST(0.05, salience_score * (1.0 - $1)),
+                   updated_at = NOW()
+               WHERE category = $2
+                 AND archived = FALSE AND deleted_at IS NULL
+                 AND (retrieval_count IS NULL OR retrieval_count = 0)
+                 AND created_at < NOW() - INTERVAL '14 days'""",
+            base_rate * 2.0, category,
+        )
+        zero_old = int(result.split()[-1])
+
+        cat_total = high_ret + med_ret + low_ret + zero_old
+        total_updated += cat_total
+        if cat_total > 0:
+            category_stats[category] = {
+                "high_retrieval": high_ret, "medium": med_ret,
+                "low": low_ret, "zero_old": zero_old,
+            }
+
+    logger.info(f"AgeMem adaptive decay: {total_updated} memories updated across {len(category_stats)} categories")
+
+    return {
+        "total_updated": total_updated,
+        "category_breakdown": category_stats,
+        "ran_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+@router.post("/adaptive-decay")
+async def run_adaptive_decay():
+    """AgeMem RL-inspired adaptive decay: decay rate varies by category and retrieval pattern.
+
+    Instead of fixed 0.99/0.95 rates, uses learned rates based on:
+    - Category importance weights (identity=0, directive=0.005, research=0.02, observation=0.03)
+    - Retrieval frequency: frequently retrieved memories decay slower
+    - Age: very old memories with zero retrieval get accelerated decay
+
+    This replaces the fixed FadeMem decay with a category-aware policy.
+    """
+    result = await _run_adaptive_decay_logic()
+    return result
+
+
 # ── Short-horizon episodic compression ────────────────────────────────────────
 
 async def run_short_horizon_compression() -> tuple[int, int]:
@@ -382,7 +602,7 @@ async def run_short_horizon_compression() -> tuple[int, int]:
 
     Returns (events_compressed, facts_stored).
     """
-    if not settings.gemini_api_key:
+    if not settings.kimi_api_key:
         logger.warning("Short-horizon compression skipped: no Gemini API key")
         return 0, 0
 
@@ -408,6 +628,38 @@ async def run_short_horizon_compression() -> tuple[int, int]:
     events_text = "\n".join(lines)
 
     facts = await _gemini_extract_facts(events_text)
+
+    # Filter reflection meta-noise (same filter as consolidation path)
+    _NOISE_CATS = {"pipeline_status", "self_critique_metrics"}
+    _NOISE_MARKERS = [
+        "self-critique", "mars dual reflection", "adversarial check",
+        "currently idle", "system is currently idle",
+        "no tasks have been created", "0 tasks created",
+        "system health metrics", "glove system is clean",
+        # Phase 2: catch reflection meta-noise (cycle 129 fix)
+        "reflection cycle", "heartbeat cycle", "noise filter",
+        "deferral debt", "idle-inflated", "evolve noise",
+        "confirmed the alignment", "wasted fact extraction",
+        "mars sweep", "preflect sweep", "tame evaluator",
+        # Phase 3: catch alpha heartbeat transient operational noise (cycle 130 fix)
+        "nudge threshold", "nudge mev", "helius keys",
+        "live watcher", "paper trader", "medium signals",
+        "high signals", "sync pulse", "positions are currently",
+        "signals in the last", "keys have been exhausted",
+        # Phase 4: catch reflection self-metric reporting noise (cycle 131 fix)
+        "rl2f metric", "idle inflation", "reasoning accuracy",
+        "proposals related to", "recent critiques",
+        "blockers resolved", "mission aligned",
+        # Phase 5: catch evolve self-referential meta-noise (cycle 133 fix)
+        "facts stored", "noise pattern", "surface new noise",
+        "verification confirmed", "phase 4 verification",
+    ]
+    facts = [
+        f for f in facts
+        if f.get("category") not in _NOISE_CATS
+        and not any(m in str(f.get("content", "")).lower() for m in _NOISE_MARKERS)
+    ]
+
     facts_stored = 0
 
     for fact in facts[:8]:
@@ -494,17 +746,9 @@ async def _gemini_critique_memories(memories: list[dict]) -> list[dict]:
         "action=keep otherwise."
     )
     try:
-        model = _get_gemini_model()
-        response = await asyncio.to_thread(model.generate_content, prompt)
-        text = response.text.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        result = json.loads(text)
-        if not isinstance(result, list):
-            return []
-        return result
+        text = await llm_chat([{"role": "user", "content": prompt}], max_tokens=1000, temperature=0.1)
+        result = extract_json_array(text)
+        return result if result else []
     except Exception as e:
         logger.warning(f"Memory critique failed: {e}")
         return []
@@ -515,13 +759,13 @@ async def run_critique_refinement() -> int:
 
     Implements critique-driven memory refinement from Self-Refine and Reflection-Tuning:
     - Fetch memories with low relevance not recently retrieved
-    - Critique via Gemini Flash (accuracy, relevance, utility scored 1-5)
+    - Critique via LLM (accuracy, relevance, utility scored 1-5)
     - Fast-track archiving for genuinely stale/wrong memories
     - Boost score for memories that are actually valuable but under-retrieved
 
     Returns number of memories refined (archived or boosted).
     """
-    if not settings.gemini_api_key:
+    if not settings.kimi_api_key:
         logger.warning("Critique refinement skipped: no Gemini API key")
         return 0
 
@@ -684,19 +928,11 @@ async def _gemini_extract_sure_lessons(events_text: str) -> list[dict]:
         "Skip trivial observations. Return [] if no real lessons apply."
     )
     try:
-        model = _get_gemini_model()
-        response = await asyncio.to_thread(model.generate_content, prompt)
-        text = response.text.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        lessons = json.loads(text)
-        if not isinstance(lessons, list):
-            return []
-        return lessons
+        text = await llm_chat([{"role": "user", "content": prompt}], max_tokens=500, temperature=0.1)
+        lessons = extract_json_array(text)
+        return lessons if lessons else []
     except Exception as e:
-        logger.warning(f"SuRe Gemini lesson extraction failed: {e}")
+        logger.warning(f"SuRe lesson extraction failed: {e}")
         return []
 
 
@@ -704,13 +940,13 @@ async def run_sure_replay(top_n: int = 20, threshold: float = 0.7) -> int:
     """SuRe: Surprise-based Replay for memory consolidation.
 
     Fetches the top-N most surprising unprocessed episodic events (surprise_score >= threshold),
-    extracts learnable lessons via Gemini Flash, stores them as semantic memories,
+    extracts learnable lessons via LLM, stores them as semantic memories,
     and marks the events as replayed.
 
     Returns: number of lessons stored.
     """
-    if not settings.gemini_api_key:
-        logger.warning("SuRe replay skipped: no Gemini API key")
+    if not settings.kimi_api_key:
+        logger.warning("SuRe replay skipped: no LLM API key")
         return 0
 
     pool = await get_pool()
@@ -869,7 +1105,8 @@ async def get_surprise_queue(limit: int = 20, threshold: float = 0.7):
 @router.post("/evolve", response_model=EvolveResult)
 async def run_evolve():
     """Full memory evolution cycle (for reflection heartbeat):
-    1. Relevance decay on stale semantic memories + archive very-low-score
+    1. Relevance decay on stale semantic memories + archive very-low-score (legacy)
+    1b. AgeMem adaptive decay — category-aware, retrieval-adjusted decay
     2. Flush scratch slot → episodic events
     3. Compress low-importance events older than 48h → semantic memories
     4. Full episodic → semantic consolidation (remaining unconsolidated events)
@@ -882,6 +1119,14 @@ async def run_evolve():
     from .consolidation import run_semantic_dedup  # avoid circular import at module level
 
     decay_updated, archived = await run_decay()
+
+    # AgeMem adaptive decay: category-aware, retrieval-adjusted (runs alongside legacy)
+    try:
+        adaptive_result = await _run_adaptive_decay_logic()
+        logger.info(f"Evolve: adaptive decay updated {adaptive_result['total_updated']} memories")
+    except Exception as e:
+        logger.warning(f"Adaptive decay in evolve failed (non-fatal): {e}")
+
     scratch_consolidated = await consolidate_scratch()
     short_horizon_compressed, short_horizon_facts = await run_short_horizon_compression()
     events_consolidated, facts_stored = await run_consolidation()
@@ -1044,17 +1289,9 @@ async def _gemini_score_drift(tasks: list[dict], directives: list[dict]) -> list
     )
 
     try:
-        model = _get_gemini_model()
-        response = await asyncio.to_thread(model.generate_content, prompt)
-        text = response.text.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        result = json.loads(text)
-        if not isinstance(result, list):
-            return []
-        return result
+        text = await llm_chat([{"role": "user", "content": prompt}], max_tokens=1000, temperature=0.1)
+        result = extract_json_array(text)
+        return result if result else []
     except Exception as e:
         logger.warning(f"Drift scoring failed: {e}")
         return []
@@ -1071,14 +1308,14 @@ async def run_drift_check(task_limit: int = 5):
 
     Process:
     1. Fetch last N completed tasks
-    2. Score each constitutional directive on 0-1 alignment scale via Gemini Flash
+    2. Score each constitutional directive on 0-1 alignment scale via LLM
     3. Flag directives scoring below 0.5
     4. Store result in drift_history for trend analysis
     5. Return overall drift score + per-directive breakdown + flagged violations
     """
-    if not settings.gemini_api_key:
+    if not settings.kimi_api_key:
         from fastapi import HTTPException
-        raise HTTPException(status_code=503, detail="Drift check requires Gemini API key")
+        raise HTTPException(status_code=503, detail="Drift check requires LLM API key")
 
     pool = await get_pool()
 
@@ -1339,5 +1576,147 @@ async def fit_svc_components(sample_size: int = 5000):
         components_path=components_path,
         mean_norm=float(np.linalg.norm(mean_vec)),
         explained_variance_ratio=evr,
+        ran_at=datetime.now(timezone.utc),
+    )
+
+
+# ── GLOVE: Memory-Environment Realignment (arXiv:2601.19249) ─────────────────
+# Active probing to detect when stored memories diverge from current reality.
+# Instead of passively trusting retrieved memories, GLOVE verifies them against
+# live system state. Stale or wrong memories get flagged for update/archival.
+
+
+class GLOVEResult(BaseModel):
+    memories_probed: int
+    mismatches_found: int
+    memories_flagged: list[dict]  # [{id, content_preview, issue, action}]
+    ran_at: datetime
+
+
+@router.post("/verify-alignment", response_model=GLOVEResult)
+async def verify_alignment(
+    category: str | None = None,
+    limit: int = 20,
+    min_importance: float = 0.5,
+):
+    """GLOVE: Probe high-importance memories against current system state.
+
+    For each memory, ask: "Is this still true?" using lightweight LLM verification.
+    Memories that fail verification get their salience decayed and flagged.
+
+    Called by reflection heartbeat after MARS sweep.
+    """
+    pool = await get_pool()
+
+    # Fetch high-importance memories that haven't been verified recently
+    cat_filter = "AND category = $3" if category else ""
+    params: list = [min_importance, limit]
+    if category:
+        params.append(category)
+
+    rows = await pool.fetch(
+        f"""SELECT id, content, category, confidence, importance_score,
+                   salience_score, created_at, updated_at
+            FROM semantic_memories
+            WHERE archived = FALSE AND deleted_at IS NULL
+              AND importance_score >= $1
+              {cat_filter}
+            ORDER BY importance_score DESC, salience_score DESC
+            LIMIT $2""",
+        *params,
+    )
+
+    if not rows:
+        return GLOVEResult(
+            memories_probed=0, mismatches_found=0,
+            memories_flagged=[], ran_at=datetime.now(timezone.utc),
+        )
+
+    # Build a batch verification prompt
+    memory_texts = []
+    for i, r in enumerate(rows):
+        memory_texts.append(f"{i+1}. [{r['category']}] {r['content'][:200]}")
+
+    verification_prompt = (
+        "You are a memory verification system for Otto, a persistent AI agent that runs "
+        "24/7 on a Linux VM. Otto has long-term memory storing facts, lessons, directives, "
+        "and infrastructure state. Your job is to flag memories that are FACTUALLY WRONG — "
+        "not merely old.\n\n"
+        "CRITICAL RULES — memories that should ALMOST ALWAYS be marked 'valid':\n"
+        "- Historical lessons/fixes (e.g. 'bug X was fixed on date Y') — these are RECORDS, "
+        "they don't become stale. The fix happened. The lesson is permanent.\n"
+        "- Directives from Mev (the human admin) — these remain valid until EXPLICITLY revoked. "
+        "Age alone does NOT invalidate a directive.\n"
+        "- Architectural decisions — these persist until explicitly changed.\n"
+        "- Identity/ecosystem facts — these are foundational and rarely change.\n"
+        "- Infrastructure configs/settings — these are stable unless there's evidence of change.\n\n"
+        "Only flag as 'stale' when:\n"
+        "- The memory states a CURRENT status that is likely no longer true (e.g. 'service X is down' "
+        "from 2 weeks ago — it's probably been fixed)\n"
+        "- The memory contains a FACTUAL ERROR you can identify from the content itself\n"
+        "- The memory references temporary state (credentials expiring, time-limited offers)\n\n"
+        "When in doubt, mark as 'valid'. False positives (flagging valid memories) cause more "
+        "harm than false negatives (missing stale ones).\n\n"
+        "Memories to verify:\n" + "\n".join(memory_texts) + "\n\n"
+        "Return a JSON array with one entry per memory. Each entry:\n"
+        '{\"index\": <1-based>, \"status\": \"valid\"|\"stale\"|\"uncertain\", '
+        '\"reason\": \"<brief reason>\"}\n'
+        "Be CONSERVATIVE — most memories should be 'valid'. Only flag clear staleness. "
+        "Return [] if all memories look valid. Return ONLY the JSON array."
+    )
+
+    try:
+        text = await llm_chat(
+            [{"role": "user", "content": verification_prompt}],
+            max_tokens=800, temperature=0.1,
+        )
+        assessments = extract_json_array(text) or []
+    except Exception as e:
+        logger.warning(f"GLOVE verification LLM call failed: {e}")
+        return GLOVEResult(
+            memories_probed=len(rows), mismatches_found=0,
+            memories_flagged=[], ran_at=datetime.now(timezone.utc),
+        )
+
+    # Process assessments — flag stale/uncertain memories
+    flagged = []
+    for assessment in assessments:
+        idx = assessment.get("index", 0) - 1
+        status = assessment.get("status", "valid")
+        reason = assessment.get("reason", "")
+
+        if status not in ("stale", "uncertain") or idx < 0 or idx >= len(rows):
+            continue
+
+        row = rows[idx]
+        memory_id = row["id"]
+
+        if status == "stale":
+            # Gentle decay for stale — flag for reflection review
+            # Avoid aggressive decay to prevent mass-archival from false positives
+            await pool.execute(
+                """UPDATE semantic_memories
+                   SET salience_score = GREATEST(0.0, salience_score - 0.05),
+                       confidence = GREATEST(0.0, confidence - 0.05)
+                   WHERE id = $1""",
+                memory_id,
+            )
+            action = "flagged stale (salience -0.05, confidence -0.05)"
+        else:  # uncertain
+            # No auto-decay for uncertain — just flag for review
+            action = "flagged uncertain (no auto-decay)"
+
+        flagged.append({
+            "id": str(memory_id),
+            "content_preview": row["content"][:100],
+            "category": row["category"],
+            "issue": f"{status}: {reason}",
+            "action": action,
+        })
+
+    return GLOVEResult(
+        memories_probed=len(rows),
+        mismatches_found=len(flagged),
+        memories_flagged=flagged,
         ran_at=datetime.now(timezone.utc),
     )

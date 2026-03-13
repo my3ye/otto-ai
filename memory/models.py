@@ -211,15 +211,80 @@ class PendingQuestionOut(BaseModel):
     asked_at: datetime
     resolved_at: datetime | None = None
     answer: str | None = None
-    direction: str = "claude_to_gemini"
-    source_brain: str = "claude"
+    direction: str = "outbound"
+    source_brain: str = "kernel"
 
 
 class CrossBrainNote(BaseModel):
+    """Deprecated: dual-brain artifact. Use kernel interrupts instead."""
     content: str
     note_type: str = "context"  # directive, task, goal, decision, context, priority_change
     urgency: str = "normal"  # normal, high, critical
     source_summary: str | None = None
+
+
+# ── AgentOS Kernel Models ────────────────────────────────────────
+
+class InterruptCreate(BaseModel):
+    """Request to submit an interrupt to the kernel IVT."""
+    interrupt_type: str
+    source: str = "api"
+    payload: dict = Field(default_factory=dict)
+    priority: int | None = None
+    correlation_id: UUID | None = None
+    metadata: dict = Field(default_factory=dict)
+
+
+class InterruptOut(BaseModel):
+    """Interrupt record from the queue."""
+    id: UUID
+    interrupt_type: str
+    priority: int
+    source: str
+    status: str
+    payload: dict = Field(default_factory=dict)
+    result: dict | None = None
+    error: str | None = None
+    created_at: datetime
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
+
+
+class SemanticSlice(BaseModel):
+    """A CID-segmented group of related semantic memories."""
+    id: UUID
+    label: str
+    memory_ids: list[UUID] = Field(default_factory=list)
+    token_count: int = 0
+    category: str | None = None
+    cid_boundary_score: float | None = None
+
+
+class CognitiveSnapshotOut(BaseModel):
+    """Saved kernel state snapshot."""
+    id: UUID
+    l1_slice_ids: list[UUID]
+    drift_value: float
+    trigger: str
+    created_at: datetime
+
+
+class KernelStatusOut(BaseModel):
+    """Overall kernel status."""
+    kernel_enabled: bool
+    queue: dict
+    providers: list[dict]
+    l1: dict
+    drift: dict
+
+
+class ProviderConfigOut(BaseModel):
+    """LLM provider configuration."""
+    name: str
+    provider_type: str
+    model_name: str
+    priority: int
+    enabled: bool
 
 
 # ── Tasks ─────────────────────────────────────────────────────────
@@ -230,6 +295,7 @@ class TaskCreate(BaseModel):
     priority: int = Field(default=5, ge=1, le=10)
     model: str = "sonnet"
     cli: str = "claude"  # which CLI backend: claude | gemini | kimi
+    agent_type: str | None = None  # specialist agent: researcher | coder | reviewer | debugger | architect | memory-curator
     max_budget_usd: float = 5.00  # Min $5 for big tasks (Mev directive 2026-02-19)
     max_turns: int = 50
     timeout_seconds: int = 600
@@ -248,6 +314,7 @@ class TaskOut(BaseModel):
     status: str
     model: str
     cli: str = "claude"  # which CLI backend: claude | gemini | kimi
+    agent_type: str | None = None  # specialist agent
     max_budget_usd: float
     max_turns: int
     timeout_seconds: int
@@ -708,6 +775,45 @@ class SimpleMemSearchResponse(BaseModel):
     original_chars: int        # total content chars before compression
     compressed_chars: int      # total content chars after compression
     reduction_pct: float       # percentage reduction in content chars
+
+
+# ── Decision Proposals (Collaboration Framework) ──────────────────
+
+class ProposalOption(BaseModel):
+    label: str                             # "Use Redis"
+    description: str                       # "Fast, in-memory, but adds a new dependency"
+    recommendation_reason: str | None = None  # Why this option is recommended (if it is)
+
+
+class DecisionProposalCreate(BaseModel):
+    question: str                          # "Should we use Redis or Postgres for caching?"
+    context: str | None = None             # Background reasoning
+    options: list[ProposalOption] = Field(default_factory=list)
+    recommendation: int | None = None      # Index of recommended option (0-based)
+    recommendation_reason: str | None = None
+    source: str = "heartbeat"              # heartbeat | reflection | task
+    source_task_id: UUID | None = None
+    urgency: str = "normal"                # normal | high | blocking
+
+
+class DecisionProposalOut(BaseModel):
+    id: UUID
+    question: str
+    context: str | None = None
+    options: list[dict] = Field(default_factory=list)
+    recommendation: int | None = None
+    recommendation_reason: str | None = None
+    source: str
+    source_task_id: UUID | None = None
+    urgency: str
+    status: str
+    resolution: str | None = None
+    resolved_at: datetime | None = None
+    created_at: datetime
+
+
+class DecisionProposalResolve(BaseModel):
+    resolution: str                        # Mev's chosen option or free-text answer
 
 
 # ── WhatsApp ───────────────────────────────────────────────────────

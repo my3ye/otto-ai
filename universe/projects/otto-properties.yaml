@@ -37,7 +37,62 @@ vision:
   - date: "2026-03-05"
     note: "Inception article published. Tusita properties as flagship."
 
+marketing:
+  positioning: >
+    Airbnb extracts 20% from hosts. Traditional landlords extract rent forever.
+    Mortgages extract 2x the property value in interest. Otto Properties does
+    none of these things. Every property is tokenized — fractionally ownable,
+    community-financeable, with a renter equity mechanism that converts the
+    act of living into actual ownership. This is not tokenized landlordism.
+    This is land belonging to those who live on it.
+  audience_segments:
+    - name: Renters locked out of ownership
+      description: >
+        Paying rent for years with nothing to show. Wants a system where rent
+        payments build equity rather than disappear into a landlord's pocket.
+        Tusita flagship makes this real — not just theoretical.
+    - name: Property owners seeking liquidity
+      description: >
+        Owns real estate but can't access its value without selling or taking
+        a mortgage. Fractional tokenization unlocks liquidity while retaining
+        community governance over how properties are developed and used.
+    - name: MY3YE ecosystem builders
+      description: >
+        Tusita residents, Ottolabs contributors, 505 Systems governors who
+        need physical infrastructure for the civilization stack. Land must
+        be community-owned, not held by speculators.
+  headline_hooks:
+    - "Your rent is your mortgage. Finally."
+    - "Every property an NFT. Owned by those who live in it."
+    - "Fractional ownership. No bank required."
+    - "Land belongs to those who build on it, live on it, and care for it."
+    - "Tusita is the proof. Sovereign land for a sovereign people."
+
+roadmap:
+  thirty_day: >
+    Define renter equity mechanics: what percentage of rent converts to equity,
+    over what period, at what valuation. Research legal frameworks for tokenized
+    property in three jurisdictions (Sri Lanka, UAE, Portugal — Tusita-adjacent).
+    Draft property tokenization standard (ERC-3643 or Solana equivalent).
+  ninety_day: >
+    First technical whitepaper: property NFT standard, renter equity protocol,
+    fractional ownership mechanics, community treasury governance for development
+    proposals. Tusita property pilot design — first 3-5 island plots mapped
+    as proof-of-concept. Community waitlist and founding member program live.
+  one_year: >
+    Otto Properties v0.1: Tusita flagship pilot live. First 10 properties
+    tokenized on-chain. Renter equity protocol in beta — early residents
+    accruing ownership automatically. 505 Systems DAO integrated for
+    development proposals. Fractional ownership marketplace functional.
+
+next_action: >
+  Commission legal research on tokenized property in Sri Lanka (Tusita flagship
+  jurisdiction). This is the single biggest blocker — without a jurisdictional
+  path, everything else is theoretical. Parallel: draft the renter equity
+  mechanics as a spec document to begin community review.
+
 open_questions:
-  - "Legal framework for tokenized property in different jurisdictions?"
-  - "Renter equity conversion rate — what percentage per month?"
-  - "How does fractional ownership work with physical property?"
+  - "Legal framework for tokenized property in Sri Lanka specifically — what structures exist?"
+  - "Renter equity conversion rate — what percentage per month is meaningful but sustainable?"
+  - "How does fractional ownership interact with physical property rights in practice?"
+  - "Tusita island pilot — which properties go first, and who decides development direction?"

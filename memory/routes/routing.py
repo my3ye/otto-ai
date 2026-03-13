@@ -16,7 +16,7 @@ Strategies:
 import re
 import logging
 
-from ..models import TaskRouteRequest, ExecutionStrategy
+from ..models import TaskRouteRequest, ExecutionStrategy, JitRLOptimizeResponse
 
 log = logging.getLogger("otto.routing")
 
@@ -207,4 +207,103 @@ def route_task(req: TaskRouteRequest) -> ExecutionStrategy:
             f"Standard task (type: {task_type}, P{req.priority}). "
             "Using task parameters as-is."
         ),
+    )
+
+
+# ── JitRL Strategy Adjustment ────────────────────────────────────
+# Modify an AdaptOrch strategy using JitRL historical success-rate data.
+# Called after route_task() to apply learned adjustments on top of rules.
+
+# Minimum success rate before we scale up resources
+JITRL_LOW_SUCCESS_THRESHOLD = 0.40
+# Scale factor applied to timeout/turns/budget when success rate is low
+JITRL_SCALE_UP_FACTOR = 1.30
+# Minimum support count required to trust JitRL signal (ignore small samples)
+JITRL_MIN_SUPPORT = 3
+
+
+def jitrl_adjust_strategy(
+    strategy: ExecutionStrategy,
+    jitrl: JitRLOptimizeResponse,
+    task_type: str,
+) -> ExecutionStrategy:
+    """Adjust an AdaptOrch strategy using JitRL historical success rates.
+
+    If similar past tasks of the same type had a low success rate, scale up
+    resource allocation (turns, timeout, budget) to reduce failure probability.
+
+    Returns the (possibly adjusted) strategy. The reasoning field is updated
+    to reflect JitRL's contribution.
+    """
+    if not jitrl.recommendations:
+        return strategy
+
+    # Map AdaptOrch task_type → JitRL action_type keyword overlap
+    # JitRL uses: research | implement | fix | deploy | review | plan | generic
+    type_map = {
+        "research": "research",
+        "build": "implement",
+        "eval": "review",
+        "lookup": "generic",
+        "standard": "generic",
+    }
+    jitrl_type = type_map.get(task_type, "generic")
+
+    # Find the matching JitRL recommendation for this task type
+    match = next(
+        (r for r in jitrl.recommendations if r.action_type == jitrl_type),
+        None,
+    )
+
+    # Fall back to best overall recommendation if no type match
+    if match is None and jitrl.recommendations:
+        match = jitrl.recommendations[0]
+
+    if match is None or match.support_count < JITRL_MIN_SUPPORT:
+        log.debug(
+            f"JitRL adjustment skipped: "
+            f"{'no match' if match is None else f'support={match.support_count} < {JITRL_MIN_SUPPORT}'}"
+        )
+        return strategy
+
+    success_rate = match.success_rate
+    jitrl_note = (
+        f"JitRL: {match.action_type} success_rate={success_rate:.0%} "
+        f"(n={match.support_count}, avg_reward={match.avg_reward:.2f})"
+    )
+
+    if success_rate < JITRL_LOW_SUCCESS_THRESHOLD:
+        # Scale up resources to compensate for historically difficult task type
+        new_turns = round(strategy.recommended_max_turns * JITRL_SCALE_UP_FACTOR)
+        new_timeout = round(strategy.recommended_timeout_seconds * JITRL_SCALE_UP_FACTOR)
+        new_budget = round(strategy.recommended_max_budget_usd * JITRL_SCALE_UP_FACTOR, 2)
+
+        log.info(
+            f"JitRL scaling UP: {task_type} success_rate={success_rate:.0%} "
+            f"turns {strategy.recommended_max_turns}→{new_turns} "
+            f"timeout {strategy.recommended_timeout_seconds}→{new_timeout}s "
+            f"budget ${strategy.recommended_max_budget_usd}→${new_budget}"
+        )
+
+        return ExecutionStrategy(
+            strategy=strategy.strategy,
+            task_type=strategy.task_type,
+            recommended_model=strategy.recommended_model,
+            recommended_max_turns=new_turns,
+            recommended_timeout_seconds=new_timeout,
+            recommended_max_budget_usd=new_budget,
+            reasoning=f"{strategy.reasoning} | {jitrl_note} — low success rate, resources scaled up {JITRL_SCALE_UP_FACTOR:.0%}.",
+            lats_fallback_prompt=strategy.lats_fallback_prompt,
+        )
+
+    log.debug(f"JitRL: success_rate={success_rate:.0%} adequate — no adjustment needed")
+    return ExecutionStrategy(
+        strategy=strategy.strategy,
+        task_type=strategy.task_type,
+        recommended_model=strategy.recommended_model,
+        recommended_max_turns=strategy.recommended_max_turns,
+        recommended_timeout_seconds=strategy.recommended_timeout_seconds,
+        recommended_max_budget_usd=strategy.recommended_max_budget_usd,
+        reasoning=f"{strategy.reasoning} | {jitrl_note}.",
+        lats_fallback_prompt=strategy.lats_fallback_prompt,
     )

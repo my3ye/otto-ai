@@ -9,8 +9,9 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from ..db import get_pool
-from ..models import TaskCreate, TaskOut, TaskComplete, TaskRunResponse, TaskPlanRequest, TaskPlanResponse, ApproachCandidate, TaskRouteRequest, TaskRouteResponse, PlanCacheMatch, PreflectResult, PreflectResultOut
+from ..models import TaskCreate, TaskOut, TaskComplete, TaskRunResponse, TaskPlanRequest, TaskPlanResponse, ApproachCandidate, TaskRouteRequest, TaskRouteResponse, PlanCacheMatch, PreflectResult, PreflectResultOut, JitRLOptimizeRequest
 from ..config import settings
+from ..llm import llm_chat, extract_json, extract_json_array
 
 log = logging.getLogger("otto.tasks")
 
@@ -18,7 +19,7 @@ router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 TASK_RUNNER = "/home/web3relic/otto/task_runner.sh"
 
-TASK_COLUMNS = """id, title, prompt, context, priority, status, model, cli,
+TASK_COLUMNS = """id, title, prompt, context, priority, status, model, cli, agent_type,
     max_budget_usd, max_turns, timeout_seconds, working_directory,
     pid, started_at, completed_at, output, error, exit_code,
     reviewed, reviewed_at, created_by, session_id,
@@ -215,7 +216,7 @@ async def plan_task(req: TaskPlanRequest):
     The alternatives are preserved so that if the selected approach fails, the
     orchestrator can retry with the next-best approach (stored in task metadata).
     """
-    if not settings.gemini_api_key:
+    if not settings.kimi_api_key:
         raise HTTPException(503, "Gemini API key not configured — LATS planning unavailable")
 
     n = req.n_approaches
@@ -258,28 +259,18 @@ async def plan_task(req: TaskPlanRequest):
     )
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel(
-            "gemini-2.0-flash",
+        text = await llm_chat(
+            [{"role": "user", "content": user_prompt}],
+            max_tokens=2000, temperature=0.3,
             system_instruction=system_prompt,
-            generation_config={"temperature": 0.3},
         )
-        response = await asyncio.to_thread(model.generate_content, user_prompt)
-        text = response.text.strip()
+        raw_approaches = extract_json_array(text)
+        if raw_approaches is None:
+            log.error(f"LATS planning: LLM returned non-JSON:\nRaw: {text[:400]}")
+            raise HTTPException(502, "Planning model returned invalid JSON")
 
-        # Strip markdown fences if present
-        if text.startswith("```"):
-            lines = text.split("\n")
-            text = "\n".join(lines[1:-1] if lines[-1] == "```" else lines[1:])
-            if text.startswith("json"):
-                text = text[4:].lstrip()
-
-        raw_approaches = json.loads(text)
-
-    except json.JSONDecodeError as e:
-        log.error(f"LATS planning: Gemini returned non-JSON: {e}\nRaw: {text[:400]}")
-        raise HTTPException(502, f"Planning model returned invalid JSON: {e}")
+    except HTTPException:
+        raise
     except Exception as e:
         log.error(f"LATS planning failed: {e}")
         raise HTTPException(502, f"Planning model error: {e}")
@@ -327,6 +318,67 @@ async def plan_task(req: TaskPlanRequest):
     )
 
 
+# ── JitRL: Historical success rate lookup ─────────────────────────
+
+# Map AdaptOrch task_type → JitRL action_type(s) for experience lookup
+_TASK_TYPE_TO_JITRL = {
+    "build":    ["implement", "fix", "deploy"],
+    "research": ["research"],
+    "lookup":   ["review", "generic"],
+    "eval":     ["review", "generic"],
+    "standard": ["generic", "implement"],
+}
+
+
+async def _get_jitrl_hint(title: str, prompt: str | None, task_type: str) -> dict | None:
+    """Query JitRL experience buffer for historical success rates for this task type.
+
+    Returns None if there are insufficient experiences (< 3) to draw signal from.
+    The returned dict contains 'matched_type', 'success_rate', 'support_count',
+    and 'avg_reward' for the best-matched action type.
+    """
+    try:
+        from .jitrl import optimize as jitrl_optimize
+
+        context = f"Task: {title}"
+        if prompt:
+            context += f"\nContext: {prompt[:400]}"
+
+        result = await jitrl_optimize(JitRLOptimizeRequest(
+            context=context,
+            top_k=20,
+            beta=1.0,
+        ))
+
+        if result.retrieved_count < 3:
+            return None  # not enough data to act on
+
+        # Find the recommendation that best matches the AdaptOrch task_type
+        relevant_types = _TASK_TYPE_TO_JITRL.get(task_type, ["generic"])
+        matching = [
+            r for r in result.recommendations
+            if r.action_type in relevant_types and r.support_count >= 3
+        ]
+
+        if not matching:
+            return None
+
+        # Pick the best-supported matching recommendation
+        best = max(matching, key=lambda r: r.support_count)
+        return {
+            "matched_type": best.action_type,
+            "success_rate": best.success_rate,
+            "avg_reward": best.avg_reward,
+            "support_count": best.support_count,
+            "advantage": best.advantage,
+            "retrieved_count": result.retrieved_count,
+            "baseline_reward": result.baseline_reward,
+        }
+    except Exception as e:
+        log.debug(f"JitRL hint failed (non-fatal): {e}")
+        return None
+
+
 # ── AdaptOrch Routing ──────────────────────────────────────────────
 
 @router.post("/route", response_model=TaskRouteResponse)
@@ -365,6 +417,13 @@ async def route_task_endpoint(req: TaskRouteRequest):
         if not row:
             raise HTTPException(404, f"Task {req.task_id} not found")
 
+        _meta = row["metadata"]
+        if isinstance(_meta, str):
+            import json as _json_meta
+            try:
+                _meta = _json_meta.loads(_meta)
+            except Exception:
+                _meta = {}
         route_req = TaskRouteRequest(
             task_id=req.task_id,
             title=row["title"],
@@ -373,7 +432,7 @@ async def route_task_endpoint(req: TaskRouteRequest):
             max_budget_usd=float(row["max_budget_usd"]),
             max_turns=row["max_turns"],
             timeout_seconds=row["timeout_seconds"],
-            metadata=dict(row["metadata"]) if row["metadata"] else {},
+            metadata=dict(_meta) if _meta else {},
             apply=req.apply,
         )
 
@@ -412,6 +471,69 @@ async def route_task_endpoint(req: TaskRouteRequest):
                 f"(not found or not pending)"
             )
 
+    # ── JitRL integration: adjust strategy based on historical success rates ───
+    # Only applies when task_id is provided (real task) — enough to have a context.
+    # Modulates timeout/turns upward when JitRL shows poor past success for this type.
+    jitrl_hint = await _get_jitrl_hint(
+        route_req.title or "", route_req.prompt, strategy.task_type
+    )
+    if jitrl_hint:
+        success_rate = jitrl_hint["success_rate"]
+        support_count = jitrl_hint["support_count"]
+        matched_type = jitrl_hint["matched_type"]
+
+        orig_timeout = strategy.recommended_timeout_seconds
+        orig_turns = strategy.recommended_max_turns
+        orig_budget = strategy.recommended_max_budget_usd
+        jitrl_note = (
+            f" JitRL({matched_type}): {success_rate:.0%} success "
+            f"({support_count} samples, avg_reward={jitrl_hint['avg_reward']:.2f})"
+        )
+
+        if success_rate < 0.4:
+            # Low historical success → boost resources to give task a better chance
+            new_timeout = int(orig_timeout * 1.5)
+            new_turns = int(orig_turns * 1.25)
+            new_budget = orig_budget
+            if success_rate < 0.3:
+                new_budget = round(orig_budget * 1.5, 2)
+            strategy = strategy.model_copy(update={
+                "recommended_timeout_seconds": new_timeout,
+                "recommended_max_turns": new_turns,
+                "recommended_max_budget_usd": new_budget,
+                "reasoning": strategy.reasoning + jitrl_note
+                    + f" → boosted (timeout {orig_timeout}→{new_timeout}s,"
+                    f" turns {orig_turns}→{new_turns}).",
+            })
+            log.info(
+                f"JitRL boosted '{(route_req.title or '')[:40]}': "
+                f"success_rate={success_rate:.0%}, "
+                f"timeout {orig_timeout}→{new_timeout}s, turns {orig_turns}→{new_turns}"
+            )
+            # If apply=True, write JitRL-adjusted params back to DB
+            if req.apply and req.task_id:
+                await pool.execute(
+                    """UPDATE tasks
+                       SET max_turns = $2,
+                           timeout_seconds = $3,
+                           max_budget_usd = $4,
+                           updated_at = now()
+                       WHERE id = $1 AND status = 'pending'""",
+                    req.task_id,
+                    strategy.recommended_max_turns,
+                    strategy.recommended_timeout_seconds,
+                    strategy.recommended_max_budget_usd,
+                )
+                log.info(
+                    f"JitRL params applied to task {req.task_id} "
+                    f"(timeout={new_timeout}s, turns={new_turns})"
+                )
+        else:
+            # Good or sufficient success rate — just annotate, no changes
+            strategy = strategy.model_copy(update={
+                "reasoning": strategy.reasoning + jitrl_note + " — params confirmed.",
+            })
+
     return TaskRouteResponse(strategy=strategy, applied=applied, task_id=req.task_id)
 
 
@@ -438,12 +560,13 @@ async def create_task(req: TaskCreate):
     elif cli == "kimi":
         max_turns = max(max_turns, 25)               # kimi hits step limit at 15
     row = await pool.fetchrow(
-        f"""INSERT INTO tasks (title, prompt, context, priority, model, cli,
+        f"""INSERT INTO tasks (title, prompt, context, priority, model, cli, agent_type,
                max_budget_usd, max_turns, timeout_seconds, working_directory,
                created_by, session_id, metadata)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
            RETURNING {TASK_COLUMNS}""",
         req.title, req.prompt, req.context, req.priority, req.model, cli,
+        req.agent_type,
         max_budget_usd, max_turns, req.timeout_seconds,
         req.working_directory, req.created_by, req.session_id,
         metadata,
@@ -620,7 +743,46 @@ async def complete_task(task_id: UUID, req: TaskComplete):
         )
     if not row:
         raise HTTPException(404, "Task not found")
+
+    # ── JitRL: Feed outcome back into experience buffer ─────────────
+    asyncio.create_task(_jitrl_ingest_task(task_id))
+
+    # ── AgentOS: Fire interrupt for task completion/failure ────────
+    asyncio.create_task(_fire_task_interrupt(task_id, status))
+
     return TaskOut(**dict(row))
+
+
+async def _jitrl_ingest_task(task_id: UUID):
+    """Fire-and-forget: ingest completed/failed task as JitRL experience.
+
+    Silently skips if task is not in a terminal state or if JitRL ingestion fails.
+    """
+    try:
+        from .jitrl import ingest_task_as_experience
+        await ingest_task_as_experience(task_id)
+        log.debug(f"JitRL ingested task {str(task_id)[:8]} as experience")
+    except Exception as e:
+        log.debug(f"JitRL ingest skipped for {str(task_id)[:8]}: {e}")
+
+
+async def _fire_task_interrupt(task_id: UUID, status: str):
+    """Fire-and-forget: submit kernel interrupt for task completion/failure."""
+    try:
+        from ..kernel.types import InterruptType
+        from ..kernel import ivt
+
+        itype = (
+            InterruptType.SIG_TASK_COMPLETE if status == "completed"
+            else InterruptType.SIG_TASK_FAILED
+        )
+        await ivt.enqueue(
+            interrupt_type=itype,
+            source="task_engine",
+            payload={"task_id": str(task_id), "status": status},
+        )
+    except Exception as e:
+        log.debug(f"Task interrupt skipped for {str(task_id)[:8]}: {e}")
 
 
 @router.post("/{task_id}/review", response_model=TaskOut)
@@ -641,9 +803,19 @@ async def mark_reviewed(task_id: UUID):
         raise HTTPException(404, "Task not found or not in completed/failed status")
 
     task_data = dict(row)
+    # Guard against corrupted metadata (JSON string instead of dict)
+    if not isinstance(task_data.get("metadata"), dict):
+        try:
+            import json as _json
+            task_data["metadata"] = _json.loads(task_data["metadata"]) if task_data.get("metadata") else {}
+        except Exception:
+            task_data["metadata"] = {}
     # Fire-and-forget skill extraction for successful completions
     if task_data.get("status") == "completed" and task_data.get("exit_code") == 0:
         asyncio.create_task(_extract_skill_from_task(task_data))
+
+    # Fire-and-forget JitRL experience ingestion (all terminal states)
+    asyncio.create_task(_jitrl_ingest_task(task_id))
 
     return TaskOut(**task_data)
 
@@ -653,7 +825,7 @@ async def _extract_skill_from_task(task: dict):
 
     Checks for novelty (name not already in procedures) before creating.
     """
-    if not settings.gemini_api_key:
+    if not settings.kimi_api_key:
         return
 
     title = task.get("title", "")
@@ -684,19 +856,11 @@ async def _extract_skill_from_task(task: dict):
     )
 
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=settings.gemini_api_key)
-        model = genai.GenerativeModel(
-            "gemini-2.0-flash",
-            generation_config={"temperature": 0.1},
-        )
-        response = await asyncio.to_thread(model.generate_content, gemini_prompt)
-        text = response.text.strip()
-        if text.startswith("```"):
-            text = text.split("```")[1]
-            if text.startswith("json"):
-                text = text[4:]
-        skill = json.loads(text)
+        text = await llm_chat([{"role": "user", "content": gemini_prompt}], max_tokens=500, temperature=0.1)
+        skill = extract_json(text)
+        if not skill:
+            log.warning(f"Skill extraction returned unparseable response for '{title[:40]}'")
+            return
 
         if not skill.get("is_novel"):
             log.info(
