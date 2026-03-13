@@ -63,7 +63,7 @@ Convergence signals are **late-pumpers, not early entries**:
 
 ### Key Finding
 Grade-A signals have **high variance, mostly negative** 13-day performance. This is expected for:
-1. Meme coins in a bear market (Feb-Mar 2026 risk-off period)  
+1. Meme koins in a bear market (Feb-Mar 2026 risk-off period)  
 2. 13-day hold is far outside the T+24h window  
 3. Several rugs/dead tokens (GROKEN -99%, KIMCHI -72%, LIZARD -54%)
 
@@ -94,7 +94,7 @@ Grade-A signals have **high variance, mostly negative** 13-day performance. This
 ### What's Not Working
 - **T+1h and T+4h are negative** (avg -1.5% and -1.8%) — signals are late entries
 - 30% win rate is below statistical significance for edge detection
-- Many grade-A signals are meme coins with rug risk (GROKEN, LIZARD, KIMCHI)
+- Many grade-A signals are meme koins with rug risk (GROKEN, LIZARD, KIMCHI)
 
 ### Recommendations
 1. **Extend hold horizon to 24h minimum** with -15% stop loss (SL cuts LABUBU-type losses)

@@ -111,7 +111,7 @@ For each wallet (limit to top 10 by priority score to stay within budget):
 - `mSoLzYCxHdYgdzU16g5QSh3i5K3z3KZK7ytfqcJm7So` (mSOL)
 - `jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL` (jitoSOL)
 
-Only flag convergence on actual meme tokens, altcoins, or DeFi tokens that represent a real position, not routing intermediaries.
+Only flag convergence on actual meme tokens, altkoins, or DeFi tokens that represent a real position, not routing intermediaries.
 
 Rate each signal:
 - **HIGH** (alert Mev): Multiple smart wallets buying same non-base token in <30 min, or wallet buying >$10k equivalent of a single non-base token

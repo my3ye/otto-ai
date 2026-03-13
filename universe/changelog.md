@@ -14,4 +14,4 @@
 - Added 3 new projects (from Mev 2026-03-05 directive): otto-ui, otto-cars, otto-billboards
 - Updated registry: schema_version 1→2, total_projects: 18, last_updated: 2026-03-11
 - Created BRANDS_AND_PROJECTS.md — comprehensive map of all brands/projects with status, domains, repos, open questions
-- Full ecosystem count: 18 projects + Assistive Technologies revenue engine + 3 personas
+- Full ecosystem count: 18 projects + Assistive Technologies revenue engine + 3 personas- 2026-03-13 23:08: [P7] Applied koins terminology directive — replaced coin→koin across universe YAMLs, character bibles, and strategic docs

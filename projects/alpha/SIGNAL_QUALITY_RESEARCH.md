@@ -49,7 +49,7 @@ The largest empirical study available is ChainCatcher's analysis of 1,080 Solana
 - Ranks 101-200: losses were 25% of total profit
 - Bottom 10: losses were **642% of total profit** (catastrophic)
 
-**Holding period research (ChainCatcher meme coin study, 8,858 transactions on MOODENG/LUCE):**
+**Holding period research (ChainCatcher meme koin study, 8,858 transactions on MOODENG/LUCE):**
 - Top performers held **6-8 days** — correlated with "fermentation duration of top tokens"
 - Profit rate (win rate) had only **0.04 Pearson correlation** with profitability — meaning raw win% on short trades doesn't capture the full picture
 - The actual success factor: **identifying the right opportunity and holding through its full arc**
@@ -208,7 +208,7 @@ Our 30-minute convergence window fires when 4+ wallets buy within 30 minutes. Bu
 - By the time we detect and publish to Telegram: 2-5 minutes after the final whale buy
 - By the time a subscriber reads and acts: 5-15 minutes after
 
-**Price impact timeline on low-liquidity meme coins:**
+**Price impact timeline on low-liquidity meme koins:**
 - A $10K buy on a $500K liquidity pool moves price ~2%
 - 4 whales each buying $10K = ~8% price impact before we even detect it
 - Our subscribers enter at +8% from where the whales entered
@@ -216,7 +216,7 @@ Our 30-minute convergence window fires when 4+ wallets buy within 30 minutes. Bu
 
 ### 3.3 The "Already Pumped" Problem — Specific Numbers
 
-From Solana rug analysis, meme coin lifecycle research, and direct observation:
+From Solana rug analysis, meme koin lifecycle research, and direct observation:
 
 **Price move thresholds that indicate late entry:**
 
@@ -233,7 +233,7 @@ From Solana rug analysis, meme coin lifecycle research, and direct observation:
 
 ### 3.4 The First Buyer Advantage — Why We Need Different Wallets
 
-The meme coin lifecycle on pump.fun:
+The meme koin lifecycle on pump.fun:
 - Whale entry (minutes 0-15): price impact minimal, best entry
 - Smart detection (minutes 15-60): some price impact already occurred
 - On-chain signal fires (minutes 30-120): 10-20% price impact baked in
@@ -459,7 +459,7 @@ If we have 15 quality wallets, 80% = 12 wallets agreeing. This is our highest-co
 Our 20 wallets were sourced by swap frequency. Replace 10 of the weakest with wallets that have:
 - Documented 30-day win rate >= 65% (via Birdeye PnL API or GMGN)
 - 50+ closed trades in last 90 days
-- Specialization in early meme coin buys (pump.fun first buyers on pumped tokens)
+- Specialization in early meme koin buys (pump.fun first buyers on pumped tokens)
 - Average hold time > 30 minutes (not bots)
 
 **How to find them:**
@@ -489,7 +489,7 @@ if already_moved_pct > 15:  # Was >25, tighten to 15
 
 **Fix 3 — Raise minimum buy size per wallet from $100 to $500 (estimated +5-8% win rate)**
 
-$100 buys are noise. A wallet buying $100 of a meme coin is testing the water, not committing capital. Smart money conviction signals require meaningful position sizes. Industry standard for whale-tracking: minimum $1K-$5K buys. We can start at $500 as a compromise.
+$100 buys are noise. A wallet buying $100 of a meme koin is testing the water, not committing capital. Smart money conviction signals require meaningful position sizes. Industry standard for whale-tracking: minimum $1K-$5K buys. We can start at $500 as a compromise.
 
 **Fix 4 — Add 7-day accumulation mode signal (new signal type, high quality)**
 
@@ -577,7 +577,7 @@ The wallet pool (currently wallets.json) must be upgraded:
 - Minimum 65% 30-day win rate per wallet
 - Minimum 50 qualifying trades in last 90 days
 - Not a known MEV/sniper bot
-- Actively trading meme coins (not primarily large-caps)
+- Actively trading meme koins (not primarily large-caps)
 - Re-evaluated monthly
 
 ---
@@ -625,7 +625,7 @@ The wallet pool (currently wallets.json) must be upgraded:
 - [Solidus Labs: Solana Rug Pull Analysis](https://www.soliduslabs.com/reports/solana-rug-pulls-pump-dumps-crypto-compliance)
 - [Rug Pull Lifecycle on Solana](https://blogs.xbankang.com/the-complete-rug-pull-lifecycle-on-solana-meme-coins/)
 - [Pump.fun Economic Analysis](https://storm.partners/blog-post/meme-coin-mania-on-pump-fun-an-economic-and-legal-analysis)
-- [Bitquery: Memecoin Retail Investor Illusion](https://bitquery.io/blog/easy-money-memecoin-retail-investors)
+- [Bitquery: Memekoin Retail Investor Illusion](https://bitquery.io/blog/easy-money-memekoin-retail-investors)
 - [GMGN Smart Money Tracking](https://docs.gmgn.ai/index/track-smart-money)
 - [Nansen: How to Track Solana Wallets](https://www.nansen.ai/post/how-to-track-solana-wallets-complete-guide-for-smart-money-analysis)
 - [Copy Trading 90-Day Study](https://yieldfund.com/is-copy-trading-profitable-a-90-day-multi-exchange-study/)

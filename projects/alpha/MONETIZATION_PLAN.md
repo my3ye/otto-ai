@@ -79,9 +79,9 @@ Add to crontab (runs every 30 min with signal pipeline):
 
 ### Signal Quality Transparency
 Current whale convergence signals track 15 Solana smart money wallets.
-Paper trading results (Feb 2026, altcoins in down market):
+Paper trading results (Feb 2026, altkoins in down market):
 - Average PnL: -0.6% to -1.9% per trade on 4h time exits
-- Issue: 4h exits too tight for altcoin recovery; signals may have longer time horizons
+- Issue: 4h exits too tight for altkoin recovery; signals may have longer time horizons
 
 **Recommendation**: Launch channel transparently as "whale tracking" not "trade alerts."
 Build audience first. Track and publish accuracy monthly. As audience grows, tips follow.
