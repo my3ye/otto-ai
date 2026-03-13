@@ -1,0 +1,68 @@
+id: panik
+name: "PANIK APP"
+archetype: "The Shield — sovereign protection for every human"
+inception_article: XIII
+
+identity:
+  tagline: "Your safety is a sovereign right, protected by your community."
+  philosophy: >
+    Safety is not a product. It's a sovereign right. When you press that button,
+    the people closest to you — geographically and by trust — respond first.
+    Not a call center. Not a corporation. Your community.
+  key_quote: "Works even when cell towers go down."
+  what_it_is: >
+    Decentralized emergency response and citizen protection. One-button distress
+    signal through ONEON mesh. Built by 505 Systems (first live governance deployment).
+    Guardian network: opt-in, contribution-scored, locally governed.
+  what_it_is_not: >
+    Not a security company. Not surveillance. Not dependent on infrastructure
+    that can be shut down by those you need protection from.
+  features:
+    - "One-button distress signal through ONEON mesh"
+    - "Works without cell towers (Otto device mesh + satellite backbone)"
+    - "Anonymous mode for activists/journalists"
+    - "Dead man's switch for dangerous truths"
+    - "Evidence capture -> tamper-proof on-chain storage"
+    - "Geographically + trust-closest people notified first"
+
+brand:
+  domain: "panik.app"
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#FF3B30"
+  aesthetic: "Dark, urgent, protective. Rounded cards, noise overlay, clean typography. The reference aesthetic for the whole ecosystem."
+  voice: "Protective. Urgent when needed, calm when not. Never alarmist. Community-first."
+
+technical:
+  repo: "/mnt/media/projects/panik-app-web"
+  repo_url: "https://github.com/PipiAgent/panik-app-web"
+  github_account: "PipiAgent"
+  stack: ["Vite", "React"]
+  live_url: "https://panik.app"
+  status: early
+
+ecosystem:
+  category: life
+  provides:
+    - "Emergency mesh for citizens"
+    - "Evidence preservation"
+    - "Guardian network"
+  depends_on: ["oneon", "505-systems", "ottolabs"]
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. Panik as first live deployment of 505 Systems governance."
+  - date: "2026-03-06"
+    note: "Landing page aesthetic became the reference design for otto-web rebuild."
+
+open_questions:
+  - "MVP scope — what's the minimum viable Panik?"
+  - "Guardian network — how to bootstrap without existing mesh?"
+  - "Legal implications of emergency response outside official channels?"

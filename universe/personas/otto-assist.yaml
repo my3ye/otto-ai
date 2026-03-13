@@ -103,4 +103,4 @@ channels:
 
 created: "2026-03-06"
 updated: "2026-03-06"
-status: blocked  # 226 error on X, cooling down
+status: early

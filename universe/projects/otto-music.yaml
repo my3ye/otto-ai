@@ -1,0 +1,44 @@
+id: otto-music
+name: "OTTO MUSIC"
+archetype: "The Frequency — decentralized music ecosystem"
+inception_article: VIII
+
+identity:
+  tagline: "Every artist deserves to own their signal."
+  philosophy: >
+    The frequency is transmitting. Artists publish to chain, smart contracts pay
+    royalties instantly, fans who discover early share in success. Community-governed
+    discovery algorithm.
+  key_quote: "Spotify pays $0.003/stream. Labels own masters. Otto Music changes both."
+  what_it_is: >
+    Decentralized music label and ecosystem. Artists own masters. Smart contract
+    royalties. Community-governed discovery (not advertising budgets). AI production
+    tools via Otto AI. Cultural heartbeat of Tusita, sound of ONEON.
+  what_it_is_not: >
+    Not a Spotify clone on blockchain. Not AI replacing artists. Tools that
+    democratize what only major labels could afford.
+
+brand:
+  domain: ""
+  aesthetic: "Sound waves. Dark with color bursts. Musical but not cliche."
+  voice: "Creative, passionate about artists. Speaks the language of musicians, not finance."
+
+technical:
+  repo: ""
+  stack: []
+  status: concept
+
+ecosystem:
+  category: platform
+  provides: ["Music distribution", "AI production tools", "Cultural heartbeat for Tusita"]
+  depends_on: ["otto", "oneon"]
+  token: null
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published."
+
+open_questions:
+  - "Which chain for music NFTs?"
+  - "How does the community-governed algorithm work?"
+  - "How do early fans 'share in success'? Revenue share? Token?"

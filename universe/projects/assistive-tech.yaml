@@ -1,0 +1,68 @@
+id: assistive-tech
+name: "Assistive Technologies"
+archetype: "Revenue engine — AI-powered tech services"
+inception_article: null
+
+identity:
+  tagline: "Just Assist it."
+  philosophy: >
+    The bridge between vision and revenue. Six AI-powered service verticals
+    that generate capital to fund the ecosystem while proving the technology works.
+  what_it_is: >
+    AI-powered tech services business. Six verticals: TechAssist, WebAssist,
+    AppAssist, BrandAssist, BizAssist, SupportAssist. B2B focus with
+    AI agents handling 80%+ of delivery. WebAssist is live.
+  what_it_is_not: >
+    Not the mission itself — it's the engine that funds the mission.
+  services:
+    - "TechAssist — IT infrastructure and support"
+    - "WebAssist — website design and development"
+    - "AppAssist — application development"
+    - "BrandAssist — brand strategy and design"
+    - "BizAssist — business operations and strategy"
+    - "SupportAssist — customer support automation"
+
+brand:
+  domain: "webassist.ink"
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#6366F1"
+  aesthetic: "Professional, clean, trustworthy. Enterprise-ready without being boring."
+  voice: "Professional but approachable. Results-focused. 'Just Assist it' energy."
+
+technical:
+  repo: "/mnt/media/projects/web-assist"
+  repo_url: ""
+  stack: ["Next.js", "FastAPI"]
+  live_url: "https://webassist.ink"
+  status: live
+  documentation:
+    - "ASSISTIVE_TECH_BRAND_BRIEF.md (20KB — full brand, pitch deck, financials)"
+    - "TRANSFORMATION_STATUS.md (11KB — implementation status)"
+    - "INVESTOR_NETWORKING_GUIDE.md (14KB — outreach strategy)"
+
+ecosystem:
+  category: business
+  provides:
+    - "Revenue to fund ecosystem development"
+    - "Proof of AI agent delivery capability"
+    - "Client relationships and market validation"
+  depends_on: ["otto"]
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-04"
+    note: "WebAssist live. 18-slide pitch deck built. 6-service portfolio. Orion AI agent."
+  - date: "2026-03-06"
+    note: "Revenue projections: $570M Year 5. LTV:CAC 72:1."
+
+open_questions:
+  - "When to start outbound sales?"
+  - "Which service vertical to scale first after WebAssist?"
+  - "How to position Assistive Tech's relationship to MY3YE publicly?"

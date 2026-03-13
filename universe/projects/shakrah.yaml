@@ -1,0 +1,59 @@
+id: shakrah
+name: "SHAKRAH"
+archetype: "The Balance — wellness for the builders"
+inception_article: XII
+
+identity:
+  tagline: "You cannot build a new world with broken people."
+  philosophy: >
+    Shakrah ensures the builders are whole. Integrated energetic balance at every
+    level — physical, mental, spiritual. Your biometric data belongs to you.
+  key_quote: "The builders must be whole."
+  what_it_is: >
+    Decentralized network of wellness practitioners, healing modalities, longevity
+    protocols, and mental health support. Otto Band biometric data owned by wearer.
+    Open marketplace of healers co-governed through ONEON.
+  what_it_is_not: >
+    Not a wellness app that sells your health data. Not corporate wellness programs.
+    Not wellness gatekept behind luxury pricing.
+
+brand:
+  domain: ""
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFFFFF"
+    accent: "#A855F7"
+  aesthetic: "Calming depth. Dark with organic elements. Chakra-inspired color accents. Premium but accessible."
+  voice: "Grounded, warm, knowledgeable. Speaks to the whole person. Never preachy about wellness."
+
+technical:
+  repo: "/mnt/media/projects/shakrah-web"
+  repo_url: "https://github.com/my3ye/shakrah-web"
+  stack: ["Next.js", "GSAP"]
+  live_url: ""
+  status: early
+
+ecosystem:
+  category: life
+  provides:
+    - "Wellness infrastructure for Tusita residents"
+    - "Practitioner marketplace"
+    - "Biometric sovereignty"
+  depends_on: ["oneon", "ottolabs"]
+  token: null
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. Tusita flagship: 12,000m2 Wellness Sanctuary."
+  - date: "2026-03-06"
+    note: "Landing page has view-router, waitlist, expert sections. GSAP via CDN (tech debt)."
+
+open_questions:
+  - "How do practitioners get onboarded and verified?"
+  - "What modalities does Shakrah cover? (Eastern + Western? Traditional only?)"
+  - "How does biometric data from Otto Band flow to Shakrah?"

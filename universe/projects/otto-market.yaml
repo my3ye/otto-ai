@@ -1,0 +1,43 @@
+id: otto-market
+name: "OTTO MARKET"
+archetype: "The Exchange — sovereign commerce"
+inception_article: X
+
+identity:
+  tagline: "Every storefront is sovereign. Every seller keeps what they earn."
+  philosophy: >
+    Amazon takes 30-40% and can deplatform overnight. Otto Market: every storefront
+    is an NFT (owned, transferable, financeable). Discovery by contribution, not
+    advertising. Disputes resolved by community jury.
+  key_quote: "Seller-sovereign commerce."
+  what_it_is: >
+    Decentralized commerce marketplace. Storefronts as NFTs. Contribution-based
+    discovery. Connects to Otto Robotics and Factory network for fulfillment.
+    Instant payments in any token via smart contracts.
+  what_it_is_not: >
+    Not another marketplace extracting 30% from sellers.
+
+brand:
+  domain: ""
+  aesthetic: "Clean commerce. Product-focused. Trust signals."
+  voice: "Practical, merchant-friendly. Speaks to sellers and buyers equally."
+
+technical:
+  repo: ""
+  stack: []
+  status: concept
+
+ecosystem:
+  category: platform
+  provides: ["Commerce infrastructure", "Storefront NFTs", "Community dispute resolution"]
+  depends_on: ["oneon", "ottolabs", "505-systems"]
+  token: null
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published."
+
+open_questions:
+  - "MVP scope — digital goods first? Physical?"
+  - "Fulfillment logistics without Otto Robotics existing yet?"
+  - "Community jury dispute resolution — how does it actually work?"

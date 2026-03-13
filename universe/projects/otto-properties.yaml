@@ -1,0 +1,43 @@
+id: otto-properties
+name: "OTTO PROPERTIES"
+archetype: "The Land — tokenized real estate with renter equity"
+inception_article: XI
+
+identity:
+  tagline: "Land belongs to those who live on it, build on it, and care for it."
+  philosophy: >
+    Every property tokenized on-chain. Fractional ownership by default. Renter
+    equity: percentage of rent converts to ownership stake automatically.
+  key_quote: "Renters become owners through the act of living."
+  what_it_is: >
+    Decentralized real estate protocol. Properties tokenized on-chain. Fractional
+    ownership. Automatic renter-to-owner conversion. Development proposed to
+    community treasuries, built by Otto Factories and Robots.
+    Flagship: Tusita island properties.
+  what_it_is_not: >
+    Not real estate speculation. Not tokenized landlordism.
+
+brand:
+  domain: ""
+  aesthetic: "Architecture meets blockchain. Clean property visualization."
+  voice: "Grounded, fair, transformative. Speaks to renters and communities."
+
+technical:
+  repo: ""
+  stack: []
+  status: concept
+
+ecosystem:
+  category: platform
+  provides: ["Tokenized property", "Renter equity protocol", "Fractional ownership"]
+  depends_on: ["oneon", "tusita", "505-systems", "ottolabs"]
+  token: null
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. Tusita properties as flagship."
+
+open_questions:
+  - "Legal framework for tokenized property in different jurisdictions?"
+  - "Renter equity conversion rate — what percentage per month?"
+  - "How does fractional ownership work with physical property?"

@@ -1,0 +1,66 @@
+id: pipi
+name: "PIPI"
+archetype: "The First Meme — cultural mascot and spirit of the ecosystem"
+inception_article: XIV
+
+identity:
+  tagline: "Sees what others miss. Builds what others won't."
+  philosophy: >
+    PiPi doesn't take the world seriously enough to be stopped by it — and
+    seriously enough to build a better one. PiPi reminds the ecosystem not to
+    become what it replaces: rigid, humorless, extractive.
+  key_quote: "The Perspicacious Pink Pepe Pig finds treasure in what others overlook."
+  what_it_is: >
+    Cultural symbol and spirit of the MY3YE ecosystem. Face of Koink.Fun.
+    Mascot of the chaos layer. Carries internet meme lineage (Pepe) but
+    redirected from nihilism to construction.
+  what_it_is_not: >
+    Not just a meme. Not a cash grab mascot. Not ironic — genuinely joyful
+    and genuinely building.
+  qualities:
+    - "Perspicacious — sees clearly what others miss"
+    - "Pink — unabashedly joyful, refuses grimness"
+    - "Pepe — internet meme lineage, redirected from nihilism"
+    - "Pig — finds treasure in what others overlook, thrives in chaos, underestimated and unstoppable"
+
+brand:
+  domain: ""
+  domains_alt: []
+  colors:
+    primary: "#FF69B4"
+    secondary: "#000000"
+    accent: "#FFD700"
+  aesthetic: "Meme culture meets earnest building. Pink chaos. Cute but sharp."
+  voice: "Playful, mischievous, surprisingly wise. Speaks in short bursts. Meme-literate. Never mean."
+
+technical:
+  repo: ""
+  repo_url: ""
+  stack: []
+  live_url: ""
+  status: concept
+
+ecosystem:
+  category: life
+  provides:
+    - "Cultural identity for the ecosystem"
+    - "Mascot for Koink.Fun"
+    - "Meme content and community engagement"
+  depends_on: ["koink"]
+  token: null
+
+social:
+  x_accounts: []  # planned — PiPi will be a major persona
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. PiPi as the 14th and final article — the spirit that keeps everything from taking itself too seriously."
+  - date: "2026-03-06"
+    note: "PiPi needs a dedicated X persona. Will be one of the most active accounts."
+
+open_questions:
+  - "PiPi X account — what handle?"
+  - "Visual design — final character art? Multiple expressions/poses?"
+  - "Should PiPi have its own token separate from $KOINK?"
+  - "PiPi content strategy — pure memes? Memes + wisdom? Commentary?"

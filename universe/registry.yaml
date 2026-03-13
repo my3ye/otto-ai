@@ -26,36 +26,42 @@ ecosystem:
 projects:
   # Core Infrastructure
   my3ye:
+    name: "MY3YE"
     file: projects/my3ye.yaml
     category: core
     status: active
     one_liner: "The Vision — overarching ecosystem container"
 
   otto:
+    name: "Otto"
     file: projects/otto.yaml
     category: core
     status: active
     one_liner: "Continuous thought on chain, governed by community"
 
   oneon:
+    name: "ONEON"
     file: projects/oneon.yaml
     category: core
     status: early
     one_liner: "Sovereign identity and communication network"
 
   tusita:
+    name: "Tusita"
     file: projects/tusita.yaml
     category: core
     status: early
     one_liner: "Physical civilization — sovereign island communities"
 
   505-systems:
+    name: "505 Systems"
     file: projects/505-systems.yaml
     category: core
     status: early
     one_liner: "Governance organism — DAO backbone for the ecosystem"
 
   ottolabs:
+    name: "Ottolabs"
     file: projects/ottolabs.yaml
     category: core
     status: concept
@@ -63,24 +69,28 @@ projects:
 
   # Platforms
   otto-music:
+    name: "Otto Music"
     file: projects/otto-music.yaml
     category: platform
     status: concept
     one_liner: "Decentralized music ecosystem"
 
   otto-travel:
+    name: "Otto Travel"
     file: projects/otto-travel.yaml
     category: platform
     status: concept
     one_liner: "Zero-commission decentralized travel"
 
   otto-market:
+    name: "Otto Market"
     file: projects/otto-market.yaml
     category: platform
     status: concept
     one_liner: "Decentralized commerce marketplace"
 
   otto-properties:
+    name: "Otto Properties"
     file: projects/otto-properties.yaml
     category: platform
     status: concept
@@ -88,24 +98,28 @@ projects:
 
   # Life & Culture
   shakrah:
+    name: "Shakrah"
     file: projects/shakrah.yaml
     category: life
     status: early
     one_liner: "Holistic wellness ecosystem"
 
   panik:
+    name: "Panik App"
     file: projects/panik.yaml
     category: life
     status: early
     one_liner: "Sovereign protection — decentralized emergency mesh"
 
   koink:
+    name: "Koink.Fun"
     file: projects/koink.yaml
     category: life
     status: concept
     one_liner: "Meme tokenomics engine — the Trojan Horse"
 
   pipi:
+    name: "PiPi"
     file: projects/pipi.yaml
     category: life
     status: concept
@@ -113,18 +127,21 @@ projects:
 
   # Platforms (continued)
   otto-ui:
+    name: "Otto UI"
     file: projects/otto-ui.yaml
     category: platform
     status: concept
     one_liner: "Universal interface layer — shared design system for all projects"
 
   otto-cars:
+    name: "Otto Cars"
     file: projects/otto-cars.yaml
     category: platform
     status: concept
     one_liner: "Community-governed automated taxis + Build Your Own Car"
 
   otto-billboards:
+    name: "Otto Billboards"
     file: projects/otto-billboards.yaml
     category: platform
     status: concept
@@ -132,6 +149,7 @@ projects:
 
   # Business Entities
   assistive-tech:
+    name: "Assistive Technologies"
     file: projects/assistive-tech.yaml
     category: business
     status: live
@@ -151,12 +169,13 @@ personas:
     file: personas/otto-assist.yaml
     project: otto
     x_handle: "@OttoAssist"
-    status: blocked  # 226 error, cooling down
+    status: early
 
-  # Future personas (add as accounts are created)
-  # pipi:
-  #   file: personas/pipi.yaml
-  #   project: pipi
+  pipi:
+    file: personas/pipi.yaml
+    project: pipi
+    x_handle: "@PinkPepePig"
+    status: concept
   #   x_handle: TBD
   #   status: planned
 

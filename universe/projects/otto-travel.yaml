@@ -1,0 +1,42 @@
+id: otto-travel
+name: "OTTO TRAVEL"
+archetype: "The Journey — zero-commission decentralized travel"
+inception_article: IX
+
+identity:
+  tagline: "The host deserves to keep what they earn."
+  philosophy: >
+    Airbnb 20%. Booking.com 25%. Otto Travel 0%. Properties listed as NFTs.
+    Smart contract escrow. Reputation portable across platforms on ONEON identity.
+  key_quote: "Zero commission. The host keeps everything."
+  what_it_is: >
+    Decentralized travel platform. Properties as NFTs (tradeable, financeable,
+    permanently host-owned). Experience Ceylon as flagship — Sri Lanka as first
+    deeply curated destination.
+  what_it_is_not: >
+    Not another booking platform taking a cut. Not listings without curation.
+
+brand:
+  domain: ""
+  aesthetic: "Travel photography meets clean tech. Warm, inviting, trustworthy."
+  voice: "Adventurous, respectful of local culture. Curated, not algorithmic."
+
+technical:
+  repo: ""
+  stack: []
+  status: concept
+
+ecosystem:
+  category: platform
+  provides: ["Travel infrastructure", "Property NFTs", "Host sovereignty"]
+  depends_on: ["oneon", "tusita"]
+  token: null
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. Experience Ceylon as flagship destination."
+
+open_questions:
+  - "Is 'Experience Ceylon' the final name for the Sri Lanka product?"
+  - "How to bootstrap supply (hosts) without commission incentive?"
+  - "Smart contract escrow — which chain?"

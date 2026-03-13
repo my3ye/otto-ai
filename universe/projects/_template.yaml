@@ -1,0 +1,64 @@
+# Project Template — copy this to create a new project file
+# All fields are optional except id, name, and archetype
+
+id: project-slug
+name: "Project Name"
+archetype: "What this project IS in one phrase"
+inception_article: null  # I through XIV
+
+# ── Identity ──────────────────────────────────────────────────────────────────
+
+identity:
+  tagline: ""
+  philosophy: ""
+  key_quote: ""
+  what_it_is: ""
+  what_it_is_not: ""
+
+# ── Brand ─────────────────────────────────────────────────────────────────────
+
+brand:
+  domain: ""
+  domains_alt: []
+  colors:
+    primary: ""
+    secondary: ""
+    accent: ""
+  aesthetic: ""  # e.g., "dark minimalist", "chaotic meme energy"
+  voice: ""      # how it speaks publicly
+
+# ── Technical ─────────────────────────────────────────────────────────────────
+
+technical:
+  repo: ""           # path on disk
+  repo_url: ""       # github URL
+  stack: []          # e.g., ["Next.js", "FastAPI", "Solana"]
+  live_url: ""
+  status: concept    # concept | early | active | live | blocked
+
+# ── Ecosystem ─────────────────────────────────────────────────────────────────
+
+ecosystem:
+  category: core     # core | platform | life | business
+  provides: []       # what this project gives to others
+  depends_on: []     # what it needs from other projects
+  token: ""          # associated token symbol, if any
+
+# ── X / Social ────────────────────────────────────────────────────────────────
+
+social:
+  x_accounts: []     # references to persona files
+  other: {}          # telegram, discord, etc.
+
+# ── Vision ────────────────────────────────────────────────────────────────────
+# Free-form space for evolving ideas, concepts, future plans.
+# Add dated entries as the vision develops.
+
+vision: []
+  # - date: "2026-03-06"
+  #   note: "Initial concept from inception article"
+
+# ── Open Questions ────────────────────────────────────────────────────────────
+# Things still being figured out
+
+open_questions: []

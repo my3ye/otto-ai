@@ -1,0 +1,60 @@
+id: koink
+name: "KOINK.FUN"
+archetype: "The Money Printer — meme tokenomics as Trojan Horse for civilization"
+inception_article: VII
+
+identity:
+  tagline: "The meme is the Trojan Horse. The civilization is what's inside."
+  philosophy: >
+    Meme coins build communities fast then transfer wealth upward. Koink fixes this.
+    Every laugh is a brick in the wall of Tusita.
+  key_quote: "Born from PiPi — internet culture's meme energy redirected from nihilism to construction."
+  what_it_is: >
+    Financial chaos engine disguised as meme tokenomics. Quantum Koinkulator engine:
+    quantum randomness for fair launches (no snipers/bots), anti-whale hard wallet caps,
+    graduated sell taxes, contribution-weighted governance, 20% community treasury.
+    $KOINK Standard is an open-source tokenomics template any project can fork.
+  what_it_is_not: >
+    Not a rug pull. Not another meme coin that extracts from community. Not
+    financial nihilism — it's financial construction wearing a meme costume.
+
+brand:
+  domain: "koink.fun"
+  domains_alt: []
+  colors:
+    primary: "#000000"
+    secondary: "#FFD700"
+    accent: "#FF69B4"
+  aesthetic: "Chaotic. Meme energy. Loud but intentional. The fun layer of the ecosystem."
+  voice: "Irreverent, funny, chaotic. Speaks in memes. Hides depth under humor."
+
+technical:
+  repo: ""
+  repo_url: ""
+  stack: ["Solana"]
+  live_url: ""
+  status: concept
+
+ecosystem:
+  category: life
+  provides:
+    - "Fair tokenomics standard ($KOINK Standard)"
+    - "Anti-whale mechanics"
+    - "Community treasury model"
+    - "Quantum Koinkulator engine"
+  depends_on: ["505-systems"]
+  token: "KOINK"
+
+social:
+  x_accounts: []
+  other: {}
+
+vision:
+  - date: "2026-03-05"
+    note: "Inception article published. Diamond hands multiplier grows to 3x over 12 months."
+
+open_questions:
+  - "Quantum randomness source — actual quantum or VRF?"
+  - "Which chain? Solana? Base?"
+  - "How does the $KOINK Standard get adopted by other projects?"
+  - "Launch strategy — when and how?"

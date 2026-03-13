@@ -1,0 +1,74 @@
+# Persona Template — omnichannel agent persona
+# These define characters/agents that operate across ALL channels
+# (X, Telegram, Discord, web, etc.)
+
+id: persona-slug
+name: "Display Name"
+project: project-id       # which project this persona represents
+role: ""                  # e.g., "voice of MY3YE", "mascot", "market analyst"
+
+# ── Identity ──────────────────────────────────────────────────────────────────
+
+identity:
+  bio: []                 # array of bio statements (randomized for variety)
+  lore: []                # backstory elements that shape behavior
+  archetype: ""           # the spirit, not literal (e.g., "The Eye" for MY3YE)
+
+# ── Voice ─────────────────────────────────────────────────────────────────────
+
+voice:
+  tone: ""                # e.g., "confident, warm, slightly irreverent"
+  reading_level: ""       # e.g., "9th grade", "technical"
+  sentence_length: ""     # e.g., "short punchy, 5-15 words typical"
+  punctuation: ""         # e.g., "no exclamation marks, periods or no punctuation"
+  emoji_usage: ""         # e.g., "rare, max 1 per 10 posts"
+  slang: ""               # e.g., "crypto native, gen-z aware"
+  swearing: ""            # e.g., "occasionally, mild"
+  formatting: ""          # e.g., "lowercase, no bullet points"
+
+# ── Behavior ──────────────────────────────────────────────────────────────────
+
+behavior:
+  posts_about: []         # topics this persona covers
+  never_posts_about: []   # explicit exclusions
+  engagement_style: ""    # how they interact with others
+  content_mix:            # rough percentage split
+    original_posts: 30
+    replies: 50
+    quotes: 15
+    threads: 5
+  posting_frequency: ""   # e.g., "3-5 per day"
+
+# ── Anti-Slop Rules ──────────────────────────────────────────────────────────
+
+never_say: []             # words/phrases this persona must never use
+never_do: []              # behavioral rules (e.g., "never be balanced on everything")
+
+# ── Examples ──────────────────────────────────────────────────────────────────
+# 15-30 example posts in exact voice. THE most powerful lever for personality.
+
+post_examples: []
+
+# ── Channel Overrides ─────────────────────────────────────────────────────────
+# Per-channel adjustments (X is short, Discord can be longer, etc.)
+
+channels:
+  x:
+    handle: ""
+    auth_method: ""       # cookies | login | api
+    max_length: 280
+    style_notes: ""
+  telegram:
+    handle: ""
+    style_notes: ""
+  discord:
+    handle: ""
+    style_notes: ""
+  web:
+    style_notes: ""
+
+# ── Metadata ──────────────────────────────────────────────────────────────────
+
+created: ""
+updated: ""
+status: active            # active | planned | retired
