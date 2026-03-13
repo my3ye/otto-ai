@@ -62,7 +62,62 @@ vision:
   - date: "2026-03-06"
     note: "Landing page aesthetic became the reference design for otto-web rebuild."
 
+marketing:
+  positioning: >
+    Every existing emergency app requires cell towers, a corporation in the middle,
+    and a call center that may or may not pick up. Panik requires none of that.
+    One button, your community responds first, works when everything else has
+    been shut down. The shield that works when the state turns off the lights.
+  audience_segments:
+    - name: Activists, journalists, and at-risk individuals in repressive contexts
+      description: >
+        Operating in environments where the state is the threat. Anonymous mode,
+        dead man's switch, and infrastructure that can't be shut down by a
+        government order. Panik is the only emergency app built for people the
+        system won't protect.
+    - name: Tusita and intentional community residents
+      description: >
+        Living in dense, trust-based communities where the guardian network
+        bootstraps naturally. First deployment environment — existing community
+        governance maps directly to Panik's trust layers.
+    - name: Web3-native safety advocates and sovereignty communities
+      description: >
+        Already thinking about infrastructure sovereignty. Panik is the concrete,
+        daily-use proof that decentralized infrastructure protects real humans.
+        High early adopter overlap with ONEON and 505 Systems audiences.
+  headline_hooks:
+    - "Works when cell towers go down. Works when governments say no."
+    - "One button. Your community responds. Not a call center."
+    - "The only emergency app built for the people the system won't protect."
+    - "Evidence, captured. Tamper-proof. On-chain. Forever."
+    - "Safety is a sovereign right. Panik makes it one."
+
+roadmap:
+  thirty_day: >
+    MVP scope defined: one-button distress + ONEON mesh routing + guardian
+    notification. Legal research on emergency response liability in 2 pilot
+    jurisdictions. Guardian network bootstrap model designed. panik.app landing
+    page waitlist backend wired.
+  ninety_day: >
+    Panik MVP live in closed beta. 100 guardians onboarded in one Tusita
+    or aligned community. ONEON mesh integration tested with offline-first
+    fallback. Anonymous mode implemented. First 505 Systems governance
+    framework deployed for guardian network decisions.
+  one_year: >
+    Panik v1.0 public launch. 10,000+ users across 5+ communities. Guardian
+    network self-sustaining in pilot communities. Evidence preservation on-chain
+    with ONEON verification. Dead man's switch for journalists in 3+ countries.
+    505 Systems governance DAO managing guardian standards. First legal precedent
+    for community emergency response documented.
+
+next_action: >
+  Define the minimum viable guardian network — what does bootstrapping look
+  like in a community of 50-100 people before the full ONEON mesh exists?
+  This is the critical path question: everything else depends on answering
+  how Panik works when the infrastructure it ultimately depends on isn't live yet.
+
 open_questions:
   - "MVP scope — what's the minimum viable Panik?"
   - "Guardian network — how to bootstrap without existing mesh?"
   - "Legal implications of emergency response outside official channels?"
+  - "Dead man's switch — what's the trigger mechanism and proof-of-life interval?"

@@ -61,6 +61,56 @@ vision:
   - date: "2026-03-05"
     note: "Added by Mev — billboard/advertising infrastructure as physical presence for the ecosystem."
 
+marketing:
+  positioning: >
+    Lamar and Clear Channel collect billions from your city's attention and keep it.
+    Otto Billboards puts that revenue back into the communities the billboards exist in.
+    Community-governed, community-owned, community-paid — the advertising infrastructure
+    that actually serves the people who live there.
+  audience_segments:
+    - name: Local communities and neighborhood DAOs
+      description: >
+        Watching billboard revenue disappear to distant corporations while their
+        streets carry the ads. Otto Billboards makes them the owner and the beneficiary.
+        First natural pilot for any Tusita or ONEON-governed community.
+    - name: Local small businesses and merchants
+      description: >
+        Priced out of traditional OOH advertising by corporate rate cards. Otto Billboards
+        with community-governed pricing means local merchants can advertise where they
+        actually operate, at rates governed by the community.
+    - name: MY3YE ecosystem signal boosters
+      description: >
+        Members who understand the vision and want to spread the frequency into physical
+        space. Otto Billboards is literally the physical broadcast layer — turning city
+        infrastructure into ecosystem presence.
+  headline_hooks:
+    - "Your city's attention. Your city's revenue."
+    - "Clear Channel keeps the money. We give it back."
+    - "Billboard owned by the block. Revenue stays on the block."
+    - "The physical broadcast layer for the new civilization."
+    - "Corporate ads leave. Community ads pay you back."
+
+roadmap:
+  thirty_day: >
+    Research land/permit requirements for first pilot city. Map existing billboard
+    infrastructure costs vs revenue potential. Draft community revenue-share model
+    (CPM → treasury split). Define governance framework for content decisions.
+  ninety_day: >
+    First community partner identified. Pilot billboard location secured in one
+    Tusita-adjacent or ONEON-governed community. Revenue model validated with
+    first local merchant advertisers. Legal entity structure for community ownership defined.
+  one_year: >
+    3-5 pilot billboards live in 2+ communities. Revenue flowing to community
+    treasuries. MY3YE ecosystem content broadcasting on all units.
+    Governance framework refined from real pilot learnings. Integration with
+    Otto Market for merchant ad placement. Expansion plan for 10+ cities drafted.
+
+next_action: >
+  Pick the first pilot city and do a permit/cost feasibility research pass —
+  what does it actually cost to install and operate one digital billboard in
+  that city, and what CPM rates exist? This one number validates or kills the
+  revenue model before any engineering begins.
+
 open_questions:
   - "First city / location for pilot billboards?"
   - "Digital vs physical vs both? LED screens or traditional?"

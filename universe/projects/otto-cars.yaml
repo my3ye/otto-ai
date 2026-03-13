@@ -61,6 +61,53 @@ vision:
   - date: "2026-03-05"
     note: "Added by Mev — community-governed automated taxis + custom super cars (Build Your Own Car with pre-configured bases)."
 
+marketing:
+  positioning: >
+    Uber takes 25%. Tesla obsoletes your car every 3 years. Otto Cars does neither.
+    Community-governed automated taxis where the city earns from its own mobility.
+    And if you want a custom vehicle — you build it, we deliver it, nobody extracts rent from it.
+  audience_segments:
+    - name: Urban commuters in high-rideshare cities
+      description: >
+        Paying 25-40% premiums to Uber/Lyft every day. Would switch to a zero-commission
+        alternative immediately. First adopters for the taxi layer.
+    - name: Car enthusiasts and custom vehicle builders
+      description: >
+        Frustrated by the homogeneity of mass-market vehicles. Wants exactly what they
+        want — not what a design team decided this year. The Build Your Own Car angle hits
+        this segment directly.
+    - name: Tusita community residents and ecosystem builders
+      description: >
+        Living inside the MY3YE physical infrastructure stack. Otto Cars is their mobility
+        layer — governed by the same community structures they already participate in.
+  headline_hooks:
+    - "Uber takes 25%. Your city's fleet takes 0%."
+    - "Build your own car. Not a request. An actual build."
+    - "Zero-commission rides. Every dollar stays in your city."
+    - "The taxi companies own your commute. We're taking it back."
+    - "Community treasury earns from every ride. You govern the route."
+
+roadmap:
+  thirty_day: >
+    Build Your Own Car concept page live with configurator mockup. Taxi network whitepaper
+    draft. Research autonomous vehicle legal frameworks in 3 pilot candidate jurisdictions
+    (Sri Lanka, Dubai, Portugal). Define the 'pre-configured bases' product spec.
+  ninety_day: >
+    Waitlist backend wired for both products (taxi contributor + BYOC interest).
+    First community governance framework drafted for fleet operations. Partner conversation
+    started with one Otto Factory / Ottolabs hardware team for production path.
+    Legal structure for vehicle contributor revenue share defined.
+  one_year: >
+    Pilot taxi network live in one Tusita community or aligned city. 50+ vehicles.
+    First BYOC order delivered. Fleet governance DAO operational. Revenue flowing
+    to community treasury. Integration with ONEON for identity and ONEON mesh
+    for vehicle-to-vehicle communication.
+
+next_action: >
+  Define the 'pre-configured bases' for Build Your Own Car — what are the 3-5 base
+  configurations (chassis, drivetrain, power) that customers start from? This spec
+  unlocks the configurator mockup which is the most viral surface in the whole product.
+
 open_questions:
   - "Which city / region for first taxi network pilot?"
   - "What are the 'pre-configured bases' for Build Your Own Car?"
