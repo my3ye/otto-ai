@@ -29,6 +29,10 @@ class Settings(BaseSettings):
     # Web interface auth
     web_auth_token: str = ""
 
+    # WebAssist Supabase
+    webassist_supabase_url: str = ""
+    webassist_supabase_service_key: str = ""
+
     # Neo4j (for reference)
     neo4j_uri: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
