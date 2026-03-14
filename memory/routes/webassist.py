@@ -39,6 +39,15 @@ async def _supabase_get(path: str, params: dict | None = None) -> list | dict:
     return resp.json()
 
 
+async def _supabase_get_safe(path: str, params: dict | None = None) -> list:
+    """Like _supabase_get but returns [] instead of raising on error (e.g. schema not applied)."""
+    try:
+        result = await _supabase_get(path, params)
+        return result if isinstance(result, list) else []
+    except HTTPException:
+        return []
+
+
 async def _supabase_patch(path: str, body: dict) -> dict:
     if not _configured():
         raise HTTPException(503, "WebAssist Supabase not configured")
@@ -74,6 +83,7 @@ async def webassist_stats():
 
     leads = leads_raw if isinstance(leads_raw, list) else []
     projects = projects_raw if isinstance(projects_raw, list) else []
+    schema_ready = isinstance(leads_raw, list) and isinstance(projects_raw, list)
 
     from datetime import datetime, timezone, timedelta
     now = datetime.now(timezone.utc)
@@ -91,6 +101,7 @@ async def webassist_stats():
 
     return {
         "configured": True,
+        "schema_ready": schema_ready,
         "leads": {
             "total": len(leads),
             "this_week": leads_this_week,
@@ -127,7 +138,7 @@ async def list_leads(
         # Search by name or email using ILIKE
         params["or"] = f"(name.ilike.*{search}*,email.ilike.*{search}*,company.ilike.*{search}*)"
 
-    return await _supabase_get("wizard_completions", params)
+    return await _supabase_get_safe("wizard_completions", params)
 
 
 @router.get("/leads/{lead_id}")
@@ -164,7 +175,7 @@ async def list_projects(
     if stage:
         params["current_stage"] = f"eq.{stage}"
 
-    return await _supabase_get("projects", params)
+    return await _supabase_get_safe("projects", params)
 
 
 @router.get("/projects/{project_id}")
