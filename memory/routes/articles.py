@@ -5,7 +5,9 @@ Provides CRUD + status transitions for articles intended for Paragraph, X, etc.
 """
 
 import logging
+import os
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException
@@ -261,3 +263,79 @@ async def delete_article(article_id: str):
     )
     if result == "DELETE 0":
         raise HTTPException(404, f"Article {article_id} not found")
+
+
+# ── File sync ──────────────────────────────────────────────────────────────
+
+ARTICLES_DIR = Path(os.path.expanduser("~/otto/projects/articles"))
+
+# Filename-to-metadata hints (ecosystem project + tags)
+_FILE_META: dict[str, dict] = {
+    "pipi_intro.md":         {"ecosystem_project": "pipi", "platform": "paragraph", "tags": ["pipi", "intro"]},
+    "pipi_three_lives.md":   {"ecosystem_project": "pipi", "platform": "paragraph", "tags": ["pipi", "mythology"]},
+    "pipi_why_the_pig.md":   {"ecosystem_project": "pipi", "platform": "paragraph", "tags": ["pipi", "cultural"]},
+    "pipi_the_frequency.md": {"ecosystem_project": "pipi", "platform": "paragraph", "tags": ["pipi", "philosophy"]},
+    "koink_intro.md":        {"ecosystem_project": "koink", "platform": "paragraph", "tags": ["koink", "intro"]},
+    "505_systems_intro.md":  {"ecosystem_project": "sos-systems", "platform": "paragraph", "tags": ["sos-systems", "intro"]},
+}
+
+
+@router.post("/sync-from-files", status_code=200)
+async def sync_from_files():
+    """Scan ~/otto/projects/articles/*.md and import any files not already in the DB.
+
+    Matches by title derived from filename. Idempotent — skips files whose title
+    already exists in the DB. Returns a summary of imported vs skipped files.
+    """
+    pool = await get_pool()
+    await _ensure_table(pool)
+
+    if not ARTICLES_DIR.exists():
+        return {"imported": 0, "skipped": 0, "files": []}
+
+    # Build set of existing titles for dedup
+    existing_titles = {
+        r["title"]
+        for r in await pool.fetch("SELECT title FROM articles")
+    }
+
+    imported = []
+    skipped = []
+
+    for md_file in sorted(ARTICLES_DIR.glob("*.md")):
+        content = md_file.read_text().strip()
+        filename = md_file.name
+
+        # Derive title: use first H1 heading, fall back to filename
+        title = filename.replace(".md", "").replace("_", " ").title()
+        for line in content.splitlines():
+            stripped = line.strip()
+            if stripped.startswith("# "):
+                title = stripped[2:].strip()
+                break
+
+        if title in existing_titles:
+            skipped.append(filename)
+            continue
+
+        meta = _FILE_META.get(filename, {})
+        row = await pool.fetchrow(
+            """INSERT INTO articles (title, content, platform, ecosystem_project, tags)
+               VALUES ($1, $2, $3, $4, $5)
+               RETURNING id, title, status""",
+            title,
+            content,
+            meta.get("platform"),
+            meta.get("ecosystem_project"),
+            meta.get("tags", []),
+        )
+        imported.append({"id": str(row["id"]), "title": row["title"], "file": filename})
+        existing_titles.add(title)
+        log.info("Imported article from file: %s → %s", filename, row["id"])
+
+    return {
+        "imported": len(imported),
+        "skipped": len(skipped),
+        "files": imported,
+        "skipped_files": skipped,
+    }
