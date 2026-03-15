@@ -1,11 +1,13 @@
 """Articles route — manage content created by Otto for MY3YE ecosystem.
 
-Status workflow: draft → ready → posted
-Provides CRUD + status transitions for articles intended for Paragraph, X, etc.
+Status workflow: draft → ready → approved → posted
+Mev must approve (set status=approved) before publishing.
+Provides CRUD + status transitions + one-click broadcast publish.
 """
 
 import logging
 import os
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -13,6 +15,11 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from ..db import get_pool
+
+# Make broadcast module importable
+_BROADCAST_PATH = Path("/home/web3relic/otto/projects/broadcast")
+if str(_BROADCAST_PATH.parent) not in sys.path:
+    sys.path.insert(0, str(_BROADCAST_PATH.parent))
 
 log = logging.getLogger("otto.articles")
 
@@ -35,17 +42,15 @@ CREATE TABLE IF NOT EXISTS articles (
 );
 """
 
-VALID_STATUSES = {"draft", "ready", "posted"}
+VALID_STATUSES = {"draft", "ready", "approved", "posted"}
+
+# Ordered progression — status can only move forward
+STATUS_ORDER = ["draft", "ready", "approved", "posted"]
 
 PLATFORMS = [
-    "paragraph",
-    "mirror",
-    "medium",
-    "substack",
-    "x",
-    "bluesky",
-    "farcaster",
-    "other",
+    "paragraph", "mirror", "medium", "substack", "x",
+    "bluesky", "farcaster", "devto", "hashnode",
+    "telegram", "discord", "mastodon", "other",
 ]
 
 
@@ -233,7 +238,7 @@ async def update_article(article_id: str, body: ArticleUpdate):
 
 @router.post("/{article_id}/status")
 async def update_status(article_id: str, status: str):
-    """Transition article status: draft → ready → posted."""
+    """Transition article status: draft → ready → approved → posted."""
     pool = await get_pool()
     await _ensure_table(pool)
 
@@ -249,6 +254,72 @@ async def update_status(article_id: str, status: str):
         raise HTTPException(404, f"Article {article_id} not found")
 
     return _row_to_dict(row)
+
+
+class PublishRequest(BaseModel):
+    platforms: Optional[list[str]] = None   # None = all enabled platforms
+
+
+@router.post("/{article_id}/publish")
+async def publish_article(article_id: str, req: PublishRequest = PublishRequest()):
+    """Broadcast an approved article to configured platforms.
+
+    Article must be in 'approved' status. After successful broadcast,
+    status advances to 'posted'. Returns per-platform results.
+    """
+    pool = await get_pool()
+    await _ensure_table(pool)
+
+    row = await pool.fetchrow("SELECT * FROM articles WHERE id = $1", article_id)
+    if not row:
+        raise HTTPException(404, f"Article {article_id} not found")
+
+    article = _row_to_dict(row)
+    if article["status"] != "approved":
+        raise HTTPException(
+            400,
+            f"Article must be in 'approved' status to publish. Current status: {article['status']}. "
+            "Mev must approve the article before it can be broadcast."
+        )
+
+    try:
+        from broadcast.broadcast import BroadcastEngine
+        from broadcast.models import BroadcastMessage
+    except ImportError as e:
+        raise HTTPException(500, f"Broadcast module not available: {e}")
+
+    # Build message from article — format as article for long-form platforms
+    tags = article.get("tags") or []
+    if article.get("ecosystem_project"):
+        tags = [article["ecosystem_project"]] + [t for t in tags if t != article["ecosystem_project"]]
+
+    msg = BroadcastMessage(
+        content=article["content"],
+        format="article",
+        title=article["title"],
+        tags=tags,
+    )
+
+    try:
+        engine = BroadcastEngine()
+        record = await engine.send(msg, platforms=req.platforms)
+    except Exception as e:
+        log.exception("Broadcast failed for article %s", article_id)
+        raise HTTPException(500, str(e))
+
+    # Mark as posted if at least one platform succeeded
+    if record.platforms_succeeded > 0:
+        await pool.execute(
+            "UPDATE articles SET status = 'posted', updated_at = now() WHERE id = $1",
+            article_id,
+        )
+
+    from dataclasses import asdict
+    return {
+        "article_id": article_id,
+        "broadcast": asdict(record),
+        "status_updated": record.platforms_succeeded > 0,
+    }
 
 
 @router.delete("/{article_id}", status_code=204)
