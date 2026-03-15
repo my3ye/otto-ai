@@ -12,7 +12,7 @@ from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 
 from .db import get_pool, close_pool
-from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist
+from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist, articles
 from .routes.kernel_routes import router as kernel_router
 from .gateway.routes import router as gateway_router
 from .routes.maintenance import run_maintenance_job
@@ -45,6 +45,10 @@ async def lifespan(app: FastAPI):
             from .kernel.reasoning_kernel import ensure_kernel_running
             ensure_kernel_running()
             logger.info("AgentOS Reasoning Kernel started")
+
+        # Register Phase 5 post-processing hooks (parallel execution)
+        from .kernel.ric import setup_post_process_hooks
+        setup_post_process_hooks()
     except Exception as e:
         logger.warning(f"AgentOS kernel initialization failed (non-fatal): {e}")
 
@@ -142,6 +146,7 @@ app.include_router(universe.router)
 app.include_router(skills.router)
 app.include_router(notify.router)
 app.include_router(webassist.router)
+app.include_router(articles.router)
 
 
 @app.get("/hello", response_class=HTMLResponse)
