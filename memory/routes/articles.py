@@ -126,7 +126,7 @@ async def list_articles(status: Optional[str] = None):
         )
 
     articles = [_row_to_dict(r) for r in rows]
-    counts = {"draft": 0, "ready": 0, "posted": 0}
+    counts = {"draft": 0, "ready": 0, "approved": 0, "posted": 0}
     for a in articles:
         if a["status"] in counts:
             counts[a["status"]] += 1
