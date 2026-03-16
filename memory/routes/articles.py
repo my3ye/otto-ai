@@ -42,6 +42,24 @@ CREATE TABLE IF NOT EXISTS articles (
 );
 """
 
+CREATE_VERSIONS_TABLE_SQL = """
+CREATE TABLE IF NOT EXISTS article_versions (
+    id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    article_id      UUID NOT NULL REFERENCES articles(id) ON DELETE CASCADE,
+    version_number  INTEGER NOT NULL,
+    title           TEXT NOT NULL DEFAULT '',
+    content         TEXT NOT NULL DEFAULT '',
+    note            TEXT,
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_article_versions_article_version
+    ON article_versions(article_id, version_number);
+CREATE INDEX IF NOT EXISTS idx_article_versions_article_created
+    ON article_versions(article_id, created_at DESC);
+"""
+
+MAX_VERSIONS_PER_ARTICLE = 50
+
 VALID_STATUSES = {"draft", "ready", "approved", "posted"}
 
 # Ordered progression — status can only move forward
@@ -105,6 +123,48 @@ def _row_to_dict(row) -> dict:
 
 async def _ensure_table(pool):
     await pool.execute(CREATE_TABLE_SQL)
+    await pool.execute(CREATE_VERSIONS_TABLE_SQL)
+
+
+def _version_row_to_dict(row) -> dict:
+    return {
+        "id": str(row["id"]),
+        "article_id": str(row["article_id"]),
+        "version_number": row["version_number"],
+        "title": row["title"],
+        "content": row["content"],
+        "note": row["note"],
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+    }
+
+
+async def _snapshot(pool, article_id: str, title: str, content: str, note: str | None = None):
+    """Save a snapshot of the current article state before overwriting."""
+    # Get next version number
+    row = await pool.fetchrow(
+        "SELECT COALESCE(MAX(version_number), 0) + 1 AS next_ver FROM article_versions WHERE article_id = $1",
+        article_id,
+    )
+    next_ver = row["next_ver"]
+
+    await pool.execute(
+        """INSERT INTO article_versions (article_id, version_number, title, content, note)
+           VALUES ($1, $2, $3, $4, $5)""",
+        article_id, next_ver, title, content, note,
+    )
+
+    # Prune oldest versions if over limit
+    await pool.execute(
+        """DELETE FROM article_versions
+           WHERE article_id = $1
+             AND version_number NOT IN (
+               SELECT version_number FROM article_versions
+               WHERE article_id = $1
+               ORDER BY version_number DESC
+               LIMIT $2
+             )""",
+        article_id, MAX_VERSIONS_PER_ARTICLE,
+    )
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
@@ -209,6 +269,12 @@ async def update_article(article_id: str, body: ArticleUpdate):
         if not row:
             raise HTTPException(404, f"Article {article_id} not found")
         return _row_to_dict(row)
+
+    # Auto-snapshot current state before writing (only if content or title is changing)
+    if "content" in updates or "title" in updates:
+        current = await pool.fetchrow("SELECT title, content FROM articles WHERE id = $1", article_id)
+        if current:
+            await _snapshot(pool, article_id, current["title"], current["content"])
 
     set_parts = []
     values = []
@@ -319,6 +385,110 @@ async def publish_article(article_id: str, req: PublishRequest = PublishRequest(
         "article_id": article_id,
         "broadcast": asdict(record),
         "status_updated": record.platforms_succeeded > 0,
+    }
+
+
+class SnapshotCreate(BaseModel):
+    note: Optional[str] = None  # optional human label e.g. "Pre-publish draft"
+
+
+@router.get("/{article_id}/versions")
+async def list_versions(article_id: str):
+    """List all saved versions for an article, newest first."""
+    pool = await get_pool()
+    await _ensure_table(pool)
+
+    rows = await pool.fetch(
+        """SELECT id, article_id, version_number, title,
+                  LEFT(content, 200) AS content_preview,
+                  note, created_at
+           FROM article_versions
+           WHERE article_id = $1
+           ORDER BY version_number DESC""",
+        article_id,
+    )
+    versions = []
+    for r in rows:
+        versions.append({
+            "id": str(r["id"]),
+            "article_id": str(r["article_id"]),
+            "version_number": r["version_number"],
+            "title": r["title"],
+            "content_preview": r["content_preview"],
+            "note": r["note"],
+            "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+        })
+    return {"versions": versions, "total": len(versions)}
+
+
+@router.get("/{article_id}/versions/{version_id}")
+async def get_version(article_id: str, version_id: str):
+    """Get full content of a specific version."""
+    pool = await get_pool()
+    await _ensure_table(pool)
+
+    row = await pool.fetchrow(
+        "SELECT * FROM article_versions WHERE id = $1 AND article_id = $2",
+        version_id, article_id,
+    )
+    if not row:
+        raise HTTPException(404, f"Version {version_id} not found for article {article_id}")
+    return _version_row_to_dict(row)
+
+
+@router.post("/{article_id}/versions", status_code=201)
+async def create_snapshot(article_id: str, body: SnapshotCreate = SnapshotCreate()):
+    """Manually snapshot the current article state with an optional note."""
+    pool = await get_pool()
+    await _ensure_table(pool)
+
+    current = await pool.fetchrow("SELECT * FROM articles WHERE id = $1", article_id)
+    if not current:
+        raise HTTPException(404, f"Article {article_id} not found")
+
+    await _snapshot(pool, article_id, current["title"], current["content"], note=body.note)
+
+    # Return the newly created version
+    row = await pool.fetchrow(
+        """SELECT * FROM article_versions WHERE article_id = $1
+           ORDER BY version_number DESC LIMIT 1""",
+        article_id,
+    )
+    return _version_row_to_dict(row)
+
+
+@router.post("/{article_id}/versions/{version_id}/restore")
+async def restore_version(article_id: str, version_id: str):
+    """Restore article to a previous version. Auto-snapshots current state first."""
+    pool = await get_pool()
+    await _ensure_table(pool)
+
+    version = await pool.fetchrow(
+        "SELECT * FROM article_versions WHERE id = $1 AND article_id = $2",
+        version_id, article_id,
+    )
+    if not version:
+        raise HTTPException(404, f"Version {version_id} not found for article {article_id}")
+
+    # Snapshot current state before restoring
+    current = await pool.fetchrow("SELECT title, content FROM articles WHERE id = $1", article_id)
+    if not current:
+        raise HTTPException(404, f"Article {article_id} not found")
+
+    await _snapshot(
+        pool, article_id, current["title"], current["content"],
+        note=f"Auto-saved before restoring v{version['version_number']}",
+    )
+
+    # Restore
+    row = await pool.fetchrow(
+        """UPDATE articles SET title = $1, content = $2, updated_at = now()
+           WHERE id = $3 RETURNING *""",
+        version["title"], version["content"], article_id,
+    )
+    return {
+        "article": _row_to_dict(row),
+        "restored_from_version": version["version_number"],
     }
 
 
