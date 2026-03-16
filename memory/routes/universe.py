@@ -3,12 +3,15 @@ Universe API routes — MY3YE Universe System.
 
 Manages YAML files in ~/otto/universe/ for projects and personas.
 Supports read, partial update, and conversational (LLM-driven) edits.
+
+Also manages project_content table for per-project rich content
+(roadmaps, articles, plans, notes, research).
 """
 
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Optional, Literal
 
 import yaml
 from fastapi import APIRouter, HTTPException
@@ -18,6 +21,7 @@ import asyncio
 import json
 
 from ..llm import llm_chat, extract_json
+from ..db import get_pool
 
 log = logging.getLogger("otto.universe")
 
@@ -320,4 +324,157 @@ async def conversational_edit(req: EditRequest):
         "message": f"Applied: {req.message}",
         "changed_fields": changed_fields,
         "new_content": updated,
+    }
+
+
+# ── Project Content (DB-backed) ────────────────────────────────────────────────
+
+VALID_CONTENT_TYPES = {"roadmap", "article", "plan", "note", "research"}
+
+
+class ProjectContentCreate(BaseModel):
+    title: str
+    content: str = ""
+    metadata: dict = {}
+
+
+class ProjectContentUpdate(BaseModel):
+    title: Optional[str] = None
+    content: Optional[str] = None
+    metadata: Optional[dict] = None
+
+
+def _content_row_to_dict(row) -> dict:
+    return {
+        "id": str(row["id"]),
+        "project_id": row["project_id"],
+        "type": row["type"],
+        "title": row["title"],
+        "content": row["content"],
+        "metadata": row["metadata"] or {},
+        "archived": row["archived"],
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
+    }
+
+
+@router.get("/projects/{project_id}/content")
+async def list_project_content(project_id: str, type: Optional[str] = None):
+    """List all content for a project, optionally filtered by type."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        if type:
+            if type not in VALID_CONTENT_TYPES:
+                raise HTTPException(status_code=400, detail=f"Invalid type. Must be one of: {', '.join(VALID_CONTENT_TYPES)}")
+            rows = await conn.fetch(
+                """SELECT * FROM project_content
+                   WHERE project_id = $1 AND type = $2::project_content_type AND archived = FALSE
+                   ORDER BY updated_at DESC""",
+                project_id, type
+            )
+        else:
+            rows = await conn.fetch(
+                """SELECT * FROM project_content
+                   WHERE project_id = $1 AND archived = FALSE
+                   ORDER BY type, updated_at DESC""",
+                project_id
+            )
+    items = [_content_row_to_dict(r) for r in rows]
+    return {"project_id": project_id, "content": items, "count": len(items)}
+
+
+@router.get("/projects/{project_id}/content/{content_id}")
+async def get_project_content(project_id: str, content_id: str):
+    """Get a single content item."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM project_content WHERE id = $1 AND project_id = $2 AND archived = FALSE",
+            content_id, project_id
+        )
+    if not row:
+        raise HTTPException(status_code=404, detail="Content not found")
+    return _content_row_to_dict(row)
+
+
+@router.post("/projects/{project_id}/content/{content_type}", status_code=201)
+async def create_project_content(project_id: str, content_type: str, body: ProjectContentCreate):
+    """Create a new content item for a project."""
+    if content_type not in VALID_CONTENT_TYPES:
+        raise HTTPException(status_code=400, detail=f"Invalid type. Must be one of: {', '.join(VALID_CONTENT_TYPES)}")
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """INSERT INTO project_content (project_id, type, title, content, metadata)
+               VALUES ($1, $2::project_content_type, $3, $4, $5)
+               RETURNING *""",
+            project_id, content_type, body.title, body.content, json.dumps(body.metadata)
+        )
+    log.info(f"Created {content_type} content for project '{project_id}': {body.title}")
+    return _content_row_to_dict(row)
+
+
+@router.put("/projects/{project_id}/content/{content_id}")
+async def update_project_content(project_id: str, content_id: str, body: ProjectContentUpdate):
+    """Update a content item (partial — only provided fields are updated)."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        existing = await conn.fetchrow(
+            "SELECT * FROM project_content WHERE id = $1 AND project_id = $2 AND archived = FALSE",
+            content_id, project_id
+        )
+        if not existing:
+            raise HTTPException(status_code=404, detail="Content not found")
+
+        new_title = body.title if body.title is not None else existing["title"]
+        new_content = body.content if body.content is not None else existing["content"]
+        existing_meta = existing["metadata"] or {}
+        new_meta = {**existing_meta, **body.metadata} if body.metadata is not None else existing_meta
+
+        row = await conn.fetchrow(
+            """UPDATE project_content SET title = $1, content = $2, metadata = $3
+               WHERE id = $4 RETURNING *""",
+            new_title, new_content, json.dumps(new_meta), content_id
+        )
+    return _content_row_to_dict(row)
+
+
+@router.delete("/projects/{project_id}/content/{content_id}")
+async def delete_project_content(project_id: str, content_id: str):
+    """Soft-delete (archive) a content item."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        result = await conn.execute(
+            "UPDATE project_content SET archived = TRUE WHERE id = $1 AND project_id = $2",
+            content_id, project_id
+        )
+    if result == "UPDATE 0":
+        raise HTTPException(status_code=404, detail="Content not found")
+    return {"ok": True, "id": content_id}
+
+
+@router.get("/projects/{project_id}/summary")
+async def get_project_summary(project_id: str):
+    """Get project YAML overview + content counts per type."""
+    # YAML overview
+    path = PROJECTS_DIR / f"{project_id}.yaml"
+    if not path.exists():
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not found")
+    overview = _read_yaml(path)
+
+    # Content counts by type
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """SELECT type, COUNT(*) as count FROM project_content
+               WHERE project_id = $1 AND archived = FALSE
+               GROUP BY type""",
+            project_id
+        )
+    content_counts = {r["type"]: r["count"] for r in rows}
+
+    return {
+        "project_id": project_id,
+        "overview": overview,
+        "content_counts": content_counts,
     }
