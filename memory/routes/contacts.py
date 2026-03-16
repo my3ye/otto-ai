@@ -2,6 +2,8 @@
 OMS Contact Management routes — internal contacts for Mev + Otto relationship tracking.
 """
 
+import subprocess
+import shlex
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from typing import Optional
@@ -33,6 +35,10 @@ class ContactUpdate(BaseModel):
 class InteractionCreate(BaseModel):
     type: str  # e.g. "whatsapp", "email", "note", "meeting"
     content: str
+
+
+class ContactMessageSend(BaseModel):
+    content: str  # message to send
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -231,3 +237,117 @@ async def add_interaction(contact_id: str, body: InteractionCreate):
     )
 
     return _row_to_interaction(row)
+
+
+@router.get("/{contact_id}/conversations")
+async def get_conversations(
+    contact_id: str,
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """Get conversation history between Otto and a contact."""
+    pool = await get_pool()
+
+    exists = await pool.fetchval(
+        "SELECT 1 FROM oms_contacts WHERE id = $1", contact_id
+    )
+    if not exists:
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    rows = await pool.fetch(
+        """SELECT id, contact_id, direction, content, jid, created_at, metadata
+           FROM contact_conversations
+           WHERE contact_id = $1
+           ORDER BY created_at ASC
+           LIMIT $2 OFFSET $3""",
+        contact_id, limit, offset,
+    )
+    total = await pool.fetchval(
+        "SELECT COUNT(*) FROM contact_conversations WHERE contact_id = $1",
+        contact_id,
+    )
+
+    return {
+        "messages": [
+            {
+                "id": str(r["id"]),
+                "contact_id": str(r["contact_id"]),
+                "direction": r["direction"],
+                "content": r["content"],
+                "jid": r["jid"],
+                "created_at": r["created_at"].isoformat(),
+                "metadata": r["metadata"] or {},
+            }
+            for r in rows
+        ],
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.post("/{contact_id}/send", status_code=201)
+async def send_message_to_contact(contact_id: str, body: ContactMessageSend):
+    """Send a WhatsApp message to a contact (proactive outreach from Otto/Mev)."""
+    pool = await get_pool()
+
+    contact = await pool.fetchrow(
+        "SELECT * FROM oms_contacts WHERE id = $1", contact_id
+    )
+    if not contact:
+        raise HTTPException(status_code=404, detail="Contact not found")
+
+    phone = contact["phone"]
+    if not phone:
+        raise HTTPException(status_code=400, detail="Contact has no phone number")
+
+    # Normalize phone for WhatsApp JID
+    jid = contact["whatsapp_jid"] or _phone_to_jid(phone)
+
+    # Send via whatsapp_send.sh
+    try:
+        result = subprocess.run(
+            ["/home/web3relic/otto/tools/whatsapp_send.sh", body.content, jid],
+            capture_output=True, text=True, timeout=15
+        )
+        if result.returncode != 0:
+            raise HTTPException(
+                status_code=502,
+                detail=f"WhatsApp send failed: {result.stderr[:200]}"
+            )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="WhatsApp send timed out")
+    except FileNotFoundError:
+        raise HTTPException(status_code=500, detail="WhatsApp send tool not found")
+
+    # Log outgoing message
+    msg_row = await pool.fetchrow(
+        """INSERT INTO contact_conversations (contact_id, jid, direction, content, metadata)
+           VALUES ($1, $2, 'outgoing', $3, '{"source": "manual"}')
+           RETURNING *""",
+        contact_id, jid, body.content,
+    )
+    await pool.execute(
+        """INSERT INTO oms_contact_interactions (contact_id, type, content)
+           VALUES ($1, 'whatsapp', $2)""",
+        contact_id, f"[Otto → Contact] {body.content[:500]}"
+    )
+    await pool.execute(
+        "UPDATE oms_contacts SET updated_at = NOW() WHERE id = $1", contact_id
+    )
+
+    return {
+        "id": str(msg_row["id"]),
+        "contact_id": contact_id,
+        "direction": "outgoing",
+        "content": body.content,
+        "jid": jid,
+        "created_at": msg_row["created_at"].isoformat(),
+    }
+
+
+def _phone_to_jid(phone: str) -> str:
+    """Convert phone number to WhatsApp JID format."""
+    # Strip non-digits and leading +
+    digits = phone.replace("+", "").replace(" ", "").replace("-", "")
+    return f"{digits}@s.whatsapp.net"
