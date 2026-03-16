@@ -1,10 +1,11 @@
 # MY3YE Ecosystem — Comprehensive Roadmaps
-*Created: 2026-03-16 | All 15 projects with phased milestones + dependency chain*
+*Created: 2026-03-16 | 15 projects + MY3YE umbrella, phased milestones + dependency chain*
 
 ## Quick Reference
 
 | # | Project | Status | Phase 1 Focus | Key Dependencies |
 |---|---------|--------|---------------|-----------------|
+| 00 | [MY3YE](./12-my3ye.md) | Declaration | Broadcast + community 100 | None (root) |
 | 01 | [WebAssist](./01-webassist.md) | LIVE | Revenue activation (Stripe/Wise) | None |
 | 02 | [OMS](./02-oms.md) | LIVE | Control capabilities (task creation UI) | Otto AI |
 | 03 | [ONEON](./03-oneon.md) | Early | Waitlist backend wired | None (foundation) |
