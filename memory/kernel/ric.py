@@ -317,11 +317,11 @@ async def _handle_default(interrupt: dict) -> dict:
 async def _post_process(interrupt: dict, result: dict) -> None:
     """Phase 5 — POST-PROCESS: async non-blocking tasks after response.
 
-    - Log episodic event
-    - Persist messages
-    - Graphiti entity extraction
-    - Match/resolve pending questions
-    - Measure drift
+    Uses the hook system for concurrent execution. Two phases:
+      message.post      — independent hooks (run in parallel)
+      message.post.late  — hooks that benefit from earlier hooks completing
+
+    Hook registration happens in setup_post_process_hooks() called at startup.
     """
     log.info(f"Phase 5 POST started for interrupt {interrupt.get('id', '?')}")
     try:
@@ -337,126 +337,150 @@ async def _post_process(interrupt: dict, result: dict) -> None:
 
         pool = await get_pool()
         payload = interrupt["payload"]
-        content = payload.get("content", "")
-        reply = result.get("content", "")
-        channel = payload.get("channel", "whatsapp")
-        sender_id = payload.get("sender_id", "")
-        sender_name = payload.get("sender_name", "Mev")
 
-        # Episodic event logging
-        try:
-            importance = 7 if channel == "whatsapp" else 6
-            await pool.execute(
-                """INSERT INTO episodic_events (content, event_type, importance, metadata)
-                   VALUES ($1, $2, $3, $4)""",
-                f"[{channel}] Mev: {content[:500]} | Otto: {reply[:500]}",
-                "conversation",
-                importance,
-                {"channel": channel, "interrupt_id": str(interrupt["id"])},
-            )
-        except Exception as e:
-            log.warning(f"Post-process episodic logging failed: {e}")
+        # Build kwargs shared across all hooks
+        kwargs = dict(
+            pool=pool,
+            interrupt=interrupt,
+            content=payload.get("content", ""),
+            reply=result.get("content", ""),
+            channel=payload.get("channel", "whatsapp"),
+            sender_id=payload.get("sender_id", ""),
+            sender_name=payload.get("sender_name", "Mev"),
+        )
 
-        # Message persistence (embeddings)
-        try:
-            from ..gateway.persistence import persist_messages
-            await persist_messages(pool, channel, sender_id, sender_name, content, reply, None, None)
-        except Exception as e:
-            log.warning(f"Post-process message persistence failed: {e}")
-
-        # Graphiti ingestion
-        try:
-            from ..gateway.persistence import ingest_to_graph
-            await ingest_to_graph(channel, content, reply)
-        except Exception as e:
-            log.warning(f"Post-process graph ingestion failed: {e}")
-
-        # Pending question matching
-        try:
-            from ..gateway.classifiers import match_pending_question
-            from ..gateway.persistence import get_pending_questions, resolve_and_store
-            pending = await get_pending_questions(pool)
-            match = await match_pending_question(content, pending)
-            if match:
-                await resolve_and_store(pool, match["question"], match["extracted_answer"])
-        except Exception as e:
-            log.warning(f"Post-process pending matching failed: {e}")
-
-        # Decision proposal matching
-        try:
-            from ..gateway.persistence import get_open_proposals, match_and_resolve_proposal
-            proposals = await get_open_proposals(pool)
-            await match_and_resolve_proposal(pool, content, proposals)
-        except Exception as e:
-            log.warning(f"Post-process proposal matching failed: {e}")
-
-        # Lesson extraction — detect corrections, teachings, operational knowledge
-        try:
-            from ..gateway.classifiers import extract_lesson
-            lesson = await extract_lesson(content, reply)
-            if lesson:
-                from ..embeddings import get_embedding
-                embedding = await get_embedding(lesson["lesson"])
-                embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
-                await pool.execute(
-                    """INSERT INTO semantic_memories (content, category, confidence, embedding)
-                       VALUES ($1, $2, 0.85, $3::vector(1536))""",
-                    lesson["lesson"], lesson["category"], embedding_str,
-                )
-                log.info(f"Phase 5: lesson stored [{lesson['category']}]: {lesson['lesson'][:80]}...")
-        except Exception as e:
-            log.warning(f"Post-process lesson extraction failed: {e}")
-
-        # Directive extraction — detect and persist directives from Mev
-        try:
-            from ..gateway.classifiers import extract_directive
-            directive = await extract_directive(content, reply)
-            if directive:
-                # Store in mission_directives table
-                await pool.execute(
-                    """INSERT INTO mission_directives (directive, priority, category, status, source)
-                       VALUES ($1, $2, $3, 'active', $4)""",
-                    directive["directive"], directive["priority"], directive["category"],
-                    f"auto-extracted from {channel}",
-                )
-                # Also store as semantic memory for retrieval
-                from ..embeddings import get_embedding
-                dir_embedding = await get_embedding(f"Mev directive: {directive['directive']}")
-                dir_embedding_str = "[" + ",".join(str(x) for x in dir_embedding) + "]"
-                await pool.execute(
-                    """INSERT INTO semantic_memories (content, category, confidence, embedding, source)
-                       VALUES ($1, 'directive', 0.90, $2::vector(1536), $3)""",
-                    f"Mev directive ({directive['category']}): {directive['directive']}",
-                    dir_embedding_str,
-                    f"auto-extracted from {channel}",
-                )
-                log.info(f"Phase 5: directive stored [{directive['category']}]: {directive['directive'][:80]}...")
-        except Exception as e:
-            log.warning(f"Post-process directive extraction failed: {e}")
-
-        # Reactive dispatch — auto-create task if Mev's message implies action
-        try:
-            log.info(f"Phase 5: running reactive dispatch classifier")
-            await _reactive_dispatch(content, reply, channel, pool)
-            log.info(f"Phase 5: reactive dispatch complete")
-        except Exception as e:
-            log.warning(f"Post-process reactive dispatch failed: {e}")
-
-        # Drift measurement (every N interrupts)
-        try:
-            from .smmu import get_smmu
-            agent_id = interrupt.get("agent_id", "otto")
-            smmu = get_smmu(agent_id)
-            smmu.interrupts_since_sync += 1
-            from ..config import settings
-            if smmu.interrupts_since_sync % settings.drift_check_interval == 0:
-                from .drift import measure_drift
-                await measure_drift(agent_id=agent_id)
-        except Exception as e:
-            log.warning(f"Post-process drift measurement failed: {e}")
+        from . import hooks
+        await hooks.fire("message.post", **kwargs)
+        await hooks.fire("message.post.late", **kwargs)
 
     except Exception as e:
         log.error(f"Post-processing failed: {e}", exc_info=True)
+
+
+# ── Phase 5 Hook Functions ─────────────────────────────────────────────────
+# Each hook is a standalone async function that receives the shared kwargs.
+# Hooks must be fault-tolerant — they should not raise exceptions.
+
+
+async def _hook_episodic_log(pool, channel, content, reply, interrupt, **_):
+    """Log conversation as episodic event."""
+    importance = 7 if channel == "whatsapp" else 6
+    await pool.execute(
+        """INSERT INTO episodic_events (content, event_type, importance, metadata)
+           VALUES ($1, $2, $3, $4)""",
+        f"[{channel}] Mev: {content[:500]} | Otto: {reply[:500]}",
+        "conversation",
+        importance,
+        {"channel": channel, "interrupt_id": str(interrupt["id"])},
+    )
+
+
+async def _hook_persist_messages(pool, channel, sender_id, sender_name, content, reply, **_):
+    """Persist messages with embeddings."""
+    from ..gateway.persistence import persist_messages
+    await persist_messages(pool, channel, sender_id, sender_name, content, reply, None, None)
+
+
+async def _hook_graphiti_ingest(channel, content, reply, **_):
+    """Ingest conversation to knowledge graph."""
+    from ..gateway.persistence import ingest_to_graph
+    await ingest_to_graph(channel, content, reply)
+
+
+async def _hook_pending_match(pool, content, **_):
+    """Match and resolve pending questions from Otto."""
+    from ..gateway.classifiers import match_pending_question
+    from ..gateway.persistence import get_pending_questions, resolve_and_store
+    pending = await get_pending_questions(pool)
+    match = await match_pending_question(content, pending)
+    if match:
+        await resolve_and_store(pool, match["question"], match["extracted_answer"])
+
+
+async def _hook_proposal_match(pool, content, **_):
+    """Match and resolve decision proposals."""
+    from ..gateway.persistence import get_open_proposals, match_and_resolve_proposal
+    proposals = await get_open_proposals(pool)
+    await match_and_resolve_proposal(pool, content, proposals)
+
+
+async def _hook_lesson_extract(pool, content, reply, **_):
+    """Detect corrections/teachings from Mev and store as semantic memory."""
+    from ..gateway.classifiers import extract_lesson
+    lesson = await extract_lesson(content, reply)
+    if lesson:
+        from ..embeddings import get_embedding
+        embedding = await get_embedding(lesson["lesson"])
+        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+        await pool.execute(
+            """INSERT INTO semantic_memories (content, category, confidence, embedding)
+               VALUES ($1, $2, 0.85, $3::vector(1536))""",
+            lesson["lesson"], lesson["category"], embedding_str,
+        )
+        log.info(f"Phase 5: lesson stored [{lesson['category']}]: {lesson['lesson'][:80]}...")
+
+
+async def _hook_directive_extract(pool, channel, content, reply, **_):
+    """Detect and persist directives from Mev."""
+    from ..gateway.classifiers import extract_directive
+    directive = await extract_directive(content, reply)
+    if directive:
+        await pool.execute(
+            """INSERT INTO mission_directives (directive, priority, category, status, source)
+               VALUES ($1, $2, $3, 'active', $4)""",
+            directive["directive"], directive["priority"], directive["category"],
+            f"auto-extracted from {channel}",
+        )
+        from ..embeddings import get_embedding
+        dir_embedding = await get_embedding(f"Mev directive: {directive['directive']}")
+        dir_embedding_str = "[" + ",".join(str(x) for x in dir_embedding) + "]"
+        await pool.execute(
+            """INSERT INTO semantic_memories (content, category, confidence, embedding, source)
+               VALUES ($1, 'directive', 0.90, $2::vector(1536), $3)""",
+            f"Mev directive ({directive['category']}): {directive['directive']}",
+            dir_embedding_str,
+            f"auto-extracted from {channel}",
+        )
+        log.info(f"Phase 5: directive stored [{directive['category']}]: {directive['directive'][:80]}...")
+
+
+async def _hook_reactive_dispatch(pool, content, reply, channel, **_):
+    """Auto-create task if Mev's message implies action."""
+    await _reactive_dispatch(content, reply, channel, pool)
+
+
+async def _hook_drift_measure(interrupt, **_):
+    """Measure cognitive drift periodically."""
+    from .smmu import get_smmu
+    agent_id = interrupt.get("agent_id", "otto")
+    smmu = get_smmu(agent_id)
+    smmu.interrupts_since_sync += 1
+    from ..config import settings
+    if smmu.interrupts_since_sync % settings.drift_check_interval == 0:
+        from .drift import measure_drift
+        await measure_drift(agent_id=agent_id)
+
+
+def setup_post_process_hooks():
+    """Register all Phase 5 post-processing hooks. Called once at API startup."""
+    from . import hooks
+
+    # Group 1: Independent hooks — run concurrently
+    hooks.register("message.post", _hook_episodic_log)
+    hooks.register("message.post", _hook_persist_messages)
+    hooks.register("message.post", _hook_graphiti_ingest)
+    hooks.register("message.post", _hook_pending_match)
+    hooks.register("message.post", _hook_proposal_match)
+
+    # Group 2: Late hooks — run after group 1 completes
+    # Lesson/directive extraction may benefit from persisted messages;
+    # reactive dispatch and drift are independent but lower priority.
+    hooks.register("message.post.late", _hook_lesson_extract)
+    hooks.register("message.post.late", _hook_directive_extract)
+    hooks.register("message.post.late", _hook_reactive_dispatch)
+    hooks.register("message.post.late", _hook_drift_measure)
+
+    log.info(f"Phase 5 hooks registered: {hooks.list_hooks()}")
 
 
 async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> None:
@@ -494,6 +518,23 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
     except Exception as e:
         log.warning(f"Reactive dispatch dedup check failed (proceeding): {e}")
 
+    # Scale budget/timeout by priority
+    if priority >= 8:
+        max_budget, max_turns, timeout = 10.0, 50, 1800
+    elif priority >= 5:
+        max_budget, max_turns, timeout = 5.0, 50, 900
+    else:
+        max_budget, max_turns, timeout = 3.0, 30, 600
+
+    # Infer agent_type from prompt keywords
+    prompt_lower = prompt.lower()
+    if any(kw in prompt_lower for kw in ("fix", "debug", "error", "broken", "crash", "fail")):
+        agent_type = "debugger"
+    elif any(kw in prompt_lower for kw in ("research", "investigate", "find", "search", "explore")):
+        agent_type = "researcher"
+    else:
+        agent_type = "coder"
+
     # Create task
     metadata = {
         "created_by_reactive_dispatch": True,
@@ -505,13 +546,14 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
     try:
         row = await pool.fetchrow(
             """INSERT INTO tasks (title, prompt, priority, model, cli,
-                   max_budget_usd, max_turns, timeout_seconds,
+                   max_budget_usd, max_turns, timeout_seconds, agent_type,
                    working_directory, created_by, metadata)
                VALUES ($1, $2, $3, 'sonnet', 'claude',
-                   5.00, 50, 600,
+                   $5, $6, $7, $8,
                    '/home/web3relic/otto', 'reactive_dispatch', $4)
                RETURNING id, title""",
             title, prompt, priority, metadata,
+            max_budget, max_turns, timeout, agent_type,
         )
         task_id = row["id"]
     except Exception as e:
