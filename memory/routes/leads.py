@@ -348,6 +348,68 @@ async def export_leads_csv(
     )
 
 
+@router.get("/list")
+async def list_leads(
+    limit: int = 50,
+    offset: int = 0,
+    search: str = None,
+    lead_type: str = None,
+    outreach_status: str = None,
+    city: str = None,
+    min_score: int = 0,
+    sort: str = "score",
+):
+    """Paginated list of scraped leads for the OMS Prospects page."""
+    pool = await get_pool()
+
+    conditions = ["(business_status = 'OPERATIONAL' OR business_status IS NULL)", "lead_score >= $1"]
+    params: list = [min_score]
+
+    if search:
+        params.append(f"%{search}%")
+        conditions.append(f"(name ILIKE ${len(params)} OR address ILIKE ${len(params)} OR phone ILIKE ${len(params)})")
+
+    if lead_type and lead_type in ("no_website", "revamp_candidate", "strong_web_presence"):
+        params.append(lead_type)
+        conditions.append(f"lead_type = ${len(params)}")
+
+    if outreach_status:
+        params.append(outreach_status)
+        conditions.append(f"outreach_status = ${len(params)}")
+
+    if city:
+        params.append(city)
+        conditions.append(f"city = ${len(params)}")
+
+    where = " AND ".join(conditions)
+
+    order = "lead_score DESC" if sort == "score" else "scraped_at DESC"
+
+    # Total count
+    total = await pool.fetchval(f"SELECT COUNT(*) FROM web_assist_leads WHERE {where}", *params)
+
+    # Paginated rows
+    limit = min(limit, 200)
+    rows = await pool.fetch(
+        f"""
+        SELECT id, place_id, name, city, address, phone, website, google_maps_url,
+               rating, user_ratings_total, lead_score, lead_type, outreach_status, scraped_at
+        FROM web_assist_leads
+        WHERE {where}
+        ORDER BY {order}
+        LIMIT {limit} OFFSET {offset}
+        """,
+        *params,
+    )
+
+    return {
+        "total": total,
+        "offset": offset,
+        "limit": limit,
+        "leads": [dict(r) for r in rows],
+    }
+
+
 @router.post("/{lead_id}/outreach")
 async def update_outreach_status(lead_id: str, body: dict):
     """Update outreach status for a lead (new → contacted → responded → converted)."""
