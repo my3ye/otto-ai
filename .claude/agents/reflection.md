@@ -944,6 +944,80 @@ curl -s -X POST http://localhost:8100/episodic/events \
 
 ---
 
+### 7c. AutoEvolve — autoresearch-inspired system self-improvement
+
+*Pattern from karpathy/autoresearch: hypothesis → modify → measure → keep/discard → repeat.*
+
+**This is the outer improvement loop.** The self_patch mechanism (section 7b above) proposes individual fixes. AutoEvolve runs a structured experiment cycle: get insight from system data, propose a change, track it over N evaluation cycles, make a metric-driven keep/discard decision.
+
+#### When to run AutoEvolve (pick ONE trigger per cycle max)
+
+1. **RL2F accuracy < 70%** — system underperforming, need targeted fix
+2. **10+ cycles since last experiment** — proactive improvement in stable periods
+3. **3+ consecutive MARS misses on the same pattern** — recurring failure needs systemic fix
+
+Skip if: an experiment is currently `proposed` or `active` (one at a time — autoresearch principle).
+
+#### Step 1: Check active experiments
+
+```bash
+# Check for running experiments (one at a time)
+ACTIVE=$(curl -sf "http://localhost:8100/autoevolve/experiments?status=active&limit=1" | python3 -c "import sys,json; exps=json.load(sys.stdin); print(exps[0]['id'] if exps else '')" 2>/dev/null || echo "")
+PROPOSED=$(curl -sf "http://localhost:8100/autoevolve/experiments?status=proposed&limit=1" | python3 -c "import sys,json; exps=json.load(sys.stdin); print(exps[0]['id'] if exps else '')" 2>/dev/null || echo "")
+GEN=$(curl -sf http://localhost:8100/autoevolve/generation | python3 -c "import sys,json; print(json.load(sys.stdin)['current_generation'])" 2>/dev/null || echo "0")
+echo "Generation: $GEN | Active: ${ACTIVE:-none} | Proposed: ${PROPOSED:-none}"
+```
+
+**If active experiment exists** — tick it and evaluate after 10+ cycles:
+
+```bash
+EXP_ID="$ACTIVE"
+curl -sf -X POST "http://localhost:8100/autoevolve/experiments/$EXP_ID/tick" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Experiment cycle: {d[\"evaluation_cycles\"]}')"
+
+# After 10+ cycles: compare current RL2F accuracy against metric_before
+# KEEP if accuracy improved >5 percentage points; DISCARD if not
+# curl -sf -X PUT "http://localhost:8100/autoevolve/experiments/$EXP_ID/outcome" -H "Content-Type: application/json" -d '{"status":"keep","metric_after":0.75,"evaluation_cycles":12,"outcome":"..."}'
+```
+
+**If NO active experiment AND trigger condition met** — get hypothesis and start a new experiment:
+
+```bash
+# Get best hypothesis from system data
+curl -sf http://localhost:8100/autoevolve/insights | python3 -m json.tool
+```
+
+Use the returned `hypothesis` and `target_file` to guide your self_patch (section 7b).
+After applying the patch, log it as an experiment:
+
+```bash
+GIT_HASH=$(cd /home/web3relic/otto && git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+# Replace METRIC_BEFORE with current RL2F accuracy (from step 5 above)
+curl -sf -X POST "http://localhost:8100/autoevolve/experiments" \
+  -H "Content-Type: application/json" \
+  -d "{
+    \"target_file\": \"[TARGET_FILE from insights output]\",
+    \"hypothesis\": \"[HYPOTHESIS from insights output]\",
+    \"change_description\": \"[Summary of what patch was applied]\",
+    \"metric_before\": METRIC_BEFORE,
+    \"git_checkpoint\": \"$GIT_HASH\",
+    \"source\": \"reflection\"
+  }"
+```
+
+Keep/discard rules (from autoresearch):
+- If `metric_after > metric_before + 0.05` → **KEEP** (meaningful improvement, advance generation)
+- If change reduces complexity with equal metric → **KEEP** (simplicity win)
+- Otherwise → **DISCARD** (revert the patch via `self_patch.py apply` or manual edit)
+
+Log the AutoEvolve action:
+
+```bash
+curl -s -X POST http://localhost:8100/episodic/events -H 'Content-Type: application/json' \
+  -d '{"content": "AutoEvolve: [started experiment / ticked N cycles / kept gen-X / discarded]. Target: [file]. Metric: [before]→[after].", "event_type": "autoevolve", "importance": 7}'
+```
+
+---
+
 ### 7b. Write reflection handoff (CAT protocol)
 
 Before logging, write your handoff note for the next reflection cycle (and the orchestrator):

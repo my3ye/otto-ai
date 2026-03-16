@@ -159,7 +159,23 @@ async def feedback_stats():
                    FILTER (WHERE mental_factor_scores IS NOT NULL) as avg_sati
            FROM rl2f_feedback"""
     )
-    return dict(row)
+    result = dict(row)
+
+    # Add 7-day accuracy for AutoEvolve metric tracking
+    week_row = await pool.fetchrow(
+        """SELECT
+               COUNT(*) as total_7d,
+               COUNT(*) FILTER (WHERE outcome_match = 'matched') as matched_7d
+           FROM rl2f_feedback
+           WHERE created_at > NOW() - INTERVAL '7 days'
+             AND outcome_match IS NOT NULL"""
+    )
+    total_7d = week_row["total_7d"] or 0
+    matched_7d = week_row["matched_7d"] or 0
+    result["accuracy_7d"] = round(matched_7d / total_7d, 3) if total_7d > 0 else None
+    result["total_7d"] = total_7d
+
+    return result
 
 
 # ── Phase 2: Task-level Retry Feedback Chain ──────────────────────
