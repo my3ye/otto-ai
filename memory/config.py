@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     # Sync pulse interval in minutes (in addition to event-driven sync)
     sync_interval_minutes: int = 60
 
+    # Hyperliquid trading wallets
+    otto_wallet_address: str = ""
+    otto_wallet_private_key: str = ""
+    otto_trading_wallet_address: str = ""
+    otto_trading_wallet_private_key: str = ""
+    hyperliquid_network: str = "mainnet"
+
     @property
     def dsn(self) -> str:
         return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
