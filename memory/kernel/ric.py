@@ -14,6 +14,7 @@ Phase 5 (POST) does not block the response — it runs in background.
 
 import asyncio
 import logging
+import os
 import time
 from uuid import UUID
 
@@ -22,6 +23,50 @@ from .types import InterruptType
 from . import ivt
 
 log = logging.getLogger("otto.kernel.ric")
+
+
+def _extract_document_text(local_path: str, max_chars: int = 8000) -> str:
+    """Extract text content from a downloaded document file.
+
+    Supports: .docx, .pdf, .txt, .md, .csv and other plain text formats.
+    Returns extracted text truncated to max_chars.
+    """
+    if not local_path or not os.path.exists(local_path):
+        return ""
+
+    _, ext = os.path.splitext(local_path.lower())
+
+    try:
+        if ext == ".docx":
+            from docx import Document
+            doc = Document(local_path)
+            text = "\n".join(para.text for para in doc.paragraphs if para.text.strip())
+            return text[:max_chars]
+
+        elif ext == ".pdf":
+            from pypdf import PdfReader
+            reader = PdfReader(local_path)
+            pages = []
+            for page in reader.pages:
+                pages.append(page.extract_text() or "")
+            text = "\n".join(pages)
+            return text[:max_chars]
+
+        elif ext in (".txt", ".md", ".csv", ".json", ".yaml", ".yml", ".toml", ".ini"):
+            with open(local_path, "r", encoding="utf-8", errors="replace") as f:
+                return f.read(max_chars)
+
+        else:
+            # Try reading as plain text for unknown types
+            try:
+                with open(local_path, "r", encoding="utf-8", errors="replace") as f:
+                    return f.read(max_chars)
+            except Exception:
+                return ""
+
+    except Exception as e:
+        log.warning(f"Document text extraction failed for {local_path}: {e}")
+        return ""
 
 
 async def process_interrupt(interrupt: dict) -> dict:
@@ -137,7 +182,25 @@ async def _handle_admin_message(interrupt: dict) -> dict:
         log.warning(f"Failed to load conversation turns: {e}")
 
     # Add the current message as the final user turn
-    messages.append({"role": "user", "content": content})
+    # If there's an attached document, extract its text and include it
+    user_content = content
+    attachment = payload.get("metadata", {}).get("attachment", {})
+    local_path = attachment.get("local_path") if attachment else None
+    if local_path:
+        doc_text = _extract_document_text(local_path)
+        if doc_text:
+            file_name = attachment.get("fileName") or os.path.basename(local_path)
+            user_content = (
+                f"{content}\n\n"
+                f"--- Document Contents: {file_name} ---\n"
+                f"{doc_text}\n"
+                f"--- End of Document ---"
+            )
+            log.info(f"Injected document content ({len(doc_text)} chars) from {local_path}")
+        else:
+            log.warning(f"Could not extract text from document: {local_path}")
+
+    messages.append({"role": "user", "content": user_content})
 
     reply = await provider_chat(
         messages=messages,
@@ -220,9 +283,25 @@ async def _handle_admin_message_stream(interrupt: dict):
     from ..kernel.provider import provider_chat_stream
 
     system_prompt = _build_system_prompt(context_text, channel)
+
+    # Inject document content if present
+    user_content = content
+    attachment = payload.get("metadata", {}).get("attachment", {})
+    local_path = attachment.get("local_path") if attachment else None
+    if local_path:
+        doc_text = _extract_document_text(local_path)
+        if doc_text:
+            file_name = attachment.get("fileName") or os.path.basename(local_path)
+            user_content = (
+                f"{content}\n\n"
+                f"--- Document Contents: {file_name} ---\n"
+                f"{doc_text}\n"
+                f"--- End of Document ---"
+            )
+
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": content},
+        {"role": "user", "content": user_content},
     ]
 
     full_reply = []
