@@ -1,21 +1,93 @@
 id: shakrah
 name: "SHAKRAH"
-archetype: "The Balance — wellness for the builders"
+archetype: "The Wellness Ecosystem — physical to spiritual, for businesses and individuals"
 inception_article: XII
 
 identity:
-  tagline: "You cannot build a new world with broken people."
+  tagline: "The full-spectrum wellness ecosystem — physical to spiritual."
   philosophy: >
-    Shakrah ensures the builders are whole. Integrated energetic balance at every
-    level — physical, mental, spiritual. Your biometric data belongs to you.
-  key_quote: "The builders must be whole."
+    Shakrah is a decentralized autonomous organism for wellness — covering the
+    full spectrum from physical performance to spiritual practice. It serves both
+    individuals seeking sovereign wellness and businesses operating in the wellness
+    economy. Tools, services, and products woven into a single governed ecosystem
+    where standing is determined by contribution and impact — not corporate gatekeeping.
+  key_quote: "Not a platform. A living ecosystem governed by those who build it."
   what_it_is: >
-    Decentralized network of wellness practitioners, healing modalities, longevity
-    protocols, and mental health support. Otto Band biometric data owned by wearer.
-    Open marketplace of healers co-governed through ONEON.
+    A full-spectrum decentralized wellness ecosystem spanning physical performance,
+    mental health, and spiritual practice. Businesses and individuals operate, trade,
+    and build within a community-governed economy. Otto Band biometric data owned by
+    the wearer. Practitioners, brands, coaches, and consumers co-govern through
+    contribution-weighted participation on ONEON.
   what_it_is_not: >
-    Not a wellness app that sells your health data. Not corporate wellness programs.
-    Not wellness gatekept behind luxury pricing.
+    Not a wellness app that sells your health data. Not a purely spiritual healing
+    platform. Not corporate wellness programs. Not wellness gatekept behind luxury pricing.
+  features:
+    - "Otto Band biometric data owned by wearer — never sold, never shared without consent"
+    - "Open marketplace of verified healers across Eastern and Western modalities"
+    - "Longevity protocols and mental health support infrastructure"
+    - "Tusita flagship: 12,000m2 Wellness Sanctuary as physical anchor"
+    - "Practitioner verification co-governed through ONEON"
+    - "Community treasury for wellness infrastructure funding"
+
+marketing:
+  positioning: >
+    Fitbit sells your health data. Headspace sells you a subscription and keeps
+    the insights. Corporate wellness platforms extract from practitioners and users alike.
+    Shakrah does none of this. Your biometrics are yours. Practitioners set their terms.
+    Businesses operate on community-governed rails, not corporate algorithms.
+    The full-spectrum wellness ecosystem — physical to spiritual — for everyone from
+    individual seekers to practitioner businesses to wellness brands.
+  audience_segments:
+    - name: Wellness businesses and practitioners
+      description: >
+        Coaches, therapists, healers, longevity clinics, and wellness brands squeezed
+        by corporate platforms. Shakrah gives them an open marketplace with
+        community-governed terms, fair compensation, and governance rights earned
+        through contribution and client outcomes.
+    - name: Individuals seeking sovereign wellness
+      description: >
+        People who want control over their biometric data and access to verified
+        practitioners across the full spectrum — physical, mental, and spiritual.
+        Governance participation is open to all based on contribution and impact.
+    - name: Tusita residents and intentional community members
+      description: >
+        Living in or building toward the MY3YE physical infrastructure. Shakrah is
+        their integrated wellness layer — the Tusita Wellness Sanctuary is the
+        flagship physical deployment.
+    - name: Builders and early adopters who care about biometric sovereignty
+      description: >
+        Already wearing devices, already frustrated that their health data
+        funds someone else's business model. The Otto Band + Shakrah stack
+        is the sovereign alternative they've been waiting for.
+  headline_hooks:
+    - "One ecosystem. Physical to spiritual. Governed by you."
+    - "Your health data belongs to you. Not Fitbit. Not Apple. You."
+    - "The wellness economy run by those who build it."
+    - "Practitioners keep what they earn. Businesses own their terms. Users own their data."
+    - "Not a platform. A decentralized autonomous wellness ecosystem."
+
+roadmap:
+  thirty_day: >
+    Shakrah landing page waitlist backend wired. Practitioner onboarding
+    framework designed (what modalities, verification criteria). Otto Band
+    biometric data spec aligned with Ottolabs hardware team. Tusita Wellness
+    Sanctuary spatial brief drafted.
+  ninety_day: >
+    First cohort of 20 verified practitioners onboarded. Community governance
+    framework live for practitioner verification. Biometric data flow from
+    Otto Band to Shakrah defined in technical spec. Tusita pilot with
+    10 residents using Shakrah practitioner network.
+  one_year: >
+    100+ verified practitioners across 5+ modalities. Biometric integration
+    with Otto Band live for Tusita residents. Tusita Wellness Sanctuary
+    construction begun. Community governance DAO managing practitioner
+    standards. First revenue flowing to community treasury.
+
+next_action: >
+  Define the practitioner onboarding criteria — what modalities does Shakrah
+  cover in v1 and what does community-governed verification look like in
+  practice? This spec unlocks the waitlist segmentation (user vs practitioner)
+  which is the highest-value conversion split on the landing page.
 
 brand:
   domain: ""
@@ -24,8 +96,8 @@ brand:
     primary: "#000000"
     secondary: "#FFFFFF"
     accent: "#A855F7"
-  aesthetic: "Calming depth. Dark with organic elements. Chakra-inspired color accents. Premium but accessible."
-  voice: "Grounded, warm, knowledgeable. Speaks to the whole person. Never preachy about wellness."
+  aesthetic: "Calming depth. Dark with organic elements. Spectrum color system spanning physical greens to spiritual purples. Premium but accessible."
+  voice: "Grounded, direct, knowledgeable. Speaks to both the individual and the practitioner/business. Never preachy. Ecosystem-first framing."
 
 technical:
   repo: "/mnt/media/projects/shakrah-web"
@@ -52,6 +124,8 @@ vision:
     note: "Inception article published. Tusita flagship: 12,000m2 Wellness Sanctuary."
   - date: "2026-03-06"
     note: "Landing page has view-router, waitlist, expert sections. GSAP via CDN (tech debt)."
+  - date: "2026-03-17"
+    note: "Reframed per Mev directive: full-spectrum holistic wellness ecosystem (physical to spiritual) for businesses AND individuals. DAO governance model — contribution and impact determine standing. Old spiritual/healing-only framing removed from landing page and all docs."
 
 open_questions:
   - "How do practitioners get onboarded and verified?"
