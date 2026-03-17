@@ -11,10 +11,13 @@ identity:
     discovery algorithm.
   key_quote: "Spotify pays $0.003/stream. Labels own masters. Otto Music changes both."
   what_it_is: >
-    Decentralized music label and ecosystem. Artists own masters. Smart contract
-    royalties. Community-governed discovery with sovereign promotion — artists
-    boost visibility through transparent on-chain pools, not opaque algorithmic
-    auctions. AI production tools via Otto AI. Cultural heartbeat of Tusita, sound of ONEON.
+    Decentralized music ecosystem operating across four fronts: Music Manager
+    (artist tooling, publishing, royalty contracts), Music Player (the sovereign
+    listening experience), Music Studio (AI-powered creation tools), and
+    Events/Festivals (live event coordination and cultural programming). Artists
+    own masters. Smart contract royalties. Community-governed discovery with
+    sovereign promotion — artists boost visibility through transparent on-chain
+    pools, not opaque algorithmic auctions. Cultural heartbeat of Tusita, sound of ONEON.
   what_it_is_not: >
     Not a Spotify clone on blockchain. Not AI replacing artists. Tools that
     democratize what only major labels could afford.
@@ -29,9 +32,19 @@ technical:
   stack: []
   status: concept
 
+fronts:
+  - name: Music Manager
+    description: Artist and label tooling — publishing, royalty contracts, master ownership, distribution
+  - name: Music Player
+    description: The sovereign listening experience — community-governed discovery, fan equity
+  - name: Music Studio
+    description: AI-powered creation tools — mastering, mixing, artwork, composition assistance
+  - name: Events/Festivals
+    description: Live event coordination — Tusita concerts, virtual events, cultural programming
+
 ecosystem:
   category: platform
-  provides: ["Music distribution", "AI production tools", "Cultural heartbeat for Tusita"]
+  provides: ["Music Manager", "Music Player", "Music Studio", "Events/Festivals", "Cultural heartbeat for Tusita"]
   depends_on: ["otto", "oneon"]
   token: null
 

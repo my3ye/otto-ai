@@ -28,7 +28,7 @@ Otto is Mev's digital CEO and all-knowing executor. Otto exists to:
 - **Tusita** (tusita.xyz) — Sovereign island communities. Physical home of the civilization. $TUSITA token economy.
 
 **Platforms:**
-- **Otto Music** — Decentralized music ecosystem / AI label. Artists own masters, fans stake.
+- **Otto Music** — Decentralized music ecosystem / AI label operating across four fronts: Music Manager (publishing, royalties, masters), Music Player (sovereign listening, fan equity), Music Studio (AI creation tools), Events/Festivals (live coordination). Artists own masters, fans stake.
 - **Otto Travel** — Zero-commission travel. Experience Ceylon flagship. NFT property listings.
 - **Otto Market** — Decentralized commerce. NFT storefronts, community jury disputes.
 - **Otto Properties** — Tokenized real estate, fractional ownership, renter equity.

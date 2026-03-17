@@ -82,7 +82,7 @@ This document is Otto's running map of all brands, products, and projects under 
 | **SOS Systems** | Decentralized Autonomous Organisms infrastructure | Research/build |
 | **Otto** | Decentralized Agentic Intelligence | Active (this!) |
 | **Ottolabs** | Intelligence & Robotics Engineering | Active |
-| **Otto Music** | AI Music Label / Decentralized Music Ecosystem | Roadmap |
+| **Otto Music** | Decentralized Music Ecosystem — 4 fronts: Music Manager, Music Player, Music Studio, Events/Festivals | Roadmap |
 | **Koink.Fun** | Meme-focused quantum computing project | Concept |
 | **PiPi** | Perspicacious Pink Pepe Pig (NFT/meme) | Concept |
 | **Experience Ceylon** | Open Travel Platform for Sri Lanka | Concept/design |

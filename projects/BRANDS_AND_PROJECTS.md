@@ -112,11 +112,15 @@ The ecosystem has **18 projects** across 5 categories, plus **Assistive Technolo
 - **Note:** otto.lk already uses the Panik aesthetic — this is the prototype
 
 ### 8. OTTO MUSIC — The Frequency
-*Decentralized music ecosystem*
+*Decentralized music ecosystem across four fronts*
 
 - **Status:** Concept
 - **Tagline:** "Every artist deserves to own their signal."
-- **What it is:** Artist-owned masters, smart contract royalties, community-governed discovery. Cultural heartbeat of Tusita.
+- **What it is:** Artist-owned masters, smart contract royalties, community-governed discovery. Cultural heartbeat of Tusita. Operates across four fronts:
+  - **Music Manager** — publishing, royalty contracts, master ownership, distribution tooling
+  - **Music Player** — sovereign listening experience, fan equity, community-governed discovery
+  - **Music Studio** — AI-powered creation: mastering, mixing, artwork, composition assistance
+  - **Events/Festivals** — live event coordination, Tusita concerts, virtual festivals, on-chain ticketing
 
 ### 9. OTTO TRAVEL — The Journey
 *Zero-commission decentralized travel*
