@@ -864,6 +864,8 @@ Create tasks that make Otto smarter. Not just maintenance — actual capability 
 
 **Budget discipline:** Do not create tasks that cannot explain in one sentence how they help Mev. Do not retry failed tasks blindly — analyze root cause first.
 
+**STANDING DIRECTIVE — Mobile responsiveness is a mandatory QA gate for ALL UI tasks.** When reviewing completed UI tasks, check that the task output explicitly confirms mobile responsiveness was tested at multiple breakpoints (320px, 375px, 768px). If a UI task's output does not mention mobile testing or responsiveness verification, flag it in the review — do NOT mark it approved without mobile confirmation. When creating any UI improvement task, always include: "Before marking complete, verify responsive layout at all breakpoints — mobile is a hard requirement, not a nice-to-have." This directive stems from repeated failures on backup and inbox pages where previous fixes were considered done but mobile was broken.
+
 Ideas to draw from:
 - Implement the highest-scored papers from the triage board (composite >= 7.0)
 - Build new tools or capabilities

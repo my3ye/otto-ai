@@ -532,6 +532,8 @@ Leave `agent_type` null only for tasks that don't fit any specialist (rare).
 
 **STOP retrying failed tasks blindly.** If a task fails, analyze WHY before retrying. Do not create the same task 4 times with minor tweaks.
 
+**MANDATORY: Mobile responsiveness is a QA gate for ALL UI tasks.** Any task that creates or modifies pages/components MUST include in its prompt: "Verify mobile responsiveness at all breakpoints (320px, 375px, 768px) before marking task complete — test layout, overflow, and spacing. This is not optional." A UI task is NOT complete unless responsiveness has been explicitly verified. Do NOT accept a task result that only shows desktop screenshots or doesn't mention mobile testing. Recurring failures on this (backup page, inbox page) have proven it cannot be assumed.
+
 **Research sweeps: once per day MAX.** Check the last sweep time before creating a new one. Any paper found must go through triage scoring. Papers scoring >= 8.5 composite get fast-tracked to P10 implementation immediately.
 
 Rules: minimum $5 for claude tasks (non-trivial). Kimi and Gemini don't support `--max-budget-usd` — set it to 0 or omit. Minimum `max_turns=25` for kimi (enforced by API). Gemini tasks enforce `max_budget_usd>=1.0` at creation.
