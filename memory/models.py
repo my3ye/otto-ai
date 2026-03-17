@@ -303,6 +303,7 @@ class TaskCreate(BaseModel):
     created_by: str = "heartbeat"
     session_id: UUID | None = None
     metadata: dict = Field(default_factory=dict)
+    owner: str = "otto"  # 'otto' (heartbeat/orchestrator) or 'mev' (OMS UI)
 
 
 class TaskOut(BaseModel):
@@ -337,6 +338,7 @@ class TaskOut(BaseModel):
     qa_output: str | None = None      # QA agent's review text
     qa_reviewer: str | None = None    # which CLI did the QA
     commit_hash: str | None = None    # git commit SHA if committed
+    owner: str = "otto"               # 'otto' (heartbeat/orchestrator) or 'mev' (OMS UI)
 
 
 class TaskComplete(BaseModel):

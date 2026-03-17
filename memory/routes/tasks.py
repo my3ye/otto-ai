@@ -24,7 +24,7 @@ TASK_COLUMNS = """id, title, prompt, context, priority, status, model, cli, agen
     pid, started_at, completed_at, output, error, exit_code,
     reviewed, reviewed_at, created_by, session_id,
     created_at, updated_at, metadata,
-    qa_status, qa_output, qa_reviewer, commit_hash"""
+    qa_status, qa_output, qa_reviewer, commit_hash, owner"""
 
 # Per-CLI concurrency limits: 3 claude, 1 gemini, 1 kimi (total max 5)
 CLI_CONCURRENCY = {"claude": 3, "gemini": 1, "kimi": 1}
@@ -98,6 +98,10 @@ async def queue_status():
         cli: CLI_CONCURRENCY[cli] - cli_counts.get(cli, 0)
         for cli in CLI_CONCURRENCY
     }
+    needs_review_row = await pool.fetchrow(
+        "SELECT COUNT(*) as count FROM tasks WHERE status = 'completed' AND reviewed = FALSE"
+    )
+    needs_review = needs_review_row["count"] if needs_review_row else 0
     return {
         "pending": counts.get("pending", 0),
         "running": counts.get("running", 0),
@@ -105,6 +109,7 @@ async def queue_status():
         "completed": counts.get("completed", 0),
         "failed": counts.get("failed", 0),
         "cancelled": counts.get("cancelled", 0),
+        "needs_review": needs_review,
         "max_concurrent": MAX_CONCURRENT_TASKS,
         "can_run_more": running_alive < MAX_CONCURRENT_TASKS,
         "cli_running": cli_counts,
@@ -559,31 +564,34 @@ async def create_task(req: TaskCreate):
         max_budget_usd = max(max_budget_usd, 1.0)   # gemini fails at $0.30
     elif cli == "kimi":
         max_turns = max(max_turns, 25)               # kimi hits step limit at 15
+    owner = req.owner if req.owner in ("otto", "mev") else "otto"
     row = await pool.fetchrow(
         f"""INSERT INTO tasks (title, prompt, context, priority, model, cli, agent_type,
                max_budget_usd, max_turns, timeout_seconds, working_directory,
-               created_by, session_id, metadata)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+               created_by, session_id, metadata, owner)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
            RETURNING {TASK_COLUMNS}""",
         req.title, req.prompt, req.context, req.priority, req.model, cli,
         req.agent_type,
         max_budget_usd, max_turns, req.timeout_seconds,
         req.working_directory, req.created_by, req.session_id,
-        metadata,
+        metadata, owner,
     )
     return TaskOut(**dict(row))
 
 
-@router.get("", response_model=list[TaskOut])
+@router.get("")
 async def list_tasks(
     status: str | None = Query(default=None),
     reviewed: bool | None = Query(default=None),
+    owner: str | None = Query(default=None, description="Filter by owner: 'otto' or 'mev'"),
     limit: int = Query(default=20, le=100),
+    offset: int | None = Query(default=None, ge=0),
 ):
-    """List tasks with optional filters."""
+    """List tasks with optional filters. Returns paginated response when offset is provided."""
     pool = await get_pool()
     conditions = []
-    params = []
+    params: list = []
     idx = 1
 
     if status:
@@ -596,8 +604,27 @@ async def list_tasks(
         params.append(reviewed)
         idx += 1
 
+    if owner and owner in ("otto", "mev"):
+        conditions.append(f"owner = ${idx}")
+        params.append(owner)
+        idx += 1
+
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+    paginated = offset is not None
+    actual_offset = offset if offset is not None else 0
+
+    total = 0
+    if paginated:
+        count_row = await pool.fetchrow(
+            f"SELECT COUNT(*) as total FROM tasks {where}", *params,
+        )
+        total = count_row["total"] if count_row else 0
+
     params.append(limit)
+    limit_idx = idx
+    idx += 1
+    params.append(actual_offset)
+    offset_idx = idx
 
     rows = await pool.fetch(
         f"""SELECT {TASK_COLUMNS} FROM tasks {where}
@@ -609,17 +636,19 @@ async def list_tasks(
                     WHEN 'failed' THEN 3
                     ELSE 4
                 END,
-                priority DESC, created_at ASC
-            LIMIT ${idx}""",
+                created_at DESC
+            LIMIT ${limit_idx} OFFSET ${offset_idx}""",
         *params,
     )
     results = []
     for r in rows:
         d = dict(r)
-        # Guard against corrupted metadata (arrays/strings instead of dict)
         if not isinstance(d.get("metadata"), dict):
             d["metadata"] = {}
         results.append(TaskOut(**d))
+
+    if paginated:
+        return {"tasks": results, "total": total, "limit": limit, "offset": actual_offset}
     return results
 
 
