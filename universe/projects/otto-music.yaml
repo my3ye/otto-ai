@@ -12,8 +12,9 @@ identity:
   key_quote: "Spotify pays $0.003/stream. Labels own masters. Otto Music changes both."
   what_it_is: >
     Decentralized music label and ecosystem. Artists own masters. Smart contract
-    royalties. Community-governed discovery (not advertising budgets). AI production
-    tools via Otto AI. Cultural heartbeat of Tusita, sound of ONEON.
+    royalties. Community-governed discovery with sovereign promotion — artists
+    boost visibility through transparent on-chain pools, not opaque algorithmic
+    auctions. AI production tools via Otto AI. Cultural heartbeat of Tusita, sound of ONEON.
   what_it_is_not: >
     Not a Spotify clone on blockchain. Not AI replacing artists. Tools that
     democratize what only major labels could afford.
@@ -41,12 +42,15 @@ vision:
 marketing:
   positioning: >
     Spotify pays $0.003 per stream. Labels own your masters and take 80%.
-    Streaming platforms optimize discovery for their ad revenue, not your art.
-    Otto Music: artists own masters by default, smart contracts pay royalties
-    instantly on every play, and discovery is governed by community curation —
-    not ad spend. Early fans who surface great artists share in the success
-    of what they found. This is what the music industry looks like without
-    extraction.
+    Streaming platforms optimize discovery for their ad revenue and hide the
+    algorithm from artists. Otto Music: artists own masters by default, smart
+    contracts pay royalties instantly on every play, and discovery is governed
+    by community curation. Artists who want additional reach can promote through
+    transparent on-chain pools — bids are public, rules are DAO-governed, and
+    listeners who opt in to see promoted content are compensated for their
+    attention. Early fans who surface great artists share in the success of what
+    they found. This is what the music industry looks like when promotion is
+    sovereign, not extractive.
   audience_segments:
     - name: Independent artists
       description: >
@@ -68,7 +72,7 @@ marketing:
     - "Your masters belong to you. Not the label. Not the platform."
     - "Discover first. Own first. Share in what you find."
     - "AI tools that producers actually want — without giving up your rights."
-    - "The discovery algorithm is governed by listeners, not advertisers."
+    - "Discovery governed by listeners. Promotion is transparent, on-chain, and DAO-governed."
 
 roadmap:
   thirty_day: >

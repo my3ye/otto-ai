@@ -14,12 +14,16 @@ identity:
   what_it_is: >
     Decentralized billboard and out-of-home advertising network. Physical
     digital billboard infrastructure governed by community DAOs. Ad revenue
-    flows to local communities, not to distant corporations. Also serves as
-    the physical broadcast layer for the MY3YE ecosystem itself — spreading
-    the frequency into physical space.
+    flows to local communities, not to distant corporations. Advertiser bids
+    go into transparent on-chain pools — community DAO governs content standards,
+    pricing, and allocation. AI handles ad categorization and quality filtering
+    with open, auditable training. The sovereign ad model made physical: attention
+    infrastructure owned and benefited by the people who live near it.
   what_it_is_not: >
-    Not another out-of-home advertising company. Not billboards that extract
-    from communities. Not centralized content control.
+    Not another out-of-home advertising company extracting from communities.
+    Not opaque corporate content control. Not involuntary surveillance — the
+    MY3YE sovereign ad model means viewers' data stays sovereign; advertisers
+    reach audiences through consent-based ONEON interest profiles, not tracking.
   features:
     - "Community-owned billboard infrastructure"
     - "DAO governance for content and pricing"
@@ -88,7 +92,7 @@ marketing:
     - "Clear Channel keeps the money. We give it back."
     - "Billboard owned by the block. Revenue stays on the block."
     - "The physical broadcast layer for the new civilization."
-    - "Corporate ads leave. Community ads pay you back."
+    - "Sovereign ads: advertisers pay into on-chain pools. Communities receive the revenue."
 
 roadmap:
   thirty_day: >

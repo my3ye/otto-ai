@@ -21,8 +21,9 @@ identity:
     Identity layer for every Otto device, Tusita citizen, and platform user.
     The communications backbone for all MY3YE projects.
   what_it_is_not: >
-    Not another social network. Not a messaging app with a token. Not surveillance
-    infrastructure with a privacy label. Not a VPN — deeper than that.
+    Not another social network. Not a messaging app with a token. Not involuntary
+    surveillance — your data is your asset, and you choose if and when to share
+    interest signals for relevant advertising. Not a VPN — deeper than that.
   name_decode: "ONE (sovereign individual) + NEO (transformation) + EON (civilizational timescale) = ONION (layered architecture)"
   five_layer_architecture:
     layer_1_public: >
@@ -71,7 +72,9 @@ marketing:
     - name: Developers building sovereign apps
       description: >
         Wants a standards-based identity protocol to build on. ONEON provides
-        auth without the surveillance business model attached.
+        auth without the involuntary surveillance business model — users who
+        choose to share interest signals for relevant ads do so explicitly,
+        own their data profiles on-chain, and receive value for that attention.
   headline_hooks:
     - "Your identity. Your keys. Your network. No login required."
     - "Five layers. The deeper you go, the more sovereign you become."
@@ -122,6 +125,7 @@ ecosystem:
     - "Encrypted communications"
     - "Publishing infrastructure"
     - "Auth without passwords"
+    - "Sovereign interest profiles — users own on-chain data, opt into sharing interests for relevant ads, receive value for their attention"
   depends_on: []
   token: null
 

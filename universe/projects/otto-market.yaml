@@ -7,8 +7,9 @@ identity:
   tagline: "Every storefront is sovereign. Every seller keeps what they earn."
   philosophy: >
     Amazon takes 30-40% and can deplatform overnight. Otto Market: every storefront
-    is an NFT (owned, transferable, financeable). Discovery by contribution, not
-    advertising. Disputes resolved by community jury.
+    is an NFT (owned, transferable, financeable). Discovery by contribution —
+    sellers who want additional reach can promote through transparent on-chain
+    pools governed by the community DAO. Disputes resolved by community jury.
   key_quote: "Seller-sovereign commerce."
   what_it_is: >
     Decentralized commerce marketplace. Storefronts as NFTs. Contribution-based
@@ -41,9 +42,13 @@ marketing:
   positioning: >
     Amazon charges 30-40% and deplatforms overnight. Shopify charges fees and owns
     your customer data. Otto Market charges nothing and puts the storefront in your
-    wallet — an NFT you own, transfer, or finance. Discovery is earned by contribution,
-    not bought through ad auctions. Sellers compete on quality, not marketing budgets.
-    The marketplace that works for merchants, not against them.
+    wallet — an NFT you own, transfer, or finance. Discovery is earned by contribution
+    first — sellers compete on quality and community signal. Merchants who want
+    additional reach can promote through transparent on-chain pools: bids are public,
+    rules are DAO-governed, and buyers who opt in to see promoted listings consent to
+    their interests being shared with advertisers and receive value back. No opaque
+    auction that tilts the floor to whoever has the biggest wallet.
+    The marketplace that works for merchants and buyers equally.
   audience_segments:
     - name: Independent sellers frustrated with Amazon
       description: >
@@ -60,7 +65,7 @@ marketing:
   headline_hooks:
     - "Amazon takes 40%. We take 0%. Keep your storefront."
     - "Your shop is an NFT. It lives in your wallet, not on their server."
-    - "Discovery by contribution, not ad budget."
+    - "Discovery by contribution. Promotion through transparent on-chain pools, DAO-governed."
     - "Disputes resolved by community, not a faceless algorithm."
     - "Fulfillment via Otto Robotics. Commerce with no corporate middlemen."
 
