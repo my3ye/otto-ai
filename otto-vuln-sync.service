@@ -1,0 +1,16 @@
+[Unit]
+Description=Otto Vulnerability Intelligence Sync
+After=network-online.target otto-memory.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=web3relic
+WorkingDirectory=/home/web3relic/otto
+ExecStart=/bin/bash /home/web3relic/otto/vuln-sync.sh
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=300
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,13 @@
+[Unit]
+Description=Otto Vulnerability Intelligence Sync Timer (every 6 hours)
+After=otto-memory.service
+
+[Timer]
+# Run at startup + every 6h
+OnBootSec=5min
+OnUnitActiveSec=6h
+AccuracySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
