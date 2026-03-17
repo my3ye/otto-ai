@@ -65,6 +65,15 @@
 - **Results file**: `~/otto/projects/alpha/discovered_traders.json` — new discoveries. `winrate_pair_tracking_results.json` — existing pool scoring.
 - **Signal quality tier system (2026-03-10)**: `TIER_1_WALLETS = {"SM_10"}` in signal_publisher.py. SM_10 removed from NOISY_WALLETS in whale_convergence.py AND SW_NOISY_WALLETS in signal_publisher.py. `compute_publisher_quality_score()` returns 0-100. Gate: `MIN_PUBLISHER_QUALITY_SCORE = 50`. SM_10=60+bonuses (always passes), 4-wallet convergence=40+bonuses (passes with old/high-vol token), unvetted single=10+bonuses (never passes). Tier 3 single-wallet signals are logged but not published.
 
+## Education Engine (2026-03-17)
+
+- Skill data: `~/otto/education/skills.json` — 10 clusters, 55 nodes, ~100 resources
+- API route: `memory/routes/education.py`, prefix `/education` — 6 endpoints
+- DB tables: `education_progress` (user_id, cluster_id, node_id, xp_earned, resources_completed, completed), `education_xp_log`
+- OMS page: `/education` — cluster list + skill tree, level progression (Initiate→Sovereign), prereq locking
+- **DB migration gotcha**: `docker exec -i ... psql ... < /path/to/file` (stdin pipe) silently succeeds but may not actually run. Use heredoc `<<'SQL' ... SQL` format instead to guarantee execution.
+- push via: `GH_TOKEN=$(grep -A2 "ottomev" /home/web3relic/.config/gh/hosts.yml | grep "oauth_token:" | awk '{print $2}')` then `git remote set-url ottomev https://ottomev:${GH_TOKEN}@github.com/ottomev/web-next.git`
+
 ## Conventions
 
 - Always use both `archived = FALSE AND deleted_at IS NULL` when querying semantic memories
