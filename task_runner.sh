@@ -253,7 +253,7 @@ fi
 
 # ── Procedure Memory Lookup ───────────────────────────────────────────────────
 # Query /procedural/suggest for known approaches to this task type.
-# High-trust procedures (trust_score >= 0.55) are injected into the prompt.
+# Procedures with trust_score >= 0.40 are injected into the prompt (lowered from 0.55 by AutoEvolve gen-0 experiment).
 # Procedure names are saved so we can record outcomes after execution.
 # Gated by progressive loading: skipped for low-effort tasks.
 PROC_BLOCK=""
@@ -265,7 +265,7 @@ if [ -n "$TITLE_ENC_PROC" ] && [ "$PROC_ENABLED" = "1" ]; then
 import json, sys
 try:
     procs = json.load(sys.stdin)
-    relevant = [p for p in procs if p.get('trust_score', 0) >= 0.55 and p.get('steps')]
+    relevant = [p for p in procs if p.get('trust_score', 0) >= 0.40 and p.get('steps')]
     if not relevant:
         sys.exit(0)
     lines = ['--- Known procedure (from procedure memory) ---']
@@ -726,10 +726,22 @@ if [ "$EXIT_CODE" -eq 124 ]; then
     log "TIMEOUT: CLI killed after ${TIMEOUT}s — partial output captured (${OUTBYTES} bytes)"
 fi
 
+# Detect empty output with exit_code=0 — CLI succeeded but produced nothing.
+# This usually indicates the agent hit budget/turns silently or the CLI had an issue.
+# Override to exit_code=1 so the task is marked 'failed' rather than auto-completing.
+if [ "$EXIT_CODE" -eq 0 ] && [ -z "$OUTPUT" ]; then
+    log "WARNING: CLI exited 0 with empty output — overriding exit_code to 1 (task may have hit budget silently or had a startup failure)"
+    EXIT_CODE=1
+    OUTPUT="[NO OUTPUT — CLI exited 0 with empty output. Possible silent budget/turns exhaustion or startup failure. Verify by checking the task log: ${LOG_FILE}]"
+fi
+
 # Detect max-turns/max-steps hit
 # Claude: "Error: Reached max turns" | Kimi: may vary | Gemini: no turn limit
+# The CLI exits with code 0 in this case, so we override to 1 to mark the task 'failed'
+# rather than 'completed'. Without this, the API default maps exit_code=0 → 'completed'.
 if echo "$OUTPUT" | grep -qE "^Error: Reached max turns|^Error: max.steps reached"; then
-    log "WARNING: Task hit turn/step limit. Work may have been done but output lost."
+    log "WARNING: Task hit turn/step limit — overriding exit_code to 1 (was ${EXIT_CODE}) so task is marked 'failed' not 'completed'"
+    EXIT_CODE=1
     OUTPUT="[INCOMPLETE — hit max_turns/max_steps limit. Task may have partially completed. Verify by checking the codebase directly.]"
 fi
 
