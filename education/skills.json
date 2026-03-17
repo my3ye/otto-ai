@@ -1,0 +1,1544 @@
+{
+  "version": "1.0",
+  "clusters": [
+    {
+      "id": "distributed-systems",
+      "title": "Distributed Systems",
+      "emoji": "🌐",
+      "color": "#3B82F6",
+      "description": "Build systems that operate reliably across multiple nodes, handle failures gracefully, and scale to planetary load.",
+      "total_xp": 2800,
+      "nodes": [
+        {
+          "id": "ds-foundations",
+          "title": "Foundations",
+          "level": 1,
+          "xp": 200,
+          "description": "CAP theorem, consistency models, network partitions",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Brewer's CAP Theorem (Original Talk)",
+              "url": "https://www.cs.berkeley.edu/~brewer/cs262b-2004/PODC-keynote.pdf",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            },
+            {
+              "type": "book",
+              "title": "Designing Data-Intensive Applications — Kleppmann",
+              "url": "https://dataintensive.net/",
+              "difficulty": "intermediate",
+              "est_hours": 40
+            },
+            {
+              "type": "course",
+              "title": "MIT 6.824: Distributed Systems",
+              "url": "https://pdos.csail.mit.edu/6.824/",
+              "difficulty": "advanced",
+              "est_hours": 80
+            }
+          ]
+        },
+        {
+          "id": "ds-consensus",
+          "title": "Consensus Algorithms",
+          "level": 2,
+          "xp": 350,
+          "description": "Raft, Paxos, BFT, PBFT — how nodes agree",
+          "prereqs": ["ds-foundations"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "In Search of an Understandable Consensus Algorithm (Raft)",
+              "url": "https://raft.github.io/raft.pdf",
+              "difficulty": "intermediate",
+              "est_hours": 3
+            },
+            {
+              "type": "interactive",
+              "title": "Raft Visualization",
+              "url": "https://raft.github.io/",
+              "difficulty": "beginner",
+              "est_hours": 1
+            },
+            {
+              "type": "paper",
+              "title": "Tendermint: Byzantine Fault Tolerance in the Age of Blockchains",
+              "url": "https://arxiv.org/abs/1807.04938",
+              "difficulty": "advanced",
+              "est_hours": 4
+            }
+          ]
+        },
+        {
+          "id": "ds-crdt",
+          "title": "CRDTs & Eventual Consistency",
+          "level": 2,
+          "xp": 300,
+          "description": "Conflict-free replicated data types for offline-first systems",
+          "prereqs": ["ds-foundations"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "A Comprehensive Study of CRDTs (Shapiro et al.)",
+              "url": "https://hal.inria.fr/inria-00555588/document",
+              "difficulty": "advanced",
+              "est_hours": 5
+            },
+            {
+              "type": "library",
+              "title": "Automerge — CRDT library for collaborative apps",
+              "url": "https://automerge.org/",
+              "difficulty": "intermediate",
+              "est_hours": 6
+            }
+          ]
+        },
+        {
+          "id": "ds-p2p",
+          "title": "P2P Networking",
+          "level": 3,
+          "xp": 400,
+          "description": "Kademlia DHT, libp2p, gossip protocols, NAT traversal",
+          "prereqs": ["ds-consensus"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Kademlia: A Peer-to-peer Information System Based on the XOR Metric",
+              "url": "https://pdos.csail.mit.edu/~petar/papers/maymounkov-kademlia-lncs.pdf",
+              "difficulty": "advanced",
+              "est_hours": 3
+            },
+            {
+              "type": "docs",
+              "title": "libp2p Documentation",
+              "url": "https://docs.libp2p.io/",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            }
+          ]
+        },
+        {
+          "id": "ds-mesh",
+          "title": "Edge Mesh Computing",
+          "level": 4,
+          "xp": 550,
+          "description": "Distributed AI inference across heterogeneous edge devices",
+          "prereqs": ["ds-p2p", "ds-crdt"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Petals: Collaborative Inference and Fine-tuning of Large Models",
+              "url": "https://arxiv.org/abs/2209.01188",
+              "difficulty": "advanced",
+              "est_hours": 3
+            },
+            {
+              "type": "project",
+              "title": "Ollama — Local LLM serving",
+              "url": "https://github.com/ollama/ollama",
+              "difficulty": "beginner",
+              "est_hours": 4
+            },
+            {
+              "type": "paper",
+              "title": "EdgeDL: A Cost-efficient Deep Learning Inference Framework",
+              "url": "https://arxiv.org/abs/2405.00695",
+              "difficulty": "advanced",
+              "est_hours": 3
+            }
+          ]
+        },
+        {
+          "id": "ds-observability",
+          "title": "Observability at Scale",
+          "level": 3,
+          "xp": 300,
+          "description": "Distributed tracing, metrics, structured logging, SLOs",
+          "prereqs": ["ds-foundations"],
+          "resources": [
+            {
+              "type": "book",
+              "title": "Observability Engineering — Majors, Fong-Jones, Miranda",
+              "url": "https://www.oreilly.com/library/view/observability-engineering/9781492076438/",
+              "difficulty": "intermediate",
+              "est_hours": 20
+            },
+            {
+              "type": "docs",
+              "title": "OpenTelemetry — Vendor-neutral observability framework",
+              "url": "https://opentelemetry.io/docs/",
+              "difficulty": "intermediate",
+              "est_hours": 8
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "smart-contracts",
+      "title": "Smart Contracts",
+      "emoji": "📜",
+      "color": "#8B5CF6",
+      "description": "Write secure, gas-efficient on-chain logic for Ethereum, Solana, and beyond. The law of the new world.",
+      "total_xp": 3200,
+      "nodes": [
+        {
+          "id": "sc-solidity-basics",
+          "title": "Solidity Foundations",
+          "level": 1,
+          "xp": 250,
+          "description": "EVM, data types, functions, events, modifiers",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "course",
+              "title": "CryptoZombies — Interactive Solidity course",
+              "url": "https://cryptozombies.io/",
+              "difficulty": "beginner",
+              "est_hours": 8
+            },
+            {
+              "type": "docs",
+              "title": "Solidity Documentation (Official)",
+              "url": "https://docs.soliditylang.org/",
+              "difficulty": "intermediate",
+              "est_hours": 15
+            },
+            {
+              "type": "course",
+              "title": "Alchemy University — Ethereum Developer Bootcamp",
+              "url": "https://university.alchemy.com/",
+              "difficulty": "intermediate",
+              "est_hours": 60
+            }
+          ]
+        },
+        {
+          "id": "sc-security",
+          "title": "Smart Contract Security",
+          "level": 2,
+          "xp": 500,
+          "description": "Reentrancy, flash loans, MEV, audit patterns, formal verification",
+          "prereqs": ["sc-solidity-basics"],
+          "resources": [
+            {
+              "type": "course",
+              "title": "Damn Vulnerable DeFi — CTF challenges",
+              "url": "https://www.damnvulnerabledefi.xyz/",
+              "difficulty": "advanced",
+              "est_hours": 20
+            },
+            {
+              "type": "repo",
+              "title": "SWC Registry — Smart Contract Weakness Classification",
+              "url": "https://swcregistry.io/",
+              "difficulty": "intermediate",
+              "est_hours": 5
+            },
+            {
+              "type": "paper",
+              "title": "Ethereum Smart Contract Security Best Practices (ConsenSys)",
+              "url": "https://consensys.github.io/smart-contract-best-practices/",
+              "difficulty": "intermediate",
+              "est_hours": 6
+            },
+            {
+              "type": "tool",
+              "title": "Slither — Static analyzer for Solidity",
+              "url": "https://github.com/crytic/slither",
+              "difficulty": "intermediate",
+              "est_hours": 4
+            }
+          ]
+        },
+        {
+          "id": "sc-patterns",
+          "title": "DeFi Patterns",
+          "level": 2,
+          "xp": 400,
+          "description": "AMMs, bonding curves, vaults, staking, oracles",
+          "prereqs": ["sc-solidity-basics"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Uniswap V3 Core Whitepaper",
+              "url": "https://uniswap.org/whitepaper-v3.pdf",
+              "difficulty": "advanced",
+              "est_hours": 5
+            },
+            {
+              "type": "repo",
+              "title": "OpenZeppelin Contracts — Battle-tested contract library",
+              "url": "https://github.com/OpenZeppelin/openzeppelin-contracts",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            },
+            {
+              "type": "course",
+              "title": "DeFi MOOC — Berkeley / Stanford",
+              "url": "https://defi-learning.org/f22",
+              "difficulty": "advanced",
+              "est_hours": 50
+            }
+          ]
+        },
+        {
+          "id": "sc-anchor",
+          "title": "Solana / Anchor",
+          "level": 2,
+          "xp": 450,
+          "description": "Account model, PDAs, CPIs, Anchor framework",
+          "prereqs": ["sc-solidity-basics"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Anchor Framework Documentation",
+              "url": "https://www.anchor-lang.com/",
+              "difficulty": "intermediate",
+              "est_hours": 15
+            },
+            {
+              "type": "course",
+              "title": "Solana Bootcamp — Jarry Xiao",
+              "url": "https://github.com/jarry-xiao/solana-bootcamp",
+              "difficulty": "advanced",
+              "est_hours": 30
+            }
+          ]
+        },
+        {
+          "id": "sc-upgrades",
+          "title": "Upgradeable Contracts",
+          "level": 3,
+          "xp": 400,
+          "description": "Proxy patterns (UUPS, Transparent, Diamond), migration strategies",
+          "prereqs": ["sc-security", "sc-patterns"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "OpenZeppelin Upgrades Plugins",
+              "url": "https://docs.openzeppelin.com/upgrades-plugins/",
+              "difficulty": "advanced",
+              "est_hours": 8
+            },
+            {
+              "type": "paper",
+              "title": "EIP-2535: Diamonds, Multi-Facet Proxy",
+              "url": "https://eips.ethereum.org/EIPS/eip-2535",
+              "difficulty": "advanced",
+              "est_hours": 3
+            }
+          ]
+        },
+        {
+          "id": "sc-gas",
+          "title": "Gas Optimization",
+          "level": 3,
+          "xp": 400,
+          "description": "Storage packing, assembly, calldata, gas profiling",
+          "prereqs": ["sc-security"],
+          "resources": [
+            {
+              "type": "repo",
+              "title": "Gas Optimization Tricks — 0xKitsune",
+              "url": "https://github.com/0xKitsune/gas-golf",
+              "difficulty": "advanced",
+              "est_hours": 8
+            },
+            {
+              "type": "tool",
+              "title": "Foundry — Fast EVM testing with gas snapshots",
+              "url": "https://github.com/foundry-rs/foundry",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            }
+          ]
+        },
+        {
+          "id": "sc-koink",
+          "title": "Meme Token Standards",
+          "level": 4,
+          "xp": 600,
+          "description": "$KOINK Standard: viral mechanics, bonding curves, cross-chain deployment",
+          "prereqs": ["sc-gas", "sc-patterns"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Token Bonding Curves Explained",
+              "url": "https://yos.io/2018/11/10/bonding-curves/",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            },
+            {
+              "type": "repo",
+              "title": "pump.fun smart contracts analysis",
+              "url": "https://github.com/dabit3/pump-fun-smart-contract-reverse-engineered",
+              "difficulty": "advanced",
+              "est_hours": 6
+            },
+            {
+              "type": "paper",
+              "title": "Automated Market Makers: A Survey",
+              "url": "https://arxiv.org/abs/2106.00033",
+              "difficulty": "advanced",
+              "est_hours": 4
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai-ml",
+      "title": "AI / ML Engineering",
+      "emoji": "🧠",
+      "color": "#10B981",
+      "description": "From transformers to agentic systems — build the intelligence layer of the new stack.",
+      "total_xp": 3500,
+      "nodes": [
+        {
+          "id": "ai-foundations",
+          "title": "ML Foundations",
+          "level": 1,
+          "xp": 300,
+          "description": "Linear algebra, probability, gradient descent, neural networks",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "course",
+              "title": "fast.ai Practical Deep Learning",
+              "url": "https://course.fast.ai/",
+              "difficulty": "beginner",
+              "est_hours": 40
+            },
+            {
+              "type": "book",
+              "title": "Deep Learning — Goodfellow, Bengio, Courville (free)",
+              "url": "https://www.deeplearningbook.org/",
+              "difficulty": "intermediate",
+              "est_hours": 60
+            }
+          ]
+        },
+        {
+          "id": "ai-transformers",
+          "title": "Transformers & LLMs",
+          "level": 2,
+          "xp": 500,
+          "description": "Attention mechanisms, BERT, GPT architecture, fine-tuning",
+          "prereqs": ["ai-foundations"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Attention Is All You Need (Original Transformer)",
+              "url": "https://arxiv.org/abs/1706.03762",
+              "difficulty": "advanced",
+              "est_hours": 3
+            },
+            {
+              "type": "interactive",
+              "title": "The Illustrated Transformer — Jay Alammar",
+              "url": "https://jalammar.github.io/illustrated-transformer/",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            },
+            {
+              "type": "course",
+              "title": "Andrej Karpathy's makemore / nanoGPT",
+              "url": "https://github.com/karpathy/nanoGPT",
+              "difficulty": "advanced",
+              "est_hours": 20
+            }
+          ]
+        },
+        {
+          "id": "ai-rag",
+          "title": "RAG & Memory Systems",
+          "level": 2,
+          "xp": 400,
+          "description": "Vector databases, embeddings, retrieval strategies, HyMem",
+          "prereqs": ["ai-transformers"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Retrieval-Augmented Generation for Knowledge-Intensive NLP",
+              "url": "https://arxiv.org/abs/2005.11401",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            },
+            {
+              "type": "paper",
+              "title": "HyDE: Precise Zero-Shot Dense Retrieval",
+              "url": "https://arxiv.org/abs/2212.10496",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            },
+            {
+              "type": "docs",
+              "title": "pgvector — Vector similarity in Postgres",
+              "url": "https://github.com/pgvector/pgvector",
+              "difficulty": "beginner",
+              "est_hours": 4
+            }
+          ]
+        },
+        {
+          "id": "ai-agents",
+          "title": "Agentic AI Systems",
+          "level": 3,
+          "xp": 600,
+          "description": "ReAct, tool use, multi-agent orchestration, AgentOS",
+          "prereqs": ["ai-rag"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "ReAct: Synergizing Reasoning and Acting in Language Models",
+              "url": "https://arxiv.org/abs/2210.03629",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            },
+            {
+              "type": "paper",
+              "title": "AgentOS: Designing Cognitive Operating Systems for LLMs (2602.20934)",
+              "url": "https://arxiv.org/abs/2602.20934",
+              "difficulty": "advanced",
+              "est_hours": 3
+            },
+            {
+              "type": "paper",
+              "title": "Tree of Thoughts: Deliberate Problem Solving",
+              "url": "https://arxiv.org/abs/2305.10601",
+              "difficulty": "advanced",
+              "est_hours": 2
+            },
+            {
+              "type": "docs",
+              "title": "Anthropic Claude Agent SDK",
+              "url": "https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/sdk",
+              "difficulty": "intermediate",
+              "est_hours": 8
+            }
+          ]
+        },
+        {
+          "id": "ai-finetuning",
+          "title": "Fine-tuning & Alignment",
+          "level": 3,
+          "xp": 500,
+          "description": "LoRA, RLHF, DPO, constitutional AI, efficient training",
+          "prereqs": ["ai-transformers"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "LoRA: Low-Rank Adaptation of Large Language Models",
+              "url": "https://arxiv.org/abs/2106.09685",
+              "difficulty": "advanced",
+              "est_hours": 3
+            },
+            {
+              "type": "paper",
+              "title": "Direct Preference Optimization (DPO)",
+              "url": "https://arxiv.org/abs/2305.18290",
+              "difficulty": "advanced",
+              "est_hours": 3
+            },
+            {
+              "type": "course",
+              "title": "HuggingFace PEFT — Parameter-Efficient Fine-Tuning",
+              "url": "https://huggingface.co/docs/peft/",
+              "difficulty": "intermediate",
+              "est_hours": 12
+            }
+          ]
+        },
+        {
+          "id": "ai-edge",
+          "title": "On-Device AI",
+          "level": 4,
+          "xp": 700,
+          "description": "Quantization, GGUF, edge inference, Otto device mesh",
+          "prereqs": ["ai-agents", "ai-finetuning"],
+          "resources": [
+            {
+              "type": "project",
+              "title": "llama.cpp — CPU inference for LLMs",
+              "url": "https://github.com/ggerganov/llama.cpp",
+              "difficulty": "intermediate",
+              "est_hours": 8
+            },
+            {
+              "type": "paper",
+              "title": "GPTQ: Accurate Post-Training Quantization",
+              "url": "https://arxiv.org/abs/2210.17323",
+              "difficulty": "advanced",
+              "est_hours": 3
+            },
+            {
+              "type": "paper",
+              "title": "Petals: Collaborative Inference of Large Language Models",
+              "url": "https://arxiv.org/abs/2209.01188",
+              "difficulty": "advanced",
+              "est_hours": 3
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cryptography-zk",
+      "title": "Cryptography & ZK",
+      "emoji": "🔐",
+      "color": "#F59E0B",
+      "description": "Zero-knowledge proofs, secure computation, and the mathematical foundation of trust without authority.",
+      "total_xp": 3000,
+      "nodes": [
+        {
+          "id": "zk-foundations",
+          "title": "Cryptography Foundations",
+          "level": 1,
+          "xp": 300,
+          "description": "Symmetric/asymmetric crypto, hash functions, signatures, PKI",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "book",
+              "title": "Serious Cryptography — Jean-Philippe Aumasson (No Starch)",
+              "url": "https://nostarch.com/seriouscrypto",
+              "difficulty": "intermediate",
+              "est_hours": 25
+            },
+            {
+              "type": "course",
+              "title": "Dan Boneh's Cryptography I — Coursera/Stanford",
+              "url": "https://www.coursera.org/learn/crypto",
+              "difficulty": "advanced",
+              "est_hours": 30
+            }
+          ]
+        },
+        {
+          "id": "zk-basics",
+          "title": "ZK Fundamentals",
+          "level": 2,
+          "xp": 500,
+          "description": "Interactive proofs, SNARKs, STARKs, commitment schemes",
+          "prereqs": ["zk-foundations"],
+          "resources": [
+            {
+              "type": "book",
+              "title": "Proofs, Arguments, and Zero-Knowledge — Justin Thaler (free)",
+              "url": "https://people.cs.georgetown.edu/jthaler/ProofsArgsAndZK.pdf",
+              "difficulty": "advanced",
+              "est_hours": 50
+            },
+            {
+              "type": "interactive",
+              "title": "ZKProof Community Reference",
+              "url": "https://docs.zkproof.org/",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            },
+            {
+              "type": "blog",
+              "title": "Vitalik's ZK-SNARKs Explainer Series",
+              "url": "https://vitalik.eth.limo/general/2021/01/26/snarks.html",
+              "difficulty": "intermediate",
+              "est_hours": 4
+            }
+          ]
+        },
+        {
+          "id": "zk-circom",
+          "title": "Circom & Groth16",
+          "level": 3,
+          "xp": 600,
+          "description": "Circuit design, constraint systems, trusted setups, Circom DSL",
+          "prereqs": ["zk-basics"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Circom Documentation",
+              "url": "https://docs.circom.io/",
+              "difficulty": "advanced",
+              "est_hours": 20
+            },
+            {
+              "type": "course",
+              "title": "0xPARC ZK Learning Group",
+              "url": "https://learn.0xparc.org/",
+              "difficulty": "advanced",
+              "est_hours": 40
+            }
+          ]
+        },
+        {
+          "id": "zk-identity",
+          "title": "ZK Identity & Privacy",
+          "level": 3,
+          "xp": 600,
+          "description": "Anonymous credentials, Semaphore, nullifiers, Worldcoin/Self Protocol",
+          "prereqs": ["zk-basics"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Semaphore — Zero-Knowledge Group Membership",
+              "url": "https://semaphore.appliedzkp.org/",
+              "difficulty": "advanced",
+              "est_hours": 15
+            },
+            {
+              "type": "docs",
+              "title": "Self Protocol — ZK Passport Proofs",
+              "url": "https://docs.self.xyz/",
+              "difficulty": "intermediate",
+              "est_hours": 8
+            }
+          ]
+        },
+        {
+          "id": "zk-scaling",
+          "title": "ZK Rollups & L2",
+          "level": 4,
+          "xp": 1000,
+          "description": "zkEVM, validity proofs, recursive SNARKs, Plonky2, Starknet",
+          "prereqs": ["zk-circom", "zk-identity"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Polygon zkEVM: A New Era for Ethereum Scaling",
+              "url": "https://polygon.technology/papers/polygon-zkevm",
+              "difficulty": "expert",
+              "est_hours": 8
+            },
+            {
+              "type": "paper",
+              "title": "Plonky2: Fast Recursive Arguments",
+              "url": "https://github.com/0xPolygonZero/plonky2/blob/main/plonky2/plonky2.pdf",
+              "difficulty": "expert",
+              "est_hours": 6
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "frontend",
+      "title": "Frontend Engineering",
+      "emoji": "💻",
+      "color": "#06B6D4",
+      "description": "Craft interfaces that feel inevitable. From performant React to animated 3D — the layer where users live.",
+      "total_xp": 2600,
+      "nodes": [
+        {
+          "id": "fe-react",
+          "title": "React / Next.js",
+          "level": 1,
+          "xp": 250,
+          "description": "Components, hooks, suspense, SSR/SSG, App Router",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "React Documentation (Official)",
+              "url": "https://react.dev/",
+              "difficulty": "beginner",
+              "est_hours": 20
+            },
+            {
+              "type": "docs",
+              "title": "Next.js Documentation",
+              "url": "https://nextjs.org/docs",
+              "difficulty": "intermediate",
+              "est_hours": 15
+            },
+            {
+              "type": "course",
+              "title": "Josh Comeau's Joy of React",
+              "url": "https://www.joyofreact.com/",
+              "difficulty": "intermediate",
+              "est_hours": 40
+            }
+          ]
+        },
+        {
+          "id": "fe-animation",
+          "title": "Animation & Motion",
+          "level": 2,
+          "xp": 350,
+          "description": "Framer Motion, CSS animations, GSAP, spring physics",
+          "prereqs": ["fe-react"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Framer Motion Documentation",
+              "url": "https://www.framer.com/motion/",
+              "difficulty": "intermediate",
+              "est_hours": 12
+            },
+            {
+              "type": "course",
+              "title": "GSAP — The GreenSock Animation Platform",
+              "url": "https://gsap.com/resources/",
+              "difficulty": "intermediate",
+              "est_hours": 20
+            }
+          ]
+        },
+        {
+          "id": "fe-design-systems",
+          "title": "Design Systems",
+          "level": 2,
+          "xp": 300,
+          "description": "Tokens, components, accessibility, shadcn/ui, Tailwind",
+          "prereqs": ["fe-react"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "shadcn/ui — Build your own component library",
+              "url": "https://ui.shadcn.com/",
+              "difficulty": "beginner",
+              "est_hours": 8
+            },
+            {
+              "type": "book",
+              "title": "Design Systems — Alla Kholmatova",
+              "url": "https://www.designsystems.com/",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            }
+          ]
+        },
+        {
+          "id": "fe-web3",
+          "title": "Web3 Frontend",
+          "level": 3,
+          "xp": 450,
+          "description": "wagmi, viem, wallet connect, transaction UX, RainbowKit",
+          "prereqs": ["fe-animation", "fe-design-systems"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "wagmi — React Hooks for Ethereum",
+              "url": "https://wagmi.sh/",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            },
+            {
+              "type": "docs",
+              "title": "RainbowKit — The best way to connect a wallet",
+              "url": "https://www.rainbowkit.com/docs/introduction",
+              "difficulty": "beginner",
+              "est_hours": 5
+            }
+          ]
+        },
+        {
+          "id": "fe-performance",
+          "title": "Performance Engineering",
+          "level": 3,
+          "xp": 500,
+          "description": "Core Web Vitals, code splitting, streaming, edge rendering",
+          "prereqs": ["fe-react"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "web.dev — Performance",
+              "url": "https://web.dev/learn/performance/",
+              "difficulty": "intermediate",
+              "est_hours": 12
+            },
+            {
+              "type": "tool",
+              "title": "Vercel Speed Insights",
+              "url": "https://vercel.com/docs/speed-insights",
+              "difficulty": "beginner",
+              "est_hours": 2
+            }
+          ]
+        },
+        {
+          "id": "fe-ai-ui",
+          "title": "AI-Native UI Patterns",
+          "level": 4,
+          "xp": 750,
+          "description": "Streaming responses, generative UI, AI SDKs, realtime feedback",
+          "prereqs": ["fe-web3", "fe-performance"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Vercel AI SDK",
+              "url": "https://sdk.vercel.ai/docs",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            },
+            {
+              "type": "blog",
+              "title": "Generative UI — What it means to build AI-native apps",
+              "url": "https://vercel.com/blog/ai-sdk-3-generative-ui",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "3d-vr",
+      "title": "3D & Immersive",
+      "emoji": "🌀",
+      "color": "#EC4899",
+      "description": "Build the visual layer of sovereign civilization — immersive environments, interactive 3D, spatial computing.",
+      "total_xp": 2400,
+      "nodes": [
+        {
+          "id": "vr-threejs",
+          "title": "Three.js Foundations",
+          "level": 1,
+          "xp": 300,
+          "description": "Scene graph, cameras, lighting, materials, geometry",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "course",
+              "title": "Three.js Journey — Bruno Simon (best 3D course)",
+              "url": "https://threejs-journey.com/",
+              "difficulty": "intermediate",
+              "est_hours": 60
+            },
+            {
+              "type": "docs",
+              "title": "Three.js Documentation",
+              "url": "https://threejs.org/docs/",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            }
+          ]
+        },
+        {
+          "id": "vr-r3f",
+          "title": "React Three Fiber",
+          "level": 2,
+          "xp": 400,
+          "description": "Declarative 3D in React, @react-three/drei, @react-three/rapier",
+          "prereqs": ["vr-threejs", "fe-react"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "React Three Fiber Documentation",
+              "url": "https://docs.pmnd.rs/react-three-fiber/",
+              "difficulty": "intermediate",
+              "est_hours": 15
+            },
+            {
+              "type": "project",
+              "title": "R3F Examples Gallery",
+              "url": "https://codesandbox.io/examples/package/three",
+              "difficulty": "intermediate",
+              "est_hours": 8
+            }
+          ]
+        },
+        {
+          "id": "vr-shaders",
+          "title": "Shaders & GLSL",
+          "level": 3,
+          "xp": 600,
+          "description": "Vertex/fragment shaders, ray marching, post-processing effects",
+          "prereqs": ["vr-r3f"],
+          "resources": [
+            {
+              "type": "interactive",
+              "title": "The Book of Shaders — Interactive shader guide",
+              "url": "https://thebookofshaders.com/",
+              "difficulty": "advanced",
+              "est_hours": 30
+            },
+            {
+              "type": "course",
+              "title": "Shader Park — Creative coding with GLSL",
+              "url": "https://shaderpark.com/",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            }
+          ]
+        },
+        {
+          "id": "vr-webxr",
+          "title": "WebXR & Spatial Computing",
+          "level": 3,
+          "xp": 600,
+          "description": "VR/AR sessions, controller input, room-scale, Meta Quest",
+          "prereqs": ["vr-r3f"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "WebXR Device API — MDN",
+              "url": "https://developer.mozilla.org/en-US/docs/Web/API/WebXR_Device_API",
+              "difficulty": "advanced",
+              "est_hours": 15
+            },
+            {
+              "type": "docs",
+              "title": "@react-three/xr — VR/AR for R3F",
+              "url": "https://github.com/pmndrs/xr",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            }
+          ]
+        },
+        {
+          "id": "vr-tusita",
+          "title": "Architectural Visualization",
+          "level": 4,
+          "xp": 500,
+          "description": "BIM, parametric design, Blender→Three.js pipeline, sacred geometry",
+          "prereqs": ["vr-shaders", "vr-webxr"],
+          "resources": [
+            {
+              "type": "tool",
+              "title": "Blender — Free 3D creation suite",
+              "url": "https://www.blender.org/",
+              "difficulty": "intermediate",
+              "est_hours": 40
+            },
+            {
+              "type": "docs",
+              "title": "gltf.report — glTF validation & inspection",
+              "url": "https://gltf.report/",
+              "difficulty": "beginner",
+              "est_hours": 1
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "devops",
+      "title": "DevOps & Infrastructure",
+      "emoji": "⚙️",
+      "color": "#6B7280",
+      "description": "The invisible layer that keeps everything running. CI/CD, containers, observability, IaC.",
+      "total_xp": 2200,
+      "nodes": [
+        {
+          "id": "ops-containers",
+          "title": "Containers & Docker",
+          "level": 1,
+          "xp": 200,
+          "description": "Images, layers, Compose, volumes, networking",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Docker Official Documentation",
+              "url": "https://docs.docker.com/",
+              "difficulty": "beginner",
+              "est_hours": 10
+            },
+            {
+              "type": "course",
+              "title": "Docker & Kubernetes — The Practical Guide (Udemy)",
+              "url": "https://www.udemy.com/course/docker-kubernetes-the-practical-guide/",
+              "difficulty": "intermediate",
+              "est_hours": 25
+            }
+          ]
+        },
+        {
+          "id": "ops-k8s",
+          "title": "Kubernetes",
+          "level": 2,
+          "xp": 400,
+          "description": "Pods, services, deployments, RBAC, operators, Helm",
+          "prereqs": ["ops-containers"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Kubernetes Documentation",
+              "url": "https://kubernetes.io/docs/home/",
+              "difficulty": "advanced",
+              "est_hours": 30
+            },
+            {
+              "type": "course",
+              "title": "CKA Certification Prep — killer.sh",
+              "url": "https://killer.sh/",
+              "difficulty": "advanced",
+              "est_hours": 40
+            }
+          ]
+        },
+        {
+          "id": "ops-cicd",
+          "title": "CI/CD Pipelines",
+          "level": 2,
+          "xp": 300,
+          "description": "GitHub Actions, security scanning, blue-green deployments",
+          "prereqs": ["ops-containers"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "GitHub Actions Documentation",
+              "url": "https://docs.github.com/en/actions",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            },
+            {
+              "type": "course",
+              "title": "Continuous Delivery — Jez Humble (free online)",
+              "url": "https://continuousdelivery.com/",
+              "difficulty": "intermediate",
+              "est_hours": 20
+            }
+          ]
+        },
+        {
+          "id": "ops-iac",
+          "title": "Infrastructure as Code",
+          "level": 3,
+          "xp": 500,
+          "description": "Terraform, Pulumi, cloud-native config, GitOps",
+          "prereqs": ["ops-k8s", "ops-cicd"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Terraform Documentation",
+              "url": "https://developer.hashicorp.com/terraform/docs",
+              "difficulty": "intermediate",
+              "est_hours": 20
+            },
+            {
+              "type": "docs",
+              "title": "Pulumi — IaC in TypeScript/Python",
+              "url": "https://www.pulumi.com/docs/",
+              "difficulty": "intermediate",
+              "est_hours": 15
+            }
+          ]
+        },
+        {
+          "id": "ops-decentral",
+          "title": "Decentralized Infrastructure",
+          "level": 4,
+          "xp": 800,
+          "description": "IPFS, Filecoin, Akash Network, sovereign hosting",
+          "prereqs": ["ops-iac"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "IPFS Documentation",
+              "url": "https://docs.ipfs.tech/",
+              "difficulty": "intermediate",
+              "est_hours": 10
+            },
+            {
+              "type": "docs",
+              "title": "Akash Network — Decentralized Cloud Computing",
+              "url": "https://akash.network/docs/",
+              "difficulty": "advanced",
+              "est_hours": 15
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dao-governance",
+      "title": "DAO Governance",
+      "emoji": "🏛️",
+      "color": "#A78BFA",
+      "description": "Design fair, sybil-resistant, high-participation governance systems. The social layer of decentralization.",
+      "total_xp": 2500,
+      "nodes": [
+        {
+          "id": "dao-theory",
+          "title": "Governance Theory",
+          "level": 1,
+          "xp": 250,
+          "description": "Voting mechanisms, Condorcet paradox, principal-agent, prisoner's dilemma",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "book",
+              "title": "Radical Markets — Posner & Weyl",
+              "url": "https://press.princeton.edu/books/hardcover/9780691177502/radical-markets",
+              "difficulty": "intermediate",
+              "est_hours": 12
+            },
+            {
+              "type": "paper",
+              "title": "Quadratic Voting: How Mechanism Design Can Radicalize Democracy",
+              "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=2003531",
+              "difficulty": "intermediate",
+              "est_hours": 3
+            }
+          ]
+        },
+        {
+          "id": "dao-sybil",
+          "title": "Sybil Resistance",
+          "level": 2,
+          "xp": 400,
+          "description": "Proof of Humanity, Gitcoin Passport, ZK identity, DPC",
+          "prereqs": ["dao-theory"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Proof of Personhood: Explanation and Defence",
+              "url": "https://vitalik.eth.limo/general/2023/07/24/biometric.html",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            },
+            {
+              "type": "docs",
+              "title": "Gitcoin Passport Documentation",
+              "url": "https://docs.passport.gitcoin.co/",
+              "difficulty": "beginner",
+              "est_hours": 4
+            }
+          ]
+        },
+        {
+          "id": "dao-dpc",
+          "title": "Dynamic Proximity Calculus",
+          "level": 3,
+          "xp": 600,
+          "description": "SOS Systems DPC: Impact-weighted governance P=f(Is, Ec, Rw)",
+          "prereqs": ["dao-sybil"],
+          "resources": [
+            {
+              "type": "blog",
+              "title": "SOS Systems Governance Design — MY3YE Inception Article",
+              "url": "https://my3ye.xyz/articles/sos-systems",
+              "difficulty": "intermediate",
+              "est_hours": 1
+            },
+            {
+              "type": "paper",
+              "title": "Eigentrust: Managing Trust in Peer-to-Peer Networks",
+              "url": "https://ilpubs.stanford.edu:8090/562/1/2002-56.pdf",
+              "difficulty": "advanced",
+              "est_hours": 3
+            }
+          ]
+        },
+        {
+          "id": "dao-tools",
+          "title": "DAO Tooling",
+          "level": 2,
+          "xp": 350,
+          "description": "Snapshot, Tally, Governor Bravo, Compound governance",
+          "prereqs": ["dao-theory"],
+          "resources": [
+            {
+              "type": "docs",
+              "title": "Snapshot Documentation — Off-chain governance",
+              "url": "https://docs.snapshot.org/",
+              "difficulty": "beginner",
+              "est_hours": 5
+            },
+            {
+              "type": "docs",
+              "title": "OpenZeppelin Governor — On-chain governance",
+              "url": "https://docs.openzeppelin.com/contracts/5.x/governance",
+              "difficulty": "intermediate",
+              "est_hours": 8
+            }
+          ]
+        },
+        {
+          "id": "dao-gamified",
+          "title": "Gamified Participation",
+          "level": 4,
+          "xp": 900,
+          "description": "Contribution scoring, reputation systems, progressive disclosure, incentive design",
+          "prereqs": ["dao-dpc", "dao-tools"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Mechanism Design and Tokenomics — Survey",
+              "url": "https://arxiv.org/abs/2103.10948",
+              "difficulty": "advanced",
+              "est_hours": 4
+            },
+            {
+              "type": "blog",
+              "title": "Optimism's Retroactive Public Goods Funding Model",
+              "url": "https://app.optimism.io/retropgf",
+              "difficulty": "beginner",
+              "est_hours": 2
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tokenomics",
+      "title": "Tokenomics",
+      "emoji": "💎",
+      "color": "#F97316",
+      "description": "Design token systems that create real value, align incentives, and survive the market cycle.",
+      "total_xp": 2800,
+      "nodes": [
+        {
+          "id": "tok-basics",
+          "title": "Token Fundamentals",
+          "level": 1,
+          "xp": 250,
+          "description": "Fungible vs NFTs, ERC standards, token lifecycle, supply dynamics",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "blog",
+              "title": "Token Economics 101 — Token Kitchen",
+              "url": "https://tokenkitchen.substack.com/",
+              "difficulty": "beginner",
+              "est_hours": 5
+            },
+            {
+              "type": "paper",
+              "title": "Token-Curated Registries 1.0 — Mike Goldin",
+              "url": "https://medium.com/@ilovebagels/token-curated-registries-1-0-61a232f8dac7",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            }
+          ]
+        },
+        {
+          "id": "tok-defi",
+          "title": "DeFi Mechanics",
+          "level": 2,
+          "xp": 450,
+          "description": "Liquidity pools, impermanent loss, yield farming, veTokenomics",
+          "prereqs": ["tok-basics"],
+          "resources": [
+            {
+              "type": "interactive",
+              "title": "Finematics — DeFi Explained (YouTube)",
+              "url": "https://www.youtube.com/@Finematics",
+              "difficulty": "beginner",
+              "est_hours": 8
+            },
+            {
+              "type": "paper",
+              "title": "Curve Finance — StableSwap Whitepaper",
+              "url": "https://resources.curve.fi/pdf/curve-stableswap.pdf",
+              "difficulty": "advanced",
+              "est_hours": 3
+            },
+            {
+              "type": "blog",
+              "title": "veTokenomics: A Deep Dive",
+              "url": "https://medium.com/stakedao/understanding-vetokenomics-4f09b4f4e0b8",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            }
+          ]
+        },
+        {
+          "id": "tok-bonding",
+          "title": "Bonding Curves",
+          "level": 3,
+          "xp": 500,
+          "description": "Continuous token models, pump.fun mechanics, $KOINK standard",
+          "prereqs": ["tok-defi"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Bancor Protocol: Continuous Liquidity",
+              "url": "https://storage.googleapis.com/website-bancor/2018/04/01ba8253-bancor_protocol_whitepaper_en.pdf",
+              "difficulty": "advanced",
+              "est_hours": 4
+            },
+            {
+              "type": "blog",
+              "title": "Bonding Curves — The Math",
+              "url": "https://yos.io/2018/11/10/bonding-curves/",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            }
+          ]
+        },
+        {
+          "id": "tok-distribution",
+          "title": "Token Distribution",
+          "level": 2,
+          "xp": 400,
+          "description": "Airdrops, lockups, vesting schedules, fair launches, anti-whale",
+          "prereqs": ["tok-basics"],
+          "resources": [
+            {
+              "type": "blog",
+              "title": "Airdrop Design Guide — Uniswap, ENS, Optimism case studies",
+              "url": "https://variant.fund/articles/how-to-design-a-token-airdrop/",
+              "difficulty": "intermediate",
+              "est_hours": 3
+            },
+            {
+              "type": "paper",
+              "title": "Anti-Whale Mechanisms in Token Economics",
+              "url": "https://arxiv.org/abs/2306.00903",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            }
+          ]
+        },
+        {
+          "id": "tok-modeling",
+          "title": "Token Modeling",
+          "level": 4,
+          "xp": 1200,
+          "description": "Agent-based simulation, cadCAD, stress testing, equilibrium analysis",
+          "prereqs": ["tok-bonding", "tok-distribution"],
+          "resources": [
+            {
+              "type": "tool",
+              "title": "cadCAD — Complex Adaptive Dynamics Computer-Aided Design",
+              "url": "https://cadcad.org/",
+              "difficulty": "advanced",
+              "est_hours": 20
+            },
+            {
+              "type": "paper",
+              "title": "Foundations of Cryptoeconomics",
+              "url": "https://arxiv.org/abs/2105.00375",
+              "difficulty": "advanced",
+              "est_hours": 5
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gamification",
+      "title": "Gamification Mechanics",
+      "emoji": "🎮",
+      "color": "#EF4444",
+      "description": "The science of making hard things irresistible. Progression systems, flow states, habit loops.",
+      "total_xp": 2000,
+      "nodes": [
+        {
+          "id": "gam-theory",
+          "title": "Motivation & Flow",
+          "level": 1,
+          "xp": 200,
+          "description": "Intrinsic/extrinsic motivation, flow theory, self-determination theory",
+          "prereqs": [],
+          "resources": [
+            {
+              "type": "book",
+              "title": "Drive — Daniel Pink",
+              "url": "https://www.danpink.com/drive/",
+              "difficulty": "beginner",
+              "est_hours": 6
+            },
+            {
+              "type": "book",
+              "title": "Flow: The Psychology of Optimal Experience — Csikszentmihalyi",
+              "url": "https://www.goodreads.com/book/show/66354.Flow",
+              "difficulty": "intermediate",
+              "est_hours": 8
+            }
+          ]
+        },
+        {
+          "id": "gam-systems",
+          "title": "Game Systems Design",
+          "level": 2,
+          "xp": 350,
+          "description": "XP curves, achievement systems, progression loops, reward schedules",
+          "prereqs": ["gam-theory"],
+          "resources": [
+            {
+              "type": "book",
+              "title": "The Art of Game Design — Jesse Schell",
+              "url": "https://www.schellgames.com/art-of-game-design/",
+              "difficulty": "intermediate",
+              "est_hours": 20
+            },
+            {
+              "type": "course",
+              "title": "Game Design Fundamentals — MIT OpenCourseWare",
+              "url": "https://ocw.mit.edu/courses/cms-608-game-design-fall-2010/",
+              "difficulty": "intermediate",
+              "est_hours": 30
+            }
+          ]
+        },
+        {
+          "id": "gam-onchain",
+          "title": "On-Chain Gamification",
+          "level": 3,
+          "xp": 500,
+          "description": "Soul-bound tokens, achievement NFTs, on-chain reputation, Loot",
+          "prereqs": ["gam-systems"],
+          "resources": [
+            {
+              "type": "paper",
+              "title": "Soulbound Tokens — Decentralized Society (DeSoc)",
+              "url": "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4105763",
+              "difficulty": "intermediate",
+              "est_hours": 3
+            },
+            {
+              "type": "blog",
+              "title": "On-Chain Achievement Systems — Mirror",
+              "url": "https://mirror.xyz/",
+              "difficulty": "beginner",
+              "est_hours": 2
+            }
+          ]
+        },
+        {
+          "id": "gam-dao",
+          "title": "Governance Gamification",
+          "level": 3,
+          "xp": 450,
+          "description": "Participation incentives, delegate systems, seasonal resets, quests",
+          "prereqs": ["gam-systems"],
+          "resources": [
+            {
+              "type": "blog",
+              "title": "How Optimism Turned Governance Into a Game",
+              "url": "https://community.optimism.io/",
+              "difficulty": "beginner",
+              "est_hours": 2
+            },
+            {
+              "type": "paper",
+              "title": "Mechanism Design for Decentralized Autonomous Organizations",
+              "url": "https://arxiv.org/abs/2303.00223",
+              "difficulty": "advanced",
+              "est_hours": 3
+            }
+          ]
+        },
+        {
+          "id": "gam-s0s",
+          "title": "S0S Education Engine",
+          "level": 4,
+          "xp": 500,
+          "description": "Contribution-weighted advancement, Proof of Grit, passion-mapped learning paths",
+          "prereqs": ["gam-onchain", "gam-dao"],
+          "resources": [
+            {
+              "type": "blog",
+              "title": "S0S Systems: Zero to Skilled — MY3YE Vision",
+              "url": "https://my3ye.xyz/articles/sos-systems",
+              "difficulty": "beginner",
+              "est_hours": 1
+            },
+            {
+              "type": "paper",
+              "title": "Mastery Learning: Applying Learning Theory",
+              "url": "https://files.eric.ed.gov/fulltext/EJ1214682.pdf",
+              "difficulty": "intermediate",
+              "est_hours": 2
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
