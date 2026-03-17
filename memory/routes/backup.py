@@ -192,3 +192,61 @@ async def backup_instructions():
             "OMS env checklist: mev.otto.lk/environment",
         ],
     )
+
+
+# ── Env Check ──────────────────────────────────────────────────────────────
+
+class EnvCheckItem(BaseModel):
+    name: str
+    status: str  # "pass" | "fail" | "warn"
+    detail: str
+
+
+class EnvCheckResponse(BaseModel):
+    overall: str  # "pass" | "fail" | "warn"
+    pass_count: int
+    fail_count: int
+    warn_count: int
+    total_count: int
+    is_restored: bool
+    checks: list[EnvCheckItem]
+    ran_at: str
+
+
+@router.get("/env-check", response_model=EnvCheckResponse)
+async def env_check():
+    """
+    Run the new-environment auth checklist (otto-env-check.sh).
+    Returns structured pass/fail/warn results for each auth service.
+    """
+    if not ENV_CHECK_SCRIPT.exists():
+        raise HTTPException(status_code=500, detail=f"Env check script not found: {ENV_CHECK_SCRIPT}")
+
+    try:
+        result = subprocess.run(
+            ["bash", str(ENV_CHECK_SCRIPT), "--json"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        # Script exits 1 on failures — that's fine, we still parse JSON
+        data: dict[str, Any] = json.loads(result.stdout)
+        checks = [EnvCheckItem(**c) for c in data.get("checks", [])]
+        return EnvCheckResponse(
+            overall=data.get("overall", "fail"),
+            pass_count=data.get("pass_count", 0),
+            fail_count=data.get("fail_count", 0),
+            warn_count=data.get("warn_count", 0),
+            total_count=data.get("total_count", 0),
+            is_restored=data.get("is_restored", False),
+            checks=checks,
+            ran_at=datetime.now(tz=timezone.utc).isoformat(),
+        )
+    except subprocess.TimeoutExpired:
+        raise HTTPException(status_code=504, detail="Env check timed out (30s)")
+    except json.JSONDecodeError as e:
+        log.error(f"Env check JSON parse error: {e}\nOutput: {result.stdout[:500]}")
+        raise HTTPException(status_code=500, detail=f"Failed to parse env check output: {e}")
+    except Exception as e:
+        log.error(f"Env check failed: {e}")
+        raise HTTPException(status_code=500, detail=f"Env check failed: {e}")
