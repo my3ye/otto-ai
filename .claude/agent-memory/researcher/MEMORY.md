@@ -1,5 +1,19 @@
 # Researcher Agent Memory
 
+## AutoResearchClaw Evaluation (2026-03-18)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_autoresearchclaw_eval.md
+DB Memory ID: da77499a
+
+### Key Finding: Crawl Layer Good, Full Tool Wrong Fit
+- **Repo**: github.com/aiming-lab/AutoResearchClaw — 23-stage academic paper generator (idea→LaTeX). 3,683 stars.
+- **Crawl layer (stages 3-6)**: OpenAlex + Semantic Scholar + arXiv with query expansion + dedup → **significantly better than Otto's ad-hoc WebFetch pattern**
+- **Purpose mismatch**: Generates academic papers. Otto needs implementation signal, not papers.
+- **Persona critique fit**: POOR — social/cultural research, not arXiv domain
+- **General research fit**: PARTIAL — crawl layer only
+- **Dependency cost**: Requires OpenAI API key (added cost), complex 23-stage system
+- **Verdict**: Do NOT adopt. Instead build native `LitSearch` tool using OpenAlex API (free) + Semantic Scholar API (free tier) → feeds existing triage pipeline
+
 ## Decentralized Intelligence Layer Architecture (2026-03-17)
 
 Design doc: ~/otto/projects/capital/decentralized_intelligence_layer.md
