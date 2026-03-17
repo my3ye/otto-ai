@@ -251,6 +251,8 @@ Source: Community KOIN raises, Otto Travel/Properties revenue, Assistive Tech su
 | Otto Home v1 | Phase 3 | $80 | $149 | Home hub, Tusita mesh, energy monitor |
 | Otto Band v1 | Phase 4 | $40 | $89 | Biometrics, Shakrah, identity layer |
 | Otto Buds | Phase 4 | $35 | $79 | Ambient AI, language layer |
+| Otto Glasses | Phase 4 | $80 | $199 | AR vision layer, Otto agent in-field display |
+| Otto Ring | Phase 4 | $25 | $69 | Payments, biometric identity, health monitoring |
 | Otto Puck v2 | Phase 4 | $25 | $59 | Custom silicon, 2× perf, lower cost |
 | Otto Phone | Phase 4–5 | $120 | $249 | ONEON-native mobile device |
 | Otto Tower | Phase 4–5 | $400 | $799 | Community compute anchor |

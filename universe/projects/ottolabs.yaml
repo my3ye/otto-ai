@@ -15,8 +15,8 @@ identity:
     gains. Ottolabs' answer: the contributors who built the network.
   key_quote: "Every device is purpose-scaled. Every device contributes compute. Every contributor earns governance weight."
   what_it_is: >
-    Physical means of production. Devices (Puck, Phone, Band, Buds, Home, Tower,
-    Satellites), robotics (4 tiers), factories (DAO-governed), agriculture
+    Physical means of production. Devices (Puck, Phone, Band, Buds, Glasses, Ring,
+    Home, Tower, Satellites), robotics (4 tiers), factories (DAO-governed), agriculture
     (vertical farms, aquaponics, permaculture), energy (solar, wind, tidal, hydrogen).
     The hardware layer of the MY3YE civilization.
   what_it_is_not: >
@@ -45,6 +45,21 @@ identity:
     - name: "Otto Buds"
       type: "Sensory AI"
       description: "Always-on audio processing. Ambient intelligence. Language layer."
+    - name: "Otto Glasses"
+      type: "AR vision layer"
+      description: >
+        Augmented reality display layer. Otto agent visible in your field of view.
+        Environmental awareness, spatial compute, navigation overlay. The interface
+        that makes the digital world legible without pulling out a phone.
+        ONEON identity-linked. Offline-capable. Built for the real world.
+    - name: "Otto Ring"
+      type: "Payments / identity / health anchor"
+      description: >
+        Always-worn sovereign identity. Tap to pay (ONEON-native, crypto-first).
+        Biometric identity anchor — presence confirmation without passwords.
+        Continuous health monitoring: heart rate, SpO2, skin temperature.
+        The smallest and most intimate device in the lineup. Ownership in the
+        most literal sense — on your body, under your governance.
     - name: "Otto Home"
       type: "Residential node"
       description: "Home intelligence hub. Tusita community mesh node. Energy management."
