@@ -222,6 +222,18 @@ def _run_row(row) -> dict:
     }
 
 
+def _parse_jsonb(val, default=None):
+    """Parse JSONB field — asyncpg may return it as str or already-parsed."""
+    if val is None:
+        return default if default is not None else []
+    if isinstance(val, str):
+        try:
+            return json.loads(val)
+        except (json.JSONDecodeError, ValueError):
+            return default if default is not None else []
+    return val
+
+
 def _critique_row(row) -> dict:
     return {
         "id": str(row["id"]),
@@ -231,8 +243,8 @@ def _critique_row(row) -> dict:
         "persona_figure": row["persona_figure"],
         "audience": row["audience"],
         "overall_feedback": row["overall_feedback"],
-        "suggestions": row["suggestions"] if row["suggestions"] else [],
-        "strengths": row["strengths"] if row["strengths"] else [],
+        "suggestions": _parse_jsonb(row["suggestions"]),
+        "strengths": _parse_jsonb(row["strengths"]),
         "rating": row["rating"],
         "status": row["status"],
         "error": row["error"],
@@ -248,8 +260,8 @@ def _synthesis_row(row) -> dict:
         "article_title": row["article_title"],
         "original_content": row["original_content"],
         "synthesized_content": row["synthesized_content"],
-        "key_changes": row["key_changes"] if row["key_changes"] else [],
-        "personas_used": row["personas_used"] if row["personas_used"] else [],
+        "key_changes": _parse_jsonb(row["key_changes"]),
+        "personas_used": _parse_jsonb(row["personas_used"]),
         "status": row["status"],
         "error": row["error"],
         "created_at": row["created_at"].isoformat() if row["created_at"] else None,
@@ -402,8 +414,8 @@ async def _run_synthesis(synthesis_id: str, run_id: str, article_title: str, art
         critique_summary_parts = []
         personas_used = []
         for row in rows:
-            suggestions = row["suggestions"] if row["suggestions"] else []
-            strengths = row["strengths"] if row["strengths"] else []
+            suggestions = _parse_jsonb(row["suggestions"])
+            strengths = _parse_jsonb(row["strengths"])
             personas_used.append(row["persona_id"])
 
             critique_summary_parts.append(f"""
