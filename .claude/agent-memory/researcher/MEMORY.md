@@ -1,5 +1,119 @@
 # Researcher Agent Memory
 
+## Decentralized Intelligence Layer Architecture (2026-03-17)
+
+Design doc: ~/otto/projects/capital/decentralized_intelligence_layer.md
+DB Memory IDs: c7fe43ae (architecture), 838af093 (research primitives)
+
+### Key Finding: 4-Layer Protocol — Govern, Train, Eval, Self-Evolve
+- **Layer 1 (Governance)**: $KOIN contributor-weighted votes on capability subnets. Market-driven subnet emission (Bittensor dTAO pattern). Proposal lifecycle: 72h review → 5d deliberation → 7d vote → 30d timelock.
+- **Layer 2 (Training)**: FedRLHF on community feedback. Contribution-weighted aggregation via Shapley value. LoRA adapters only — no from-scratch training (Mev directive). Gensyn for distributed compute.
+- **Layer 3 (Eval)**: InfiCoEvalChain pattern — 7-node multi-party consensus reduces eval σ from 1.67→0.28. zk-SNARK proofs of performance (EZKL/Halo2). Tier 1 gates block deploy; user feedback gate overrides benchmark (anti-Goodhart).
+- **Layer 4 (Self-Evolution)**: Drift detection → auto-proposal → governance vote → staged rollout (5%→20%→50%→100%). Continual learning via LoRA isolation + replay buffers.
+- **Anti-centralization**: 7 independent eval nodes (≥3 geos), max 5% GovernanceWeight per wallet, founding veto sunsets Phase 2 (12-24mo), fork rights always available.
+- **Roadmap**: Phase 0 (simulation) → Phase 1 (governance MVP, devnet) → Phase 2 (first production model update) → Phase 3 (full decentralization).
+
+### Key Research Primitives Found
+- **Bittensor/dTAO**: Market-driven emission, Yuma Consensus. Covenant-72B trained on 70+ nodes (SparseLoCo 146x comm reduction).
+- **Gensyn**: Layer-1 Ethereum rollup. SkipPipe -55% training time. Verde dispute resolution. RL Swarm.
+- **FedRLHF** (arXiv 2412.15538): Federated RLHF, no raw data sharing, privacy-preserving.
+- **InfiCoEvalChain** (arXiv 2602.08229): Multi-party consensus LLM eval.
+- **DisTrO+Psyche**: Post-training RL on-chain — only 5-10% of total training cost, most Web3-compatible.
+- **EZKL**: zk-SNARK proof of model performance (no weights revealed).
+- **FL-Light Shapley**: Contribution evaluation via Shapley approximation.
+- **FEDMWAD**: Byzantine fault tolerance for federated aggregation.
+
+## Dormant Token Decay Design (2026-03-17)
+
+Design doc: ~/otto/projects/capital/dormant_token_decay_design.md
+DB Memory ID: 5759d18f
+
+### Key Finding: Decay Governance Weight, Never Token Balance
+- **Two tiers**: Contributor tokens (5yr half-life, 0.25x floor) vs Circulating (18mo half-life, 0.10x floor)
+- **Formula**: GovernanceWeight adds `activity_factor` multiplier (1.0x → floor), orthogonal to DHM
+- **Perpetual stake preserved**: "Perpetual contribution = perpetual stake" → balance never expires, only weight decays
+- **Contribution protection**: ≥10 contributions/year → activity_factor = 1.0 (no decay at all)
+- **Network endorsement**: Active contributor (score ≥50) can shield 3 wallets/year (Mev's "close network" mechanic)
+- **Redistribution**: 60% to active contributors, 25% treasury pool, 15% DHM boosters
+- **DHM is orthogonal**: Decay does NOT trigger Diamond Hands Multiplier reset
+- **Tier C (vested)**: Annual on-chain revalidation OR weight drops to 0x (balance safe)
+- **Edge case resolved**: Proof-of-life endorsement caps prevent whale cartel formation
+
+## Vulnerability Intelligence Database (2026-03-17)
+
+Implementation complete at ~/otto/memory/security/vuln_collector.py
+API live at http://localhost:8100/security/* (stats, vulns, otto-exposure, sync)
+Auto-sync: otto-vuln-sync.timer (every 6h), commit 18102e3
+
+### Key findings used
+- NVD API v2: keyword-per-query (multi-word = AND semantics → use single keywords)
+- DeFiHackLabs README: heading format `### YYYYMMDD Protocol - AttackType`, not markdown table
+- MITRE ATLAS: no machine-readable API — curated 8 core AI attack patterns manually
+- Otto system map: 11 systems with keyword+tech_stack arrays in vuln_system_map DB table
+- Current DB: 80 vulns (mobile:40, blockchain:18, vm_infra:9, ai:8, web:5)
+- Top exposed: otto_vm_infra (55 vulns), tusita_app (42), oneon_network (28), koink_contracts (21)
+
+## Context Rot Research (2026-03-17)
+
+DB Memory IDs: 98dd07d8 (core findings), 9d5bab02 (mitigations), e9f44e27 (Otto gaps)
+Research Note ID: e8229507
+
+### Key Finding: Context Rot → 5 Otto Architecture Improvements
+- **Source**: https://research.trychroma.com/context-rot (Chroma, 2026) — 18 models tested (Claude 4, GPT-4.1, Gemini 2.5, Qwen3)
+- **Definition**: LLMs degrade non-linearly as context grows, even on trivial tasks — despite high NIAH benchmark scores
+- **Paradox**: SHUFFLED/incoherent haystacks perform BETTER than structured flowing text — coherent structure causes interference
+- **Separation rule**: Do NOT combine retrieval + reasoning in one long-context pass — performance collapses at 113k tokens
+- **Distractor danger**: Near-but-not-exact semantic matches amplify degradation compoundingly
+- **Otto improvements**: (1) S-MMU inject relevant slices at START; (2) decouple retrieval agent from reasoning agent; (3) drop similar-but-wrong S-MMU matches; (4) keep context under 50% capacity; (5) use bullet lists NOT narrative paragraphs for memory format
+
+## Recursive Language Models Research (2026-03-17)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_rlm_recursive_language_models.md
+DB Memory IDs: 32b72975 (paper analysis), 7d1128f9 (Otto applicability)
+
+### Key Finding: Symbolic Handle Pattern → S-MMU Upgrade
+- **Paper**: arXiv 2512.24601 by Zhang, Kraska, Khattab — handles inputs 100x beyond context window
+- **Core mechanism**: Model only sees metadata (symbolic handle), writes REPL code that recursively calls itself on prompt slices
+- **Performance**: 28.3% median improvement, RLM-Qwen3-8B approaches GPT-5 quality on 3 tasks with just 1K training samples
+- **Top Otto application**: S-MMU lazy-loading — load only memory metadata headers, fetch full content on demand (no model training needed)
+- **Second application**: Long document processing via recursive slice access (WhatsApp doc handler use case)
+- **REPL insight**: Store outputs in variables (unbounded), not in context tokens
+
+## Token Launch Filtering & Anti-Sniper Research (2026-03-17)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_launch_filtering_antsniper.md
+
+### Key Finding: Batch/Auction > Decaying Fee > Open Pool
+- **Solana best**: Metaplex Genesis UPA (uniform price auction — no timing advantage) or Meteora Alpha Vault (commitment + stake escrow fee blocks multi-wallet spam)
+- **EVM best**: Uniswap v4 CCA (block-by-block clearing auction) or Fjord Foundry LBP (high initial price = bot self-punishment)
+- **Orca Wavebreak**: on-chain CAPTCHA permission credential — "mechanically prevents sniping" (July 2025)
+- **pump.fun**: zero protection — 87% sniper profits in first 18 seconds
+- **"Quantum Koinkulator" VRF verdict**: Legitimate IF it means VRF-selected lottery from pre-registered allowlist. Theater if it claims to prevent sniping on an open live pool (VRF cannot do that)
+- **Anti-whale**: World ID nullifier cap is strongest (multiple wallets of same person share one cap). Max wallet % alone is trivially bypassed (Chainlink "Oldwhite" used 150+ wallets to dodge staking caps)
+- **EVM warning**: `require(msg.sender == tx.origin)` broken by EIP-7702 (Ethereum Pectra May 2025). Still valid on Solana.
+- **Recommended $KOINK stack**: Human Passport gate → Meteora Alpha Vault Pro-Rata → Switchboard VRF for allocation randomization → Fee Scheduler decay post-launch
+
+### Key Findings
+- Best Solana mechanisms: Metaplex Genesis UPA (batch auction), Meteora Alpha Vault (commitment + stake escrow fee), Orca Wavebreak (on-chain CAPTCHA), Heaven DEX (6s sniper tax)
+- Best EVM mechanisms: Uniswap v4 CCA (block-by-block clearing auction, live on frontend), LBP (Fjord/Copper), v4 hooks (Flaunch, Angstrom)
+- VRF VERDICT: VRF is real for randomizing ALLOWLIST selection. VRF CANNOT stop bots buying on an open AMM. "Quantum Koinkulator" = real only if combined with pre-registered allowlist gate.
+- Anti-whale bypass: multi-wallet is trivially easy (Chainlink "Oldwhite" used 150 wallets for $7M). Real countermeasures: stake escrow fee, World ID nullifier cap, deposit address clustering.
+- EIP-7702 (Pectra, May 2025): breaks `require(msg.sender == tx.origin)` anti-bot check on Ethereum.
+- Strongest combined stack: batch auction + allowlist gate + Human Passport score + per-person World ID cap.
+
+## NS.com / Network School Research (2026-03-16)
+
+Research file: ~/otto/.claude/agent-memory/researcher/reference_ns_network_school.md
+OMS Research note ID: 40cdf28a-2c1d-4ffd-a974-53cc9e746442 (topic: funding_partnerships)
+
+### Key Finding: NS.com is NOT a fund — it's a community
+- Balaji Srinivasan's residential startup society ($1,500-$3,000/month), Singapore-based
+- Philosophical alignment with MY3YE is EXCEPTIONAL — Network State thesis maps directly to Tusita, ONEON, SOS, Otto
+- Do NOT pitch as fundraising. Apply as a team to the residential community, lead with Tusita as physical network state node
+- Earn platform: post bounties in USDC/ETH/SOL for MY3YE content/dev tasks — access Web3-native builders
+- Network State Conference = right venue for PiPi/Polkadot pitch
+- Apply free at https://www.ns.com/apply (rolling, 2-3 week response)
+
 ## Crypto Signal Channel Research (2026-03-07)
 
 ### Key Finding: Signal quality root cause identified
@@ -131,6 +245,51 @@ Write → Select → Compress → Isolate. All production agent systems in 2026 
 4. Sub-agent output not compressed before heartbeat ingestion
 5. Position bias not explicitly engineered in SMMU ordering
 
+## Web3 Community Collab + Token Eligibility System (2026-03-17)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_community_collab_eligibility.md
+
+### Top 7 Communities for MY3YE Collaboration (ranked)
+1. **BONK** — Solana meme, 350+ integrations, ~500K holders. Koink.fun natural integration + BONK DAO grants.
+2. **Gitcoin/GTC** — $50M+ public goods grants funded. SOS Systems + Panik App qualify for Grants rounds. Apply NOW.
+3. **Farcaster/DEGEN** — 300K users, DEGEN tipping, builder community. Create /koink channel, build Frames.
+4. **Optimism/OP** — RetroPGF rounds up to $30M. SOS Systems qualifies. Nominate immediately.
+5. **BanklessDAO/BANK** — Sovereignty narrative match. Content co-creation, 20K+ educated members.
+6. **Nouns DAO** — 40K+ ETH treasury, CC0 ethos. PiPi/Tusita IRL proposal could be funded.
+7. **ENS DAO** — Identity layer, integrates into ONEON. ENS holders = self-sovereign believers.
+
+### Token Eligibility System Design (4-tier + Alignment Score)
+- **Tier 0**: Visitor (no tokens) — 1x airdrop
+- **Tier 1**: Community (any 1 category) — 1.5x, chat access
+- **Tier 2**: Ally (2+ categories OR $KOIN holder) — 2x, governance signal
+- **Tier 3**: Aligned (3+ categories + score ≥40) — 3x, full governance weight
+- **Tier 4**: Sovereign (all 4 categories + score ≥70) — 5x, proposal rights
+- **Alignment Score**: 0-100, 5 factors (diversity, conviction, governance, social graph, contributions)
+- **On-chain attestation**: EAS (Ethereum Attestation Service) for score transparency
+- **Anti-farming**: $5 min hold threshold, 30-day wallet age, Human Passport for Tier 3+
+
+### Token Categories
+- A (Mission): GTC, OP, $ENS, ARB
+- B (Culture): BONK, WIF, DEGEN, BANK, FWB
+- C (Governance): NOUN, UNI, Lens Profile
+- D (Ecosystem): $KOIN, $KOINK → auto-Tier 2
+
+## SOS Systems Article — Crisis Data (2026-03-16)
+
+Research file: ~/otto/.claude/agent-memory/researcher/reference_sos_article_crisis_data.md
+
+Key figures for decentralized emergency infrastructure narrative:
+- 121 million+ people forcibly displaced globally (end 2025, UNHCR)
+- 240,000 conflict fatalities in 2025 (+23% YoY, ACLED)
+- 244 deliberate internet shutdowns in 2025 — record high, conflict-driven
+- Myanmar: all 330 townships cut off since coup; earthquake aid blocked by blackout
+- Sudan: 70-80% of hospitals non-functional; RSF seized ISPs, 2/3 population unreachable for 1 month
+- Gaza: 60% hospitals non-functional; near-total cell network collapse
+- 2026 Hormuz crisis: Brent hit ~$120, IEA called it "largest disruption in oil market history"
+- 4.6 billion people lack access to essential health services (WHO 2025)
+- 5 billion lack access to safe surgical/emergency care (Lancet Commission)
+- 50%+ of LMIC deaths preventable with quality emergency care access
+
 ## On-Chain Alpha Strategies Research (2026-03-09)
 
 Research file: ~/otto/projects/alpha/ONCHAIN_ALPHA_STRATEGIES_RESEARCH.md
@@ -182,3 +341,73 @@ Research file: ~/otto/projects/alpha/ONCHAIN_ALPHA_STRATEGIES_RESEARCH.md
 3. Wallet funding monitor — SOL transfers to new wallets from tracked whales (2 days)
 4. Bridge flow regime flag via DefiLlama API (1 day)
 5. MEV sandwich rate as confirmation layer (3/5 complexity, lower urgency)
+
+## Claude Dynamic UI System Research (2026-03-16)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_claude_dynamic_ui_research.md
+
+### How Claude's generative UI works (reverse-engineered)
+- Not a magic renderer — it's a **tool-call architecture**: `read_me` (lazy-load design guidelines) + `show_widget` (render HTML fragment)
+- `show_widget` params: `title`, `loading_messages`, `widget_code` (raw HTML, no DOCTYPE/html/body)
+- HTML injected directly into DOM (not iframed) → CSS variables resolve, `sendPrompt()` works
+- Streaming via SSE: `widget_delta` + `widget_final` events; client uses `morphdom` for DOM diffing
+- Model autonomously decides text vs widget based on system prompt + tool descriptions
+- Design guidelines lazy-loaded per module: interactive(19KB), chart(22KB), mockup(19KB), art(17KB), diagram(59KB)
+- Source: michaellivs.com/blog/reverse-engineering-claude-generative-ui
+
+### MCP Apps (third-party UI in Claude)
+- Tools declare `_meta.ui.resourceUri` → `ui://` scheme bundle
+- Host renders in double-sandboxed iframe, JSON-RPC over postMessage
+- Three operations: receive tool results, call server tools, update model context
+- SDK: `@modelcontextprotocol/ext-apps`
+
+### Open-source generative UI options
+- **Vercel AI SDK**: `useChat` + `parts` array + tool-to-component mapping. BEST for our Next.js OMS.
+- **streamUI** (AI SDK RSC): yields loading state → returns final component. More complex, RSC-only.
+- **assistant-ui**: Radix-style composables, multi-backend, production-grade (github.com/assistant-ui/assistant-ui)
+- **LangGraph UI**: `push_ui_message()`, shadow DOM isolation, `LoadExternalComponent`
+
+### OMS Implementation Blueprint (Tier 1 — 1 day)
+1. Define UI tools in API route: `show_options`, `show_form`, `confirm_action`, `show_card`
+2. `ToolRenderer` component maps `toolName` → React component
+3. `useChat` with `parts` array rendering + `addToolResult()` sends user response back to model
+4. System prompt instructs model when to use each tool type
+5. All text OUTSIDE tool calls; tool output = visual element only
+- Full implementation in research file
+
+## Sybil Resistance for Crypto Investment Platforms (2026-03-16)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_sybil_resistance_2026.md
+
+### Goal: limit real persons to max 3 wallets on an investment platform
+
+### Best tools by category
+- **Clustering (enterprise)**: Nansen (removed 39.85% of 1.3M wallets in Linea), Chainalysis, TRM Labs
+- **Clustering (free/cheap)**: Deposit address heuristic — if wallets A+B both withdrew from Binance to same deposit address = same person
+- **Graph-based clustering**: TrustScan API (TrustaLabs) — 0-100 Sybil score, 4 pattern types
+- **Academic best model**: Subgraph LightGBM — Precision 0.9428, F1 0.9303, AUC 0.9806 (arXiv 2505.09313)
+- **zkProof identity (strongest)**: World ID — 38M+ users, iris biometric, cryptographic 1-person-1-action via nullifier. Free. EVM contract: `IWorldID.verifyProof(...)`. Banned in some jurisdictions.
+- **zkProof identity (passport-based)**: Self Protocol — ZK proof from government ID/Aadhaar. No biometrics stored. Raised $9M, Google + Aave use it. Strongest for OFAC compliance.
+- **Credential aggregation (easiest)**: Human Passport (formerly Gitcoin Passport) — score ≥20 threshold, free API, 2M+ users, 1/5 complexity
+- **Social graph**: BrightID — no docs/biometrics, pure social connections. Niche, lower adoption.
+- **India-specific**: Anon Aadhaar — ZK proof of Aadhaar. 1.4B IDs. PSE-backed, open source.
+
+### Key implementation patterns
+- World ID nullifier-based pooled cap: same person's wallets share one cap bucket (Pattern 3 in research file)
+- Deposit address clustering: free, high-precision, implement yourself via Etherscan/Helius
+- Wallet age gate (<30 days = reject) is the easiest single Sybil filter
+- Hybrid: passive score + identity attestation for borderline wallets
+
+### Wallet scoring signals (by importance)
+1. Wallet age (days) — most important
+2. Total tx count / DeFi interactions
+3. Deposit address clustering (shared = same person)
+4. Cross-chain activity
+5. Gas paid lifetime
+6. ENS ownership (cost barrier)
+7. POAP / NFT history
+
+### Smart contract enforcement
+- `require(nullifierInvested[nullifierHash] + amount <= MAX_PER_PERSON)` — caps by person not wallet
+- `require(msg.sender == tx.origin)` — blocks contract-based batch attacks (Adidas NFT lesson)
+- Allowlist admin via Gnosis Safe multisig for manual review layer
