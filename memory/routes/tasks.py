@@ -1377,7 +1377,7 @@ async def update_qa_status(task_id: UUID, req: TaskQAUpdate):
     Tracks whether the task's output was approved or rejected by the independent
     QA reviewer (always a different CLI than the one that ran the task).
     """
-    valid_statuses = {"pending_qa", "approved", "rejected", "needs_manual_review"}
+    valid_statuses = {"pending_qa", "approved", "rejected", "needs_manual_review", "failed"}
     if req.qa_status not in valid_statuses:
         raise HTTPException(400, f"Invalid qa_status '{req.qa_status}'. Must be one of: {valid_statuses}")
 

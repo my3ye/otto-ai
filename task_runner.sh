@@ -1030,6 +1030,303 @@ else
 fi
 # ── End QA Runner ──────────────────────────────────────────────────────────────
 
+# ── Smart Inline Retry (QA Gate + Failure Recovery) ──────────────────────────
+# Runs inline retries after failed executions or QA rejections.
+# Max 2 inline retries (3 total attempts). On permanent failure: diagnostic report.
+#
+# Failure modes:
+#   timeout (124):    Increase timeout by 50%, add incremental work instruction
+#   error (non-0):    Inject error message as context, add error recovery instruction
+#   empty_output:     Emphasize output requirement, focus on highest-priority deliverable
+#   qa_rejected:      Re-inject latest QA rejection feedback into prompt
+#
+# Controlled by OTTO_INLINE_RETRY=1 (default). Set to 0 to disable.
+INLINE_RETRY_ENABLED="${OTTO_INLINE_RETRY:-1}"
+
+if [ "$INLINE_RETRY_ENABLED" = "1" ]; then
+
+# Read retry count already accumulated (external retries by heartbeat count too)
+INLINE_RETRY_COUNT=$(echo "$TASK_JSON" | python3 -c "
+import json, sys
+m = json.load(sys.stdin).get('metadata', {})
+print(int(m.get('retry_count', 0)))
+" 2>/dev/null || echo "0")
+
+# Fetch current QA status (set by qa_runner.sh above, or still pending_qa for failed tasks)
+CURRENT_QA_STATUS=$(curl -sf "${API}/tasks/${TASK_ID}" 2>/dev/null | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('qa_status', '') or '')
+" 2>/dev/null || echo "")
+
+# Determine initial failure mode
+RETRY_FAILURE_MODE="none"
+if [ "$EXIT_CODE" -eq 124 ]; then
+    RETRY_FAILURE_MODE="timeout"
+elif [ "$EXIT_CODE" -ne 0 ]; then
+    RETRY_FAILURE_MODE="error"
+elif [ -z "$OUTPUT" ] || [ "${#OUTPUT}" -lt 50 ]; then
+    RETRY_FAILURE_MODE="empty_output"
+elif [ "$CURRENT_QA_STATUS" = "rejected" ]; then
+    RETRY_FAILURE_MODE="qa_rejected"
+fi
+
+INLINE_MAX_RETRIES=2  # Max inline retries (3 total attempts counting initial)
+RETRY_TIMEOUT="$TIMEOUT"
+RETRY_TURNS="$MAX_TURNS"
+
+while [ "$RETRY_FAILURE_MODE" != "none" ]; do
+
+    if [ "$INLINE_RETRY_COUNT" -ge "$INLINE_MAX_RETRIES" ]; then
+        # ── Permanent failure — generate diagnostic report ─────────────────────
+        log "SMART_RETRY: permanent failure after $((INLINE_RETRY_COUNT + 1)) attempts (mode=${RETRY_FAILURE_MODE})"
+
+        # Build structured diagnostic report
+        DIAG_REPORT=$(python3 -c "
+import json, sys, datetime
+mode = sys.argv[1]
+recs = {
+    'timeout': 'Increase timeout_seconds significantly or break into smaller subtasks',
+    'error': 'Review error output, fix root cause, then re-queue with corrected prompt',
+    'empty_output': 'Simplify task prompt, increase budget, or use a higher-capability model',
+    'qa_rejected': 'Manually review QA rejection feedback and rewrite the task prompt',
+}
+print(json.dumps({
+    'type': 'permanent_failure_diagnostic',
+    'task_id': sys.argv[2][:8],
+    'total_attempts': int(sys.argv[3]) + 1,
+    'final_failure_mode': mode,
+    'final_exit_code': int(sys.argv[4]),
+    'final_output_bytes': len(sys.argv[5]) if sys.argv[5] else 0,
+    'final_qa_status': sys.argv[6],
+    'timestamp': datetime.datetime.utcnow().isoformat() + 'Z',
+    'recommendation': recs.get(mode, 'Manual intervention required'),
+}))
+" "$RETRY_FAILURE_MODE" "$TASK_ID" "$INLINE_RETRY_COUNT" "$EXIT_CODE" "$OUTPUT" "$CURRENT_QA_STATUS" 2>/dev/null || echo "{}")
+
+        # Log to episodic memory
+        curl -sf -X POST "${API}/episodic/events" \
+            -H 'Content-Type: application/json' \
+            -d "$(python3 -c "
+import json, sys
+print(json.dumps({'type': 'task_permanent_failure', 'summary': 'Task ' + sys.argv[1][:8] + ' permanently failed after ' + str(int(sys.argv[2])+1) + ' attempts. Mode: ' + sys.argv[3] + '. Exit: ' + sys.argv[4] + '.'}))
+" "$TASK_ID" "$INLINE_RETRY_COUNT" "$RETRY_FAILURE_MODE" "$EXIT_CODE" 2>/dev/null)" \
+            >> "$LOG_FILE" 2>&1 || true
+
+        # Mark task as permanently failed (qa_status=failed)
+        FAIL_MSG="PERMANENT FAILURE: Task failed $((INLINE_RETRY_COUNT + 1)) attempts. Mode: ${RETRY_FAILURE_MODE}. ${DIAG_REPORT:0:600}"
+        curl -sf -X POST "${API}/tasks/${TASK_ID}/qa-update" \
+            -H 'Content-Type: application/json' \
+            -d "$(python3 -c "
+import json, sys
+print(json.dumps({'qa_status': 'failed', 'qa_reviewer': 'smart_retry', 'qa_output': sys.argv[1][:800]}))
+" "$FAIL_MSG" 2>/dev/null)" \
+            >> "$LOG_FILE" 2>&1 || true
+
+        log "SMART_RETRY: task ${TASK_ID:0:8} marked qa_status=failed (permanent)"
+        break
+    fi
+
+    # ── Prepare retry attempt ────────────────────────────────────────────────
+    INLINE_RETRY_COUNT=$((INLINE_RETRY_COUNT + 1))
+    log "SMART_RETRY: starting inline retry ${INLINE_RETRY_COUNT}/${INLINE_MAX_RETRIES} — failure_mode=${RETRY_FAILURE_MODE}"
+
+    # Persist retry count in task metadata
+    curl -sf -X PATCH "${API}/tasks/${TASK_ID}/metadata" \
+        -H 'Content-Type: application/json' \
+        -d "{\"retry_count\": ${INLINE_RETRY_COUNT}, \"last_failure_mode\": \"${RETRY_FAILURE_MODE}\"}" \
+        >> "$LOG_FILE" 2>&1 || true
+
+    # Build failure-mode-specific retry context injection
+    RETRY_CONTEXT_INJECTION=""
+    case "$RETRY_FAILURE_MODE" in
+        timeout)
+            RETRY_TIMEOUT=$(python3 -c "print(min(int(${TIMEOUT} * 1.5), 1800))" 2>/dev/null || echo "$TIMEOUT")
+            RETRY_TURNS=$(python3 -c "print(max(int(${MAX_TURNS} * 8 // 10), 15))" 2>/dev/null || echo "$MAX_TURNS")
+            RETRY_CONTEXT_INJECTION="=== RETRY (attempt ${INLINE_RETRY_COUNT}): Previous attempt TIMED OUT after ${TIMEOUT}s ===
+Work incrementally — complete one meaningful step, commit it, then continue.
+Focus on the highest-priority deliverable first. Partial completion is better than nothing.
+New timeout: ${RETRY_TIMEOUT}s. Commit what you have before the timeout expires.
+=== End retry context ==="
+            log "SMART_RETRY: timeout mode — new timeout=${RETRY_TIMEOUT}s turns=${RETRY_TURNS}"
+            ;;
+        error)
+            ERROR_EXCERPT=$(echo "${STDERR}${OUTPUT}" | head -c 500 | tr '\n' ' ' | sed 's/"/\\"/g')
+            RETRY_CONTEXT_INJECTION="=== RETRY (attempt ${INLINE_RETRY_COUNT}): Previous attempt EXITED WITH ERROR (code ${EXIT_CODE}) ===
+Error output: ${ERROR_EXCERPT:0:400}
+Diagnose the root cause from the error output above. Fix it before proceeding.
+If the error is environmental (missing file, wrong path), verify prerequisites first.
+=== End retry context ==="
+            log "SMART_RETRY: error mode — injecting error context"
+            ;;
+        empty_output)
+            RETRY_CONTEXT_INJECTION="=== RETRY (attempt ${INLINE_RETRY_COUNT}): Previous attempt produced NO OUTPUT ===
+You MUST produce a meaningful plain-text summary of what you accomplished.
+End your response with a text summary — this is REQUIRED for output capture.
+If the task is complex, focus on the single most critical deliverable first.
+=== End retry context ==="
+            log "SMART_RETRY: empty_output mode — injecting output requirement reminder"
+            ;;
+        qa_rejected)
+            QA_REJECTION_TEXT=$(curl -sf "${API}/tasks/${TASK_ID}" 2>/dev/null | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+print((d.get('qa_output') or '')[:500])
+" 2>/dev/null || echo "")
+            RETRY_CONTEXT_INJECTION="=== RETRY (attempt ${INLINE_RETRY_COUNT}): Previous attempt was REJECTED by QA ===
+QA rejection feedback: ${QA_REJECTION_TEXT:0:400}
+Address ALL points in the QA feedback above before completing the task.
+=== End retry context ==="
+            log "SMART_RETRY: qa_rejected mode — injecting QA feedback"
+            ;;
+    esac
+
+    # Build retry prompt (context injection prepended)
+    RETRY_PROMPT="${RETRY_CONTEXT_INJECTION}
+
+${FULL_PROMPT}"
+
+    # Create new QA isolation marker just before retry CLI runs
+    TASK_MARKER_FILE=$(mktemp /tmp/otto_task_marker_XXXXXX)
+    OUTFILE=$(mktemp /tmp/otto_task_output_XXXXXX)
+    log "SMART_RETRY: marker=${TASK_MARKER_FILE} outfile=${OUTFILE}"
+
+    # ── Run retry CLI ──────────────────────────────────────────────────────────
+    set +e
+    case "$CLI_BACKEND" in
+        claude)
+            FALLBACK_MODEL_R="haiku"
+            [ "$MODEL" = "haiku" ] && FALLBACK_MODEL_R="sonnet"
+            timeout "${RETRY_TIMEOUT}s" "$CLAUDE_CLI" \
+                --print \
+                --dangerously-skip-permissions \
+                --model "$MODEL" \
+                --fallback-model "$FALLBACK_MODEL_R" \
+                --max-turns "$RETRY_TURNS" \
+                --max-budget-usd "$BUDGET" \
+                --effort "$EFFORT" \
+                --no-session-persistence \
+                -p "$RETRY_PROMPT" \
+                > "$OUTFILE" 2>"${LOG_FILE}.retry_stderr" &
+            CLI_PID=$!
+            ;;
+        gemini)
+            timeout "${RETRY_TIMEOUT}s" gemini \
+                --yolo \
+                --output-format json \
+                --include-directories "$WORK_DIR" \
+                -p "$RETRY_PROMPT" \
+                > "$OUTFILE" 2>"${LOG_FILE}.retry_stderr" &
+            CLI_PID=$!
+            ;;
+        kimi)
+            timeout "${RETRY_TIMEOUT}s" /home/web3relic/.local/bin/kimi \
+                --quiet \
+                --yolo \
+                --work-dir "$WORK_DIR" \
+                --max-steps-per-turn "$RETRY_TURNS" \
+                -p "$RETRY_PROMPT" \
+                > "$OUTFILE" 2>"${LOG_FILE}.retry_stderr" &
+            CLI_PID=$!
+            ;;
+        *)
+            timeout "${RETRY_TIMEOUT}s" "$CLAUDE_CLI" \
+                --print --dangerously-skip-permissions \
+                --model "$MODEL" --fallback-model "haiku" \
+                --max-turns "$RETRY_TURNS" --max-budget-usd "$BUDGET" \
+                --effort "$EFFORT" --no-session-persistence \
+                -p "$RETRY_PROMPT" \
+                > "$OUTFILE" 2>"${LOG_FILE}.retry_stderr" &
+            CLI_PID=$!
+            ;;
+    esac
+    wait "$CLI_PID"
+    EXIT_CODE=$?
+    set -e
+
+    STDERR=$(cat "${LOG_FILE}.retry_stderr" 2>/dev/null || echo "")
+    rm -f "${LOG_FILE}.retry_stderr"
+    OUTPUT=$(cat "$OUTFILE" 2>/dev/null || echo "")
+    rm -f "$OUTFILE"
+
+    # Gemini JSON extraction for retry output
+    if [ "$CLI_BACKEND" = "gemini" ] && [ -n "$OUTPUT" ]; then
+        OUTPUT=$(echo "$OUTPUT" | python3 -c "
+import json, sys
+raw = sys.stdin.read()
+try:
+    data = json.loads(raw)
+    print(data.get('response') or data.get('text') or str(data))
+except Exception:
+    print(raw)
+" 2>/dev/null || echo "$OUTPUT")
+    fi
+
+    # Detect max-turns hit on retry
+    if echo "$OUTPUT" | grep -qE "^Error: Reached max turns|^Error: max.steps reached"; then
+        log "SMART_RETRY: retry ${INLINE_RETRY_COUNT} hit max_turns — treating as empty output"
+        OUTPUT="[INCOMPLETE — hit max_turns on retry ${INLINE_RETRY_COUNT}]"
+    fi
+
+    log "SMART_RETRY: retry ${INLINE_RETRY_COUNT} exited code=${EXIT_CODE} output=${#OUTPUT}bytes"
+
+    # Update task output in API with retry result
+    RETRY_RESULT_JSON=$(python3 -c "
+import json, sys
+print(json.dumps({
+    'output': sys.argv[1] if sys.argv[1] else None,
+    'error': sys.argv[2] if sys.argv[2] else None,
+    'exit_code': int(sys.argv[3]),
+    'metadata': {},
+}))
+" "$OUTPUT" "$STDERR" "$EXIT_CODE" 2>/dev/null || echo "{}")
+
+    curl -sf -X POST "${API}/tasks/${TASK_ID}/complete" \
+        -H 'Content-Type: application/json' \
+        -d "$RETRY_RESULT_JSON" >> "$LOG_FILE" 2>&1 || true
+
+    # Run QA on successful retry
+    if [ "$EXIT_CODE" -eq 0 ] && [ -x "$QA_RUNNER" ] && [ "$OTTO_QA" = "1" ]; then
+        log "SMART_RETRY: running QA on retry ${INLINE_RETRY_COUNT} output..."
+        bash "$QA_RUNNER" "$TASK_ID" "$CLI_BACKEND" "$LOG_FILE" "$TASK_MARKER_FILE" 2>>"$LOG_FILE" || \
+            log "SMART_RETRY: QA runner exited with error (non-fatal)"
+    elif [ "$EXIT_CODE" -eq 124 ]; then
+        # Timeout on retry — mark qa_status for heartbeat visibility
+        curl -sf -X POST "${API}/tasks/${TASK_ID}/qa-update" \
+            -H 'Content-Type: application/json' \
+            -d "{\"qa_status\": \"needs_manual_review\", \"qa_reviewer\": \"smart_retry\", \"qa_output\": \"Retry ${INLINE_RETRY_COUNT} timed out after ${RETRY_TIMEOUT}s (exit 124).\"}" \
+            >> "$LOG_FILE" 2>&1 || true
+    fi
+    rm -f "$TASK_MARKER_FILE" 2>/dev/null || true
+
+    # Check new QA status after retry
+    CURRENT_QA_STATUS=$(curl -sf "${API}/tasks/${TASK_ID}" 2>/dev/null | python3 -c "
+import json, sys
+print(json.load(sys.stdin).get('qa_status', '') or '')
+" 2>/dev/null || echo "")
+
+    # Re-evaluate failure mode for next loop iteration
+    RETRY_FAILURE_MODE="none"
+    if [ "$EXIT_CODE" -eq 124 ]; then
+        RETRY_FAILURE_MODE="timeout"
+    elif [ "$EXIT_CODE" -ne 0 ]; then
+        RETRY_FAILURE_MODE="error"
+    elif [ -z "$OUTPUT" ] || [ "${#OUTPUT}" -lt 50 ]; then
+        RETRY_FAILURE_MODE="empty_output"
+    elif [ "$CURRENT_QA_STATUS" = "rejected" ]; then
+        RETRY_FAILURE_MODE="qa_rejected"
+    fi
+
+    if [ "$RETRY_FAILURE_MODE" = "none" ]; then
+        log "SMART_RETRY: retry ${INLINE_RETRY_COUNT} succeeded — no further retries needed"
+    else
+        log "SMART_RETRY: retry ${INLINE_RETRY_COUNT} still failing (mode=${RETRY_FAILURE_MODE}) — will retry or escalate"
+    fi
+
+done  # end retry while loop
+
+fi  # INLINE_RETRY_ENABLED
+# ── End Smart Inline Retry ────────────────────────────────────────────────────
+
 # ── Progress File Cleanup ───────────────────────────────────────────────────
 # On success: remove the progress file (task is done, no more retries needed).
 # On failure/timeout: leave it so the next retry can resume from where we stopped.
