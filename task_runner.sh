@@ -21,6 +21,10 @@ log() { echo "$(date -Iseconds) $*" >> "$LOG_FILE"; }
 
 log "Task runner starting for task ${TASK_ID}"
 
+# Report start to kernel
+curl -sf -X POST "${API}/kernel/agents/task_worker/started" >> "$LOG_FILE" 2>&1 || \
+    log "WARNING: Could not report agent start to kernel"
+
 # Fetch task details from API
 TASK_JSON=$(curl -sf "${API}/tasks/${TASK_ID}" 2>/dev/null) || {
     log "FATAL: Could not fetch task ${TASK_ID} from API"
@@ -37,6 +41,67 @@ MAX_TURNS=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys
 TIMEOUT=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['timeout_seconds'])")
 WORK_DIR=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin)['working_directory'])")
 CONTEXT=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('context') or '')")
+PRIORITY=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('priority', 5))" 2>/dev/null || echo "5")
+AGENT_TYPE=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type') or '')" 2>/dev/null || echo "")
+
+# Decomposition gate: block tasks that require decomposition before execution
+REQ_DECOMP=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('requires_decomposition', False))" 2>/dev/null || echo "False")
+DECOMPOSED=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('decomposed', False))" 2>/dev/null || echo "False")
+if [ "$REQ_DECOMP" = "True" ] && [ "$DECOMPOSED" = "False" ]; then
+    log "BLOCKED: Task requires decomposition before execution (use /tasks/${TASK_ID}/decompose first)"
+    curl -sf -X POST "${API}/tasks/${TASK_ID}/complete" \
+        -H 'Content-Type: application/json' \
+        -d "{\"output\": \"Blocked — task requires decomposition before execution.\", \"exit_code\": 1}" >> "$LOG_FILE" 2>&1 || true
+    exit 1
+fi
+
+# Tool RAG: if no explicit agent_type, query /skills/suggest to pick the best specialist
+# Only suggest for claude CLI tasks (specialists are Claude agents)
+if [ -z "$AGENT_TYPE" ] && [ "$CLI_BACKEND" = "claude" ]; then
+    SKILL_TASK_QUERY=$(echo "${TITLE} ${PROMPT}" | python3 -c "import sys,urllib.parse; print(urllib.parse.quote(sys.stdin.read()[:200]))" 2>/dev/null || echo "")
+    if [ -n "$SKILL_TASK_QUERY" ]; then
+        SKILL_JSON=$(curl -sf "${API}/skills/suggest?task=${SKILL_TASK_QUERY}&top_n=1" 2>/dev/null || echo "")
+        SKILL_NAME=$(echo "$SKILL_JSON" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+skills=d.get('skills',[])
+if skills:
+    s=skills[0]
+    if s.get('relevance_score',0)>=0.6 and s.get('skill_type')=='agent':
+        print(s['name'])
+" 2>/dev/null || echo "")
+        if [ -n "$SKILL_NAME" ]; then
+            # Check project-level agents first, then user-level
+            if [ -f "/home/web3relic/otto/.claude/agents/${SKILL_NAME}.md" ]; then
+                AGENT_TYPE="$SKILL_NAME"
+                log "Tool RAG: auto-selected agent '${AGENT_TYPE}' (project-level, relevance>=0.6)"
+            elif [ -f "/home/web3relic/.claude/agents/${SKILL_NAME}.md" ]; then
+                AGENT_TYPE="$SKILL_NAME"
+                log "Tool RAG: auto-selected agent '${AGENT_TYPE}' (user-level, relevance>=0.6)"
+            fi
+        fi
+    fi
+fi
+
+# Map priority to effort level (low=1-4, medium=5-7, high=8-10)
+if [ "$PRIORITY" -ge 8 ] 2>/dev/null; then
+    EFFORT="high"
+elif [ "$PRIORITY" -ge 5 ] 2>/dev/null; then
+    EFFORT="medium"
+else
+    EFFORT="low"
+fi
+
+# ── Progressive Loading: tiered injection limits by effort ──────────────────
+# Inspired by OpenViking's progressive skill loading pattern.
+# Low-effort tasks get minimal context injection (~1500 tokens vs ~5000).
+# Prevents "lost in the middle" where injected boilerplate drowns the task.
+case "$EFFORT" in
+    low)    HINDSIGHT_LIMIT=0; PROC_ENABLED=0; SEMANTIC_LIMIT=4; SEMANTIC_CONFIDENCE=0.5; GIT_PREFLIGHT=0 ;;
+    medium) HINDSIGHT_LIMIT=2; PROC_ENABLED=1; SEMANTIC_LIMIT=8; SEMANTIC_CONFIDENCE=0.3; GIT_PREFLIGHT=1 ;;
+    high)   HINDSIGHT_LIMIT=3; PROC_ENABLED=1; SEMANTIC_LIMIT=12; SEMANTIC_CONFIDENCE=0.3; GIT_PREFLIGHT=1 ;;
+esac
+log "Progressive loading: effort=${EFFORT} hindsight=${HINDSIGHT_LIMIT} proc=${PROC_ENABLED} semantic=${SEMANTIC_LIMIT}/${SEMANTIC_CONFIDENCE} git_preflight=${GIT_PREFLIGHT}"
 
 # Validate CLI backend (default to claude for unknown values)
 case "$CLI_BACKEND" in
@@ -45,7 +110,7 @@ case "$CLI_BACKEND" in
 esac
 
 log "Task: ${TITLE}"
-log "CLI: ${CLI_BACKEND}, Model: ${MODEL}, Budget: \$${BUDGET}, Timeout: ${TIMEOUT}s, Turns: ${MAX_TURNS}"
+log "CLI: ${CLI_BACKEND}, Model: ${MODEL}, Budget: \$${BUDGET}, Timeout: ${TIMEOUT}s, Turns: ${MAX_TURNS}, Effort: ${EFFORT}, Agent: ${AGENT_TYPE:-none}"
 
 # AdaptOrch routing — call /tasks/route with apply=true to get optimal strategy
 # The API will update the task record in DB (if still pending) and return recommended params.
@@ -156,10 +221,11 @@ fi
 # ── End RL2F Feedback Injection ────────────────────────────────────────────────
 
 # Chain-of-Hindsight: fetch similar past task outcomes before building prompt
+# Gated by progressive loading: skipped for low-effort tasks
 TITLE_ENCODED=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$TITLE" 2>/dev/null || echo "")
 HINDSIGHT_BLOCK=""
-if [ -n "$TITLE_ENCODED" ]; then
-    HINDSIGHT_JSON=$(curl -sf "${API}/tasks/hindsight?query=${TITLE_ENCODED}&limit=3" 2>/dev/null || echo '{"count":0,"hindsight":[]}')
+if [ -n "$TITLE_ENCODED" ] && [ "$HINDSIGHT_LIMIT" -gt 0 ]; then
+    HINDSIGHT_JSON=$(curl -sf "${API}/tasks/hindsight?query=${TITLE_ENCODED}&limit=${HINDSIGHT_LIMIT}" 2>/dev/null || echo '{"count":0,"hindsight":[]}')
     HINDSIGHT_BLOCK=$(echo "$HINDSIGHT_JSON" | python3 -c "
 import json, sys
 try:
@@ -189,10 +255,11 @@ fi
 # Query /procedural/suggest for known approaches to this task type.
 # High-trust procedures (trust_score >= 0.55) are injected into the prompt.
 # Procedure names are saved so we can record outcomes after execution.
+# Gated by progressive loading: skipped for low-effort tasks.
 PROC_BLOCK=""
 PROC_NAMES=""
 TITLE_ENC_PROC=$(python3 -c "import urllib.parse,sys; print(urllib.parse.quote(sys.argv[1]))" "$TITLE" 2>/dev/null || echo "")
-if [ -n "$TITLE_ENC_PROC" ]; then
+if [ -n "$TITLE_ENC_PROC" ] && [ "$PROC_ENABLED" = "1" ]; then
     PROC_JSON=$(curl -sf "${API}/procedural/suggest?task_description=${TITLE_ENC_PROC}" 2>/dev/null || echo "[]")
     PROC_BLOCK=$(echo "$PROC_JSON" | python3 -c "
 import json, sys
@@ -233,6 +300,135 @@ except Exception:
 fi
 # ── End Procedure Memory Lookup ───────────────────────────────────────────────
 
+# ── Semantic Memory Enrichment ───────────────────────────────────────────────
+# Query Otto's memory system for relevant context (directives, decisions,
+# ecosystem knowledge, conventions, lessons learned). This prevents tasks
+# from executing blind — they get the same knowledge Otto has.
+log "Querying semantic memory for task-relevant context..."
+MEMORY_QUERY="${TITLE}. ${PROMPT}"
+# Truncate query to avoid overly long payloads
+MEMORY_QUERY=$(echo "$MEMORY_QUERY" | head -c 500)
+
+SEMANTIC_BLOCK=""
+SEMANTIC_JSON=$(curl -s --max-time 10 -X POST "http://localhost:8100/semantic/arag_search" \
+    -H "Content-Type: application/json" \
+    -d "$(python3 -c "
+import json, sys
+q = sys.argv[1]
+print(json.dumps({'query': q, 'limit': int(sys.argv[2]), 'min_confidence': float(sys.argv[3])}))
+" "$MEMORY_QUERY" "$SEMANTIC_LIMIT" "$SEMANTIC_CONFIDENCE" 2>/dev/null)" 2>/dev/null || echo "")
+
+if [ -n "$SEMANTIC_JSON" ] && echo "$SEMANTIC_JSON" | python3 -c "import json,sys; json.load(sys.stdin)" 2>/dev/null; then
+    SEMANTIC_BLOCK=$(echo "$SEMANTIC_JSON" | python3 -c "
+import json, sys
+try:
+    data = json.load(sys.stdin)
+    results = data.get('results', [])
+    if not results:
+        sys.exit(0)
+    lines = ['## Otto\'s Relevant Memories', '']
+    seen = set()
+    for r in results:
+        content = r.get('content', '').strip()
+        if not content or content in seen:
+            continue
+        seen.add(content)
+        cat = r.get('category', 'unknown')
+        # Truncate very long memories
+        if len(content) > 400:
+            content = content[:400] + '...'
+        lines.append(f'- [{cat}] {content}')
+    if len(seen) > 0:
+        print('\n'.join(lines))
+except Exception:
+    pass
+" 2>/dev/null || echo "")
+    if [ -n "$SEMANTIC_BLOCK" ]; then
+        MEM_COUNT=$(echo "$SEMANTIC_BLOCK" | grep -c '^\- \[' 2>/dev/null || echo "0")
+        log "Semantic memory: ${MEM_COUNT} relevant memories injected into prompt"
+    else
+        log "Semantic memory: no relevant memories found"
+    fi
+else
+    log "Semantic memory: query failed or returned invalid JSON"
+fi
+# ── End Semantic Memory Enrichment ───────────────────────────────────────────
+
+# ── Pre-flight Environment Check ────────────────────────────────────────────
+# Verify baseline health before spending budget. Inspired by Anthropic's
+# "init.sh" pattern: catch broken environments early instead of wasting
+# the entire task budget discovering problems mid-execution.
+log "Running pre-flight environment check..."
+PREFLIGHT_BLOCK=""
+PREFLIGHT_ISSUES=0
+
+# Check API health
+API_HEALTH=$(curl -sf --max-time 5 "${API}/health" 2>/dev/null || echo "DOWN")
+if [ "$API_HEALTH" = "DOWN" ]; then
+    PREFLIGHT_BLOCK="WARNING: Otto Memory API is DOWN. Memory endpoints will fail."
+    PREFLIGHT_ISSUES=$((PREFLIGHT_ISSUES + 1))
+    log "Pre-flight: API is DOWN"
+fi
+
+# Check working directory exists and is accessible
+if [ ! -d "$WORK_DIR" ]; then
+    PREFLIGHT_BLOCK="${PREFLIGHT_BLOCK}
+WARNING: Working directory '${WORK_DIR}' does not exist."
+    PREFLIGHT_ISSUES=$((PREFLIGHT_ISSUES + 1))
+    log "Pre-flight: working directory missing: ${WORK_DIR}"
+fi
+
+# Check git status if in a git repo (gated by progressive loading)
+PREFLIGHT_GIT=""
+if [ "$GIT_PREFLIGHT" = "1" ] && { [ -d "${WORK_DIR}/.git" ] || git -C "$WORK_DIR" rev-parse --git-dir &>/dev/null 2>&1; }; then
+    GIT_DIRTY=$(git -C "$WORK_DIR" status --porcelain 2>/dev/null | head -20)
+    GIT_BRANCH=$(git -C "$WORK_DIR" branch --show-current 2>/dev/null || echo "unknown")
+    GIT_LAST=$(git -C "$WORK_DIR" log --oneline -3 2>/dev/null || echo "no commits")
+    PREFLIGHT_GIT="Git branch: ${GIT_BRANCH}
+Recent commits:
+${GIT_LAST}"
+    if [ -n "$GIT_DIRTY" ]; then
+        DIRTY_COUNT=$(echo "$GIT_DIRTY" | wc -l)
+        PREFLIGHT_GIT="${PREFLIGHT_GIT}
+Uncommitted changes (${DIRTY_COUNT} files):
+${GIT_DIRTY}"
+        log "Pre-flight: git repo has ${DIRTY_COUNT} uncommitted changes"
+    else
+        log "Pre-flight: git repo clean on branch ${GIT_BRANCH}"
+    fi
+fi
+
+if [ $PREFLIGHT_ISSUES -gt 0 ]; then
+    log "Pre-flight: ${PREFLIGHT_ISSUES} issue(s) detected"
+else
+    log "Pre-flight: all checks passed"
+fi
+# ── End Pre-flight Environment Check ────────────────────────────────────────
+
+# ── Task Progress File Recovery ─────────────────────────────────────────────
+# Externalize progress to a file that survives context loss (timeouts, retries).
+# Inspired by Anthropic's "claude-progress.txt" pattern: each attempt reads
+# the previous attempt's progress, avoiding redundant work on retries.
+TASK_SHORT_ID="${TASK_ID:0:8}"
+PROGRESS_FILE="${WORK_DIR}/.otto-progress-${TASK_SHORT_ID}.md"
+PROGRESS_BLOCK=""
+
+if [ -f "$PROGRESS_FILE" ]; then
+    PROGRESS_CONTENT=$(head -100 "$PROGRESS_FILE" 2>/dev/null || echo "")
+    if [ -n "$PROGRESS_CONTENT" ]; then
+        PROGRESS_BLOCK="## Previous Attempt Progress
+The following progress was recorded by a previous attempt at this task.
+Resume from where it left off — do NOT redo completed work.
+
+${PROGRESS_CONTENT}
+--- End previous progress ---"
+        log "Progress file: found ${PROGRESS_FILE} ($(wc -l < "$PROGRESS_FILE") lines) — injecting into prompt"
+    fi
+else
+    log "Progress file: none found (first attempt or different working dir)"
+fi
+# ── End Task Progress File Recovery ─────────────────────────────────────────
+
 # Build the full prompt with context
 FULL_PROMPT="You are Otto, executing a task from the task queue.
 
@@ -251,6 +447,28 @@ Task: ${TITLE}
 ${PROMPT}"
 fi
 
+# Inject previous attempt's progress (before other context so agent sees it early)
+if [ -n "$PROGRESS_BLOCK" ]; then
+    FULL_PROMPT="${FULL_PROMPT}
+
+${PROGRESS_BLOCK}"
+fi
+
+# Inject pre-flight environment state
+if [ -n "$PREFLIGHT_BLOCK" ] || [ -n "$PREFLIGHT_GIT" ]; then
+    FULL_PROMPT="${FULL_PROMPT}
+
+## Environment State (pre-flight)"
+    if [ -n "$PREFLIGHT_BLOCK" ]; then
+        FULL_PROMPT="${FULL_PROMPT}
+${PREFLIGHT_BLOCK}"
+    fi
+    if [ -n "$PREFLIGHT_GIT" ]; then
+        FULL_PROMPT="${FULL_PROMPT}
+${PREFLIGHT_GIT}"
+    fi
+fi
+
 if [ -n "$HINDSIGHT_BLOCK" ]; then
     FULL_PROMPT="${FULL_PROMPT}
 
@@ -263,6 +481,12 @@ if [ -n "$PROC_BLOCK" ]; then
 ${PROC_BLOCK}"
 fi
 
+if [ -n "$SEMANTIC_BLOCK" ]; then
+    FULL_PROMPT="${FULL_PROMPT}
+
+${SEMANTIC_BLOCK}"
+fi
+
 if [ -n "$CONTEXT" ]; then
     FULL_PROMPT="${FULL_PROMPT}
 
@@ -270,14 +494,53 @@ Context:
 ${CONTEXT}"
 fi
 
-FULL_PROMPT="${FULL_PROMPT}
+# ── Progressive Loading: tiered instructions by effort level ────────────────
+if [ "$EFFORT" = "low" ]; then
+    FULL_PROMPT="${FULL_PROMPT}
+
+Instructions:
+- Complete the task. Be concise.
+- IMPORTANT: End with a text summary of what you accomplished. Do not end on a tool call.
+- If blocked, explain what's blocking you.
+- Do NOT message Mev via WhatsApp.
+- Commit after each meaningful change. Write progress to '${PROGRESS_FILE}' if the task is non-trivial."
+else
+    FULL_PROMPT="${FULL_PROMPT}
 
 Instructions:
 - Complete the task thoroughly.
 - Be concise in your output — the heartbeat will review it.
 - IMPORTANT: You MUST end with a text summary of what you accomplished. Do not end on a tool call — your final response must be plain text. This is required for output capture.
 - If you cannot complete the task, explain what is blocking you.
-- Do NOT message Mev via WhatsApp — the heartbeat handles communication."
+- Do NOT message Mev via WhatsApp — the heartbeat handles communication.
+
+## Progress & Commit Discipline
+- **Work on ONE feature/change at a time.** Do not attempt to implement everything in a single pass.
+- **Commit after each meaningful change** with a descriptive message (e.g., 'Add user auth endpoint' not 'update code').
+- **Verify each change works** before moving to the next. If in a git repo, run/test before committing.
+- **Maintain a progress file** at '${PROGRESS_FILE}'. Update it as you work:
+  \`\`\`markdown
+  # Task Progress: ${TITLE}
+  ## Completed
+  - [what you finished, with brief details]
+  ## In Progress
+  - [what you're currently working on]
+  ## Remaining
+  - [what's left to do]
+  ## Approach
+  - [what approach is working, any key decisions made]
+  \`\`\`
+  This file survives timeouts and retries — the next attempt will read it and resume where you left off.
+  Update it after each commit or significant milestone. Keep it concise.
+
+## Decision Escalation
+- If you encounter a decision that requires Mev's input (architectural choice, unclear requirements, multiple valid approaches), output a marker block anywhere in your response:
+  [NEEDS_MEV_INPUT]
+  {\"question\": \"<what you need decided>\", \"options\": [\"Option A\", \"Option B\"], \"recommendation\": 0, \"context\": \"<brief background>\"}
+  [/NEEDS_MEV_INPUT]
+  Then continue with your best guess, noting it may need revision based on Mev's answer."
+fi
+# ── End Progressive Loading Instructions ──────────────────────────────────
 
 # Run the appropriate CLI with timeout
 log "Starting ${CLI_BACKEND} CLI..."
@@ -295,15 +558,35 @@ log "Output capture file: ${OUTFILE}"
 set +e
 case "$CLI_BACKEND" in
     claude)
+        # Build claude CLI args
+        # Compute fallback model (must differ from main model)
+        FALLBACK_MODEL="haiku"
+        [ "$MODEL" = "haiku" ] && FALLBACK_MODEL="sonnet"
+        CLAUDE_ARGS=(
+            --print
+            --dangerously-skip-permissions
+            --model "$MODEL"
+            --fallback-model "$FALLBACK_MODEL"
+            --max-turns "$MAX_TURNS"
+            --max-budget-usd "$BUDGET"
+            --effort "$EFFORT"
+            --no-session-persistence
+        )
+        # Use specialist agent if specified (check project-level then user-level)
+        if [ -n "$AGENT_TYPE" ]; then
+            if [ -f "/home/web3relic/otto/.claude/agents/${AGENT_TYPE}.md" ] || \
+               [ -f "/home/web3relic/.claude/agents/${AGENT_TYPE}.md" ]; then
+                CLAUDE_ARGS+=(--agent "$AGENT_TYPE")
+                log "Using specialist agent: ${AGENT_TYPE}"
+            else
+                log "WARNING: agent '${AGENT_TYPE}' specified but .md file not found — running without agent"
+            fi
+        fi
         timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
-            --print \
-            --dangerously-skip-permissions \
-            --model "$MODEL" \
-            --max-turns "$MAX_TURNS" \
-            --max-budget-usd "$BUDGET" \
+            "${CLAUDE_ARGS[@]}" \
             -p "$FULL_PROMPT" \
-            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
-        EXIT_CODE=$?
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr" &
+        CLI_PID=$!
         ;;
     gemini)
         # Gemini CLI: no --max-turns or --budget flags. Use --yolo for auto-approval.
@@ -314,8 +597,8 @@ case "$CLI_BACKEND" in
             --output-format json \
             --include-directories "$WORK_DIR" \
             -p "$FULL_PROMPT" \
-            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
-        EXIT_CODE=$?
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr" &
+        CLI_PID=$!
         ;;
     kimi)
         # Kimi CLI: --quiet = --print --output-format text --final-message-only
@@ -326,22 +609,50 @@ case "$CLI_BACKEND" in
             --work-dir "$WORK_DIR" \
             --max-steps-per-turn "$MAX_TURNS" \
             -p "$FULL_PROMPT" \
-            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
-        EXIT_CODE=$?
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr" &
+        CLI_PID=$!
         ;;
     *)
         log "ERROR: Unknown CLI backend '${CLI_BACKEND}' — falling back to claude"
+        FALLBACK_MODEL_FB="haiku"
+        [ "$MODEL" = "haiku" ] && FALLBACK_MODEL_FB="sonnet"
         timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
             --print \
             --dangerously-skip-permissions \
             --model "$MODEL" \
+            --fallback-model "$FALLBACK_MODEL_FB" \
             --max-turns "$MAX_TURNS" \
             --max-budget-usd "$BUDGET" \
+            --effort "$EFFORT" \
+            --no-session-persistence \
             -p "$FULL_PROMPT" \
-            > "$OUTFILE" 2>"${LOG_FILE}.stderr"
-        EXIT_CODE=$?
+            > "$OUTFILE" 2>"${LOG_FILE}.stderr" &
+        CLI_PID=$!
         ;;
 esac
+
+# ── Wink Monitor (arXiv:2602.17037) ─────────────────────────────────────────
+# Launch async monitor to watch CLI output for misbehavior patterns (stalls,
+# error loops, reasoning loops) while the CLI runs in background.
+WINK_MONITOR="/home/web3relic/otto/task_monitor.sh"
+WINK_PID=""
+if [ -x "$WINK_MONITOR" ]; then
+    "$WINK_MONITOR" "$TASK_ID" "$OUTFILE" "$CLI_PID" &
+    WINK_PID=$!
+    log "Wink monitor launched (PID=$WINK_PID) watching CLI PID=$CLI_PID"
+fi
+
+# Wait for CLI to finish
+wait "$CLI_PID"
+EXIT_CODE=$?
+
+# Stop Wink monitor
+if [ -n "$WINK_PID" ]; then
+    kill "$WINK_PID" 2>/dev/null || true
+    wait "$WINK_PID" 2>/dev/null || true
+    log "Wink monitor stopped"
+fi
+# ── End Wink Monitor ────────────────────────────────────────────────────────
 set -e
 
 STDERR=$(cat "${LOG_FILE}.stderr" 2>/dev/null || echo "")
@@ -357,12 +668,17 @@ if [ "$EXIT_CODE" -ne 0 ] && [ "$CLI_BACKEND" != "claude" ]; then
         log "QUOTA FALLBACK: ${CLI_BACKEND} hit quota limit — retrying on claude..."
         CLI_BACKEND="claude"
         set +e
+        FALLBACK_MODEL_QF="haiku"
+        [ "$MODEL" = "haiku" ] && FALLBACK_MODEL_QF="sonnet"
         timeout "${TIMEOUT}s" "$CLAUDE_CLI" \
             --print \
             --dangerously-skip-permissions \
             --model "$MODEL" \
+            --fallback-model "$FALLBACK_MODEL_QF" \
             --max-turns "$MAX_TURNS" \
             --max-budget-usd "$BUDGET" \
+            --effort "$EFFORT" \
+            --no-session-persistence \
             -p "$FULL_PROMPT" \
             > "$OUTFILE" 2>"${LOG_FILE}.stderr"
         EXIT_CODE=$?
@@ -425,6 +741,52 @@ if [ ${#OUTPUT} -gt $MAX_OUTPUT_LEN ]; then
 [TRUNCATED — output exceeded ${MAX_OUTPUT_LEN} chars]"
     log "Output truncated to ${MAX_OUTPUT_LEN} chars"
 fi
+
+# ── NEEDS_MEV_INPUT: Task-level collaboration request ─────────────────────────
+# If the task output contains [NEEDS_MEV_INPUT]...[/NEEDS_MEV_INPUT], extract the
+# question and create a decision proposal so Mev can respond via WhatsApp.
+if echo "$OUTPUT" | grep -q '\[NEEDS_MEV_INPUT\]'; then
+    INPUT_JSON=$(echo "$OUTPUT" | python3 -c "
+import sys, re, json
+text = sys.stdin.read()
+match = re.search(r'\[NEEDS_MEV_INPUT\]\s*(\{.*?\})\s*\[/NEEDS_MEV_INPUT\]', text, re.DOTALL)
+if match:
+    try:
+        data = json.loads(match.group(1))
+        question = data.get('question', '')
+        options_raw = data.get('options', [])
+        options = [{'label': o, 'description': o} if isinstance(o, str) else o for o in options_raw]
+        rec = data.get('recommendation')
+        context = data.get('context', '')
+        print(json.dumps({
+            'question': question,
+            'context': context,
+            'options': options,
+            'recommendation': rec,
+            'recommendation_reason': '',
+            'source': 'task',
+            'source_task_id': '${TASK_ID}',
+            'urgency': 'high',
+        }))
+    except Exception:
+        pass
+" 2>/dev/null || echo "")
+
+    if [ -n "$INPUT_JSON" ]; then
+        PROPOSE_RESULT=$(curl -sf -X POST "${API}/pending/propose" \
+            -H 'Content-Type: application/json' \
+            -d "$INPUT_JSON" 2>/dev/null || echo "")
+        if [ -n "$PROPOSE_RESULT" ]; then
+            PROPOSAL_Q=$(echo "$PROPOSE_RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('question','')[:200])" 2>/dev/null || echo "")
+            log "NEEDS_MEV_INPUT: created proposal — ${PROPOSAL_Q}"
+            # Message Mev immediately
+            /home/web3relic/otto/tools/whatsapp_send.sh "Hey Mev, a task needs your input: ${PROPOSAL_Q}" 2>/dev/null || true
+        else
+            log "NEEDS_MEV_INPUT: failed to create proposal (non-fatal)"
+        fi
+    fi
+fi
+# ── End NEEDS_MEV_INPUT ──────────────────────────────────────────────────────
 
 # ── SOFAI-LM Metacognitive Self-Check ────────────────────────────────────────
 # Dual-system metacognition: Gemini rates the Claude output before we declare done.
@@ -585,6 +947,27 @@ curl -sf -X POST "${API}/tasks/${TASK_ID}/complete" \
     log "WARNING: Failed to report task completion to API"
 }
 
+# ── JitRL Experience Ingestion ────────────────────────────────────────────────
+# Feed this task's outcome into the JitRL experience buffer so future tasks
+# benefit from knowing which action types succeed in which contexts.
+if [ "$EXIT_CODE" -eq 0 ] || [ "$EXIT_CODE" -eq 124 ]; then
+    JITRL_RESULT=$(curl -sf -X POST "${API}/jitrl/ingest-task/${TASK_ID}" 2>/dev/null || echo "")
+    if [ -n "$JITRL_RESULT" ]; then
+        JITRL_ACTION=$(echo "$JITRL_RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('action_type','?'))" 2>/dev/null || echo "?")
+        JITRL_REWARD=$(echo "$JITRL_RESULT" | python3 -c "import json,sys; print(json.load(sys.stdin).get('reward','?'))" 2>/dev/null || echo "?")
+        log "JitRL: ingested experience (action_type=${JITRL_ACTION}, reward=${JITRL_REWARD})"
+    else
+        log "JitRL: ingestion failed (non-fatal)"
+    fi
+elif [ "$EXIT_CODE" -ne 0 ]; then
+    # For failed tasks, still ingest so JitRL learns from failures
+    JITRL_RESULT=$(curl -sf -X POST "${API}/jitrl/ingest-task/${TASK_ID}" 2>/dev/null || echo "")
+    if [ -n "$JITRL_RESULT" ]; then
+        log "JitRL: ingested failed experience (reward=-0.5)"
+    fi
+fi
+# ── End JitRL Ingestion ──────────────────────────────────────────────────────
+
 # ── Procedure Outcome Recording ───────────────────────────────────────────────
 # For each procedure that was injected into the prompt, record success or failure.
 # This closes the TAME learning loop: trust scores converge toward actual reliability.
@@ -635,6 +1018,19 @@ else
 fi
 # ── End QA Runner ──────────────────────────────────────────────────────────────
 
+# ── Progress File Cleanup ───────────────────────────────────────────────────
+# On success: remove the progress file (task is done, no more retries needed).
+# On failure/timeout: leave it so the next retry can resume from where we stopped.
+if [ "$EXIT_CODE" -eq 0 ] && [ -f "$PROGRESS_FILE" ]; then
+    log "Progress file: cleaning up ${PROGRESS_FILE} (task succeeded)"
+    rm -f "$PROGRESS_FILE"
+elif [ "$EXIT_CODE" -ne 0 ] && [ -f "$PROGRESS_FILE" ]; then
+    log "Progress file: preserving ${PROGRESS_FILE} for retry (exit_code=${EXIT_CODE})"
+fi
+# Also clean up any stale progress files older than 7 days
+find "$WORK_DIR" -maxdepth 1 -name '.otto-progress-*.md' -mtime +7 -delete 2>/dev/null || true
+# ── End Progress File Cleanup ──────────────────────────────────────────────
+
 # APC Plan Cache — store successful plans for future reuse
 if [ "$EXIT_CODE" -eq 0 ]; then
     EXEC_TIME=$(( $(date +%s) - TASK_START_TS ))
@@ -655,5 +1051,11 @@ print(json.dumps({
         log "APC: plan cached (exec_time=${EXEC_TIME}s)" || \
         log "APC: cache store failed (non-fatal)"
 fi
+
+# Report completion to kernel
+TASK_SUCCESS="true"
+[ "$EXIT_CODE" -ne 0 ] && TASK_SUCCESS="false"
+curl -sf -X POST "${API}/kernel/agents/task_worker/completed?success=${TASK_SUCCESS}" >> "$LOG_FILE" 2>&1 || \
+    log "WARNING: Could not report agent completion to kernel"
 
 log "Task runner finished."

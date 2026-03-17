@@ -9,7 +9,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from ..db import get_pool
-from ..models import TaskCreate, TaskOut, TaskComplete, TaskRunResponse, TaskPlanRequest, TaskPlanResponse, ApproachCandidate, TaskRouteRequest, TaskRouteResponse, PlanCacheMatch, PreflectResult, PreflectResultOut, JitRLOptimizeRequest
+from ..models import TaskCreate, TaskOut, TaskComplete, TaskRunResponse, TaskPlanRequest, TaskPlanResponse, ApproachCandidate, TaskRouteRequest, TaskRouteResponse, PlanCacheMatch, PreflectResult, PreflectResultOut, JitRLOptimizeRequest, DecomposeRequest, HandoffRequest
 from ..config import settings
 from ..llm import llm_chat, extract_json, extract_json_array
 
@@ -24,7 +24,9 @@ TASK_COLUMNS = """id, title, prompt, context, priority, status, model, cli, agen
     pid, started_at, completed_at, output, error, exit_code,
     reviewed, reviewed_at, created_by, session_id,
     created_at, updated_at, metadata,
-    qa_status, qa_output, qa_reviewer, commit_hash, owner"""
+    qa_status, qa_output, qa_reviewer, commit_hash, owner,
+    parent_id, task_type, position, requires_decomposition, decomposed,
+    children_total, children_completed"""
 
 # Per-CLI concurrency limits: 3 claude, 1 gemini, 1 kimi (total max 5)
 CLI_CONCURRENCY = {"claude": 3, "gemini": 1, "kimi": 1}
@@ -565,17 +567,22 @@ async def create_task(req: TaskCreate):
     elif cli == "kimi":
         max_turns = max(max_turns, 25)               # kimi hits step limit at 15
     owner = req.owner if req.owner in ("otto", "mev") else "otto"
+    # Validate hierarchy fields
+    task_type = req.task_type if req.task_type in ("epic", "task", "subtask") else "task"
     row = await pool.fetchrow(
         f"""INSERT INTO tasks (title, prompt, context, priority, model, cli, agent_type,
                max_budget_usd, max_turns, timeout_seconds, working_directory,
-               created_by, session_id, metadata, owner)
-           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+               created_by, session_id, metadata, owner,
+               parent_id, task_type, position, requires_decomposition, decomposed)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+                   $16,$17,$18,$19,$20)
            RETURNING {TASK_COLUMNS}""",
         req.title, req.prompt, req.context, req.priority, req.model, cli,
         req.agent_type,
         max_budget_usd, max_turns, req.timeout_seconds,
         req.working_directory, req.created_by, req.session_id,
         metadata, owner,
+        req.parent_id, task_type, req.position, req.requires_decomposition, req.decomposed,
     )
     return TaskOut(**dict(row))
 
@@ -675,12 +682,21 @@ async def run_task(task_id: UUID):
     pool = await get_pool()
 
     row = await pool.fetchrow(
-        "SELECT id, status, title, cli FROM tasks WHERE id = $1", task_id,
+        """SELECT id, status, title, cli, requires_decomposition, decomposed
+           FROM tasks WHERE id = $1""",
+        task_id,
     )
     if not row:
         raise HTTPException(404, "Task not found")
     if row["status"] != "pending":
         raise HTTPException(409, f"Task is '{row['status']}', must be 'pending' to run")
+    # Decomposition gate: block tasks that require decomposition before execution
+    if row["requires_decomposition"] and not row["decomposed"]:
+        raise HTTPException(
+            409,
+            "Task requires decomposition before execution. "
+            "Call POST /tasks/{id}/decompose first.",
+        )
 
     task_cli = row["cli"] or "claude"
     if task_cli not in CLI_CONCURRENCY:
@@ -779,7 +795,71 @@ async def complete_task(task_id: UUID, req: TaskComplete):
     # ── AgentOS: Fire interrupt for task completion/failure ────────
     asyncio.create_task(_fire_task_interrupt(task_id, status))
 
+    # ── Hierarchy: Propagate completion up the tree ─────────────────
+    asyncio.create_task(_propagate_completion(pool, task_id, status))
+
     return TaskOut(**dict(row))
+
+
+async def _propagate_completion(pool, task_id: UUID, status: str):
+    """After a task completes/fails, check if parent should auto-close.
+
+    Implements auto-close propagation: when all children of a parent are done
+    (completed/failed/cancelled), the parent auto-closes with the aggregate status.
+    Recurses up the tree (max 3 levels so no infinite loop risk).
+    """
+    try:
+        row = await pool.fetchrow(
+            "SELECT parent_id FROM tasks WHERE id = $1", task_id
+        )
+        if not row or not row["parent_id"]:
+            return  # Root task — no propagation needed
+
+        parent_id = row["parent_id"]
+
+        # Update denormalized counter on parent
+        if status in ("completed", "failed", "cancelled"):
+            await pool.execute(
+                "UPDATE tasks SET children_completed = children_completed + 1 WHERE id = $1",
+                parent_id,
+            )
+
+        # Check if all children are done
+        sibling_stats = await pool.fetchrow(
+            """SELECT COUNT(*) as total,
+                      COUNT(*) FILTER (WHERE status IN ('completed','failed','cancelled')) as done
+               FROM tasks WHERE parent_id = $1""",
+            parent_id,
+        )
+        if not sibling_stats:
+            return
+
+        total = sibling_stats["total"]
+        done = sibling_stats["done"]
+        if total > 0 and total == done:
+            # All children are done — auto-close parent
+            all_succeeded = await pool.fetchval(
+                "SELECT COUNT(*) = 0 FROM tasks WHERE parent_id = $1 AND status = 'failed'",
+                parent_id,
+            )
+            parent_status = "completed" if all_succeeded else "failed"
+            updated = await pool.fetchval(
+                """UPDATE tasks
+                   SET status = $1, completed_at = now(),
+                       output = 'Auto-closed: all subtasks completed.'
+                   WHERE id = $2 AND status NOT IN ('completed','failed','cancelled')
+                   RETURNING id""",
+                parent_status, parent_id,
+            )
+            if updated:
+                log.info(
+                    f"Auto-closed parent {str(parent_id)[:8]} as '{parent_status}' "
+                    f"({done}/{total} children done)"
+                )
+                # Recurse up the tree (max 3 levels deep so safe)
+                await _propagate_completion(pool, parent_id, parent_status)
+    except Exception as e:
+        log.debug(f"Propagation failed for {str(task_id)[:8]}: {e}")
 
 
 async def _jitrl_ingest_task(task_id: UUID):
@@ -812,6 +892,209 @@ async def _fire_task_interrupt(task_id: UUID, status: str):
         )
     except Exception as e:
         log.debug(f"Task interrupt skipped for {str(task_id)[:8]}: {e}")
+
+
+# ── Hierarchy Endpoints ─────────────────────────────────────────────
+
+@router.post("/{task_id}/decompose", response_model=list[TaskOut])
+async def decompose_task(task_id: UUID, req: DecomposeRequest):
+    """Atomically create child tasks under a parent. Sets decomposed=TRUE on parent.
+
+    The parent task must be in 'pending' or 'running' status and must have
+    requires_decomposition=TRUE. Children are created with parent_id pointing
+    to this task and task_type set to the next level down (epic→task, task→subtask).
+    Children are assigned sequential position values (0, 1, 2, ...).
+    """
+    import json as _json
+    pool = await get_pool()
+
+    parent = await pool.fetchrow(
+        "SELECT id, status, task_type, decomposed, requires_decomposition FROM tasks WHERE id = $1",
+        task_id,
+    )
+    if not parent:
+        raise HTTPException(404, "Task not found")
+    if parent["decomposed"]:
+        raise HTTPException(409, "Task is already decomposed")
+    if parent["task_type"] == "subtask":
+        raise HTTPException(400, "Subtasks cannot be decomposed further (max depth is 3)")
+
+    # Determine child task_type
+    child_type = "task" if parent["task_type"] == "epic" else "subtask"
+
+    if not req.subtasks:
+        raise HTTPException(400, "Must provide at least one subtask")
+
+    # Create all children in a single transaction
+    children = []
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            for i, child_req in enumerate(req.subtasks):
+                # Validate child metadata
+                metadata = child_req.metadata
+                if not isinstance(metadata, dict):
+                    metadata = {}
+                cli = child_req.cli if child_req.cli in CLI_CONCURRENCY else "claude"
+                max_budget_usd = child_req.max_budget_usd
+                max_turns = child_req.max_turns
+                if cli == "gemini":
+                    max_budget_usd = max(max_budget_usd, 1.0)
+                elif cli == "kimi":
+                    max_turns = max(max_turns, 25)
+                owner = child_req.owner if child_req.owner in ("otto", "mev") else "otto"
+
+                child_row = await conn.fetchrow(
+                    f"""INSERT INTO tasks (title, prompt, context, priority, model, cli,
+                           agent_type, max_budget_usd, max_turns, timeout_seconds,
+                           working_directory, created_by, session_id, metadata, owner,
+                           parent_id, task_type, position,
+                           requires_decomposition, decomposed)
+                       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,
+                               $16,$17,$18,$19,$20)
+                       RETURNING {TASK_COLUMNS}""",
+                    child_req.title, child_req.prompt, child_req.context,
+                    child_req.priority, child_req.model, cli, child_req.agent_type,
+                    max_budget_usd, max_turns, child_req.timeout_seconds,
+                    child_req.working_directory, child_req.created_by,
+                    child_req.session_id, metadata, owner,
+                    task_id, child_type, i,
+                    child_req.requires_decomposition, False,
+                )
+                children.append(TaskOut(**dict(child_row)))
+
+            # Update parent: set decomposed=TRUE, children_total
+            await conn.execute(
+                """UPDATE tasks
+                   SET decomposed = TRUE,
+                       children_total = $2,
+                       children_completed = 0
+                   WHERE id = $1""",
+                task_id, len(children),
+            )
+
+    log.info(
+        f"Decomposed task {str(task_id)[:8]} into {len(children)} "
+        f"'{child_type}' subtasks"
+    )
+    return children
+
+
+@router.get("/{task_id}/tree")
+async def get_task_tree(task_id: UUID):
+    """Return the full task tree rooted at this task.
+
+    Uses a recursive CTE to traverse the adjacency list. Returns nested JSON:
+    { task: TaskOut, children: [{ task: TaskOut, children: [...] }] }
+    Max depth 3 (epic → task → subtask).
+    """
+    pool = await get_pool()
+
+    # Verify root exists
+    root_exists = await pool.fetchval("SELECT id FROM tasks WHERE id = $1", task_id)
+    if not root_exists:
+        raise HTTPException(404, "Task not found")
+
+    # Recursive CTE: fetch all nodes in tree order
+    rows = await pool.fetch(
+        f"""WITH RECURSIVE tree AS (
+                SELECT {TASK_COLUMNS}, 0 as depth FROM tasks WHERE id = $1
+                UNION ALL
+                SELECT {', '.join(f't.{c.strip()}' for c in TASK_COLUMNS.split(','))},
+                       tree.depth + 1
+                FROM tasks t
+                JOIN tree ON t.parent_id = tree.id
+                WHERE tree.depth < 3
+            )
+            SELECT * FROM tree ORDER BY depth, position, created_at""",
+        task_id,
+    )
+
+    if not rows:
+        raise HTTPException(404, "Task not found")
+
+    # Build nested structure
+    nodes: dict = {}
+    for row in rows:
+        d = dict(row)
+        depth = d.pop("depth")
+        if not isinstance(d.get("metadata"), dict):
+            d["metadata"] = {}
+        node = {"task": TaskOut(**d), "children": [], "depth": depth}
+        nodes[str(d["id"])] = node
+
+    root_node = nodes.get(str(task_id))
+    if not root_node:
+        raise HTTPException(404, "Task not found")
+
+    # Wire parent→child relationships
+    for row in rows:
+        parent_id = row["parent_id"]
+        node_id = str(row["id"])
+        if parent_id and str(parent_id) in nodes and node_id != str(task_id):
+            nodes[str(parent_id)]["children"].append(nodes[node_id])
+
+    def _serialize(node: dict) -> dict:
+        return {
+            "task": node["task"].model_dump(),
+            "depth": node["depth"],
+            "children": [_serialize(c) for c in node["children"]],
+        }
+
+    return _serialize(root_node)
+
+
+@router.post("/{task_id}/handoff", response_model=TaskOut)
+async def handoff_task(task_id: UUID, req: HandoffRequest):
+    """Transfer task ownership between Otto and Mev with a reason note.
+
+    Updates the owner field and appends to metadata['handoff_log'] for audit trail.
+    Any node in the task tree can be handed off independently.
+    """
+    import json as _json
+    pool = await get_pool()
+
+    if req.to not in ("otto", "mev"):
+        raise HTTPException(400, "to must be 'otto' or 'mev'")
+
+    task = await pool.fetchrow(
+        "SELECT id, owner, metadata FROM tasks WHERE id = $1", task_id
+    )
+    if not task:
+        raise HTTPException(404, "Task not found")
+
+    # Build handoff log entry
+    log_entry = {
+        "from": task["owner"],
+        "to": req.to,
+        "note": req.note,
+        "at": datetime.now(timezone.utc).isoformat(),
+    }
+
+    # Deep-merge handoff_log into existing metadata
+    existing_meta = task["metadata"] or {}
+    if not isinstance(existing_meta, dict):
+        existing_meta = {}
+    handoff_log = existing_meta.get("handoff_log", [])
+    if not isinstance(handoff_log, list):
+        handoff_log = []
+    handoff_log.append(log_entry)
+    existing_meta["handoff_log"] = handoff_log
+
+    row = await pool.fetchrow(
+        f"""UPDATE tasks
+            SET owner = $2, metadata = $3, updated_at = now()
+            WHERE id = $1
+            RETURNING {TASK_COLUMNS}""",
+        task_id, req.to, existing_meta,
+    )
+    if not row:
+        raise HTTPException(404, "Task not found")
+
+    log.info(
+        f"Task {str(task_id)[:8]} handed off from '{task['owner']}' to '{req.to}': "
+        f"{req.note[:60]}"
+    )
+    return TaskOut(**dict(row))
 
 
 @router.post("/{task_id}/review", response_model=TaskOut)

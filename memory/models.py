@@ -304,6 +304,12 @@ class TaskCreate(BaseModel):
     session_id: UUID | None = None
     metadata: dict = Field(default_factory=dict)
     owner: str = "otto"  # 'otto' (heartbeat/orchestrator) or 'mev' (OMS UI)
+    # Hierarchy fields (migration 030)
+    parent_id: UUID | None = None                        # parent task ID (NULL = root)
+    task_type: str = "task"                              # epic | task | subtask
+    position: int = 0                                    # sibling ordering (0-indexed)
+    requires_decomposition: bool = False                 # must be broken down before execution
+    decomposed: bool = False                             # has been broken into children
 
 
 class TaskOut(BaseModel):
@@ -339,6 +345,14 @@ class TaskOut(BaseModel):
     qa_reviewer: str | None = None    # which CLI did the QA
     commit_hash: str | None = None    # git commit SHA if committed
     owner: str = "otto"               # 'otto' (heartbeat/orchestrator) or 'mev' (OMS UI)
+    # Hierarchy fields (migration 030)
+    parent_id: UUID | None = None
+    task_type: str = "task"
+    position: int = 0
+    requires_decomposition: bool = False
+    decomposed: bool = False
+    children_total: int = 0
+    children_completed: int = 0
 
 
 class TaskComplete(BaseModel):
@@ -346,6 +360,19 @@ class TaskComplete(BaseModel):
     error: str | None = None
     exit_code: int = 0
     metadata: dict = Field(default_factory=dict)
+
+
+# ── Task Hierarchy ─────────────────────────────────────────────────
+
+class DecomposeRequest(BaseModel):
+    """Atomically create children under a parent task."""
+    subtasks: list[TaskCreate]  # ordered list of children to create
+
+
+class HandoffRequest(BaseModel):
+    """Transfer task ownership with a note (bidirectional Otto ↔ Mev)."""
+    to: str  # 'otto' or 'mev'
+    note: str  # context for the new owner
 
 
 class TaskRunResponse(BaseModel):
