@@ -23,6 +23,8 @@ Endpoints:
   GET  /email/folders           — List IMAP folders
   POST /email/auth/request      — Request magic link / OTP
   POST /email/auth/verify       — Verify OTP token → returns session
+  GET  /email/auth/pending      — List pending OTP sessions (OMS monitoring)
+  DELETE /email/auth/pending/{email} — Revoke a pending OTP session
 """
 
 import logging
@@ -436,3 +438,43 @@ async def verify_auth_token(req: AuthVerifyBody):
         "session_token": session_token,
         "verified_at"  : datetime.now(timezone.utc).isoformat(),
     }
+
+
+@router.get("/auth/pending")
+async def list_pending_auth():
+    """
+    List pending (unverified) OTP sessions.
+
+    Returns all active OTP sessions that have been requested but not yet
+    verified. Tokens are not exposed — only metadata for monitoring.
+    Expired sessions are purged automatically on retrieval.
+    """
+    now = datetime.now(timezone.utc)
+    # Purge expired
+    expired = [email for email, data in _otp_store.items() if now > data["expires"]]
+    for email in expired:
+        del _otp_store[email]
+
+    sessions = [
+        {
+            "email"  : email,
+            "purpose": data["purpose"],
+            "expires": data["expires"].isoformat(),
+            "expires_in_seconds": max(0, int((data["expires"] - now).total_seconds())),
+        }
+        for email, data in _otp_store.items()
+    ]
+    return {"ok": True, "sessions": sessions, "count": len(sessions)}
+
+
+@router.delete("/auth/pending/{email_addr}")
+async def revoke_pending_auth(email_addr: str):
+    """
+    Revoke (delete) a pending OTP session.
+
+    Allows OMS admins to invalidate an outstanding OTP before it expires.
+    """
+    if email_addr not in _otp_store:
+        raise HTTPException(404, detail="No pending session for this email")
+    del _otp_store[email_addr]
+    return {"ok": True, "revoked": email_addr}
