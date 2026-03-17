@@ -92,8 +92,42 @@
 | 4 | Publishing | Censorship-resistant posts, content | Phase 3 |
 | 5 | Sovereign Self | Biometric identity, reputation layer | Phase 3-4 |
 
+---
+
+## Memory Capsules — Personal Intelligence Layer
+
+Every ONEON participant has a **Memory Capsule**: a layered, on-chain personal intelligence store.
+
+**Core properties:**
+- **Private by default** — no one sees your capsule unless you explicitly share layers
+- **Monetizable** — share specific layers (skills, interests, contribution patterns) and earn $KOIN for the value your context provides to the network
+- **Quality-linked earnings** — deeper, higher-quality capsules provide better LLM outputs AND earn more when shared. Quality = compensation.
+- **LLM output quality tied to capsule depth** — the richer your capsule, the more contextually accurate responses you receive from any AI in the ecosystem
+- **The chain IS the neural network** — Memory Capsules are encrypted on-chain records. The ONEON chain is the continually-evolving intelligence layer of the ecosystem. Every capsule is a node in that network.
+
+**Capsule layers (mirrors ONEON's 5-layer architecture):**
+| Capsule Layer | What It Contains | Default |
+|---|---|---|
+| Public contribution record | Open-source commits, published content, verifiable contributions | Visible |
+| Community context | Groups, interests, skills declared to communities | Community-scoped |
+| Governance weight | Contribution history that determines governance influence | Governance-scoped |
+| Personal preferences | AI behavior preferences, communication style, trusted contacts | Private |
+| Core identity | Personal history, private notes, credential references | Fully private |
+
+**Monetization mechanics:**
+- Owner can set per-layer sharing permissions and pricing
+- Buyers (apps, AI systems, researchers) pay to access specific layers
+- Revenue flows directly to the capsule owner (no platform cut)
+- Quality validators rate capsule utility — higher-rated capsules command higher prices
+- High-quality contributor capsules can become a passive income stream
+
+**Implementation:** Phase 3+ — requires ONEON identity (Layer 1), encrypted storage (Layer 4), and on-chain governance for pricing standards.
+
+---
+
 ## Tech Considerations
 - **Chain options:** Solana (fast, cheap, ecosystem) vs custom L2 (maximum sovereignty)
 - **Key management:** Must work offline, on mobile, on Puck hardware
 - **Domain:** oneon.ink
 - **Repo:** /mnt/media/projects/oneon-web
+- **Memory Capsule storage:** Encrypted shards on Otto distributed storage nodes; owner holds decryption key

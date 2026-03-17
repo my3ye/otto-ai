@@ -76,6 +76,28 @@ The ZEN Network. Three words that describe what every network should have been.
 
 ---
 
+## Memory Capsules — Your Intelligence, Owned by You
+
+Every interaction you have on any network leaves traces. The platforms harvest those traces. They build a model of you, monetize it, and give you nothing back.
+
+ONEON inverts this completely.
+
+Every participant on ONEON has a **Memory Capsule** — a personal, layered intelligence layer that accumulates with every interaction. Private by default. Yours entirely. The capsule holds your preferences, your history of contributions, your learned context, your knowledge graph. It is the record of your mind engaging with this ecosystem.
+
+What makes Memory Capsules different from a data profile on a centralized platform:
+
+**It compounds for you, not against you.** The richer your Memory Capsule, the better the AI outputs you receive. The capsule is not an ad-targeting profile. It is a context engine — the accumulated knowledge the network uses to give you better answers, more relevant connections, more aligned governance suggestions.
+
+**You decide what earns.** Memory Capsules are private by default. But if you choose to share specific layers — your skills, your interest graph, your contribution patterns — you earn for that sharing. The higher the quality and utility of your shared context, the more you earn. Quality determines compensation, not extraction.
+
+**The chain is the neural network.** Each Memory Capsule is an encrypted on-chain record. Not hosted on a server someone else controls. Not deletable by a platform decision. The ONEON chain is the continually-evolving neural network of the ecosystem — every Memory Capsule a node in it. The intelligence of the collective grows as every participant's capsule grows.
+
+**Layered like the network.** Your Memory Capsule mirrors ONEON's architecture: public layers you choose to share, community layers visible to your networks, governance layers that inform your contribution weight, private layers known only to you. The depth you invest in your capsule is the depth you get back.
+
+This is what data should have always been — your asset, compounding in your favor, contributing to something larger only at your explicit choice.
+
+---
+
 ## The Backbone of the MY3YE Ecosystem
 
 Every project in the MY3YE ecosystem moves through ONEON.

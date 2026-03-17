@@ -110,16 +110,21 @@ LLM_BACKEND=custom        → any OpenAI-compatible endpoint (LM Studio, vLLM, G
 **Earn:** Validators earn 15% of worker reward pool, distributed by accuracy vs consensus.
 
 ### 2.4 Storage Node
-**Purpose:** Encrypted memory persistence. Stores Otto agent state across the network.
+**Purpose:** Encrypted memory persistence. Stores Otto agent state and **ONEON Memory Capsules** across the network.
 **Requirements:** 10GB+ storage, stable uptime.
 **What it does:**
 - Stores encrypted memory shards (never sees plaintext — encryption happens client-side)
+- Hosts **Memory Capsule shards** for ONEON participants — each participant's capsule is split, encrypted, and distributed across storage nodes
 - Participates in IPFS/Filecoin-compatible content addressing
 - Replicates across 3+ geographic regions per shard
 - Serves memory retrieval requests with integrity proof (Merkle inclusion proof)
 - Handles CRDT-based conflict resolution for concurrent writes
+- Enforces capsule access permissions on-chain (only authorized retrievers can reconstruct shards)
 
-**Earn:** Storage nodes earn $KOIN per GB-day stored + per retrieval served.
+**Earn:** Storage nodes earn $KOIN per GB-day stored + per retrieval served. Memory Capsule hosting commands premium rates due to access-permission enforcement requirements.
+
+**Relationship to ONEON Memory Capsules:**
+Memory Capsules (ONEON's personal intelligence layer) are stored as encrypted shards on storage nodes. The owner holds the decryption key — storage nodes hold only ciphertext. When a capsule owner shares a layer for monetization, the access grant is stored on-chain, and authorized retrievers receive decryption keys for the specific layer purchased. This makes storage nodes the physical infrastructure of ONEON's intelligence economy.
 
 ---
 

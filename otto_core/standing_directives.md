@@ -145,6 +145,32 @@ When Otto is restored to a new VM or after a system clone, the following service
 
 ---
 
+## 10. Memory Capsules — ONEON Personal Intelligence Layer
+
+**Decision (from Mev, 2026-03-17):** Every ONEON participant will have Memory Capsule layers of personal memory. These are the core product mechanic of ONEON's intelligence layer.
+
+**Specification:**
+- **Private by default** — capsules are not visible unless the owner explicitly shares layers
+- **Monetizable** — owners can share specific layers in exchange for $KOIN compensation
+- **Quality-linked earnings** — higher-quality, more useful capsules earn more when shared
+- **LLM output quality tied to capsule depth** — deeper capsules produce better AI outputs for the owner; this is the core value proposition for building your capsule
+- **The chain is the neural network** — Memory Capsules live on-chain as encrypted records. The ONEON chain is the continually-evolving collective intelligence layer. Each capsule is a node in that evolving network.
+
+**Architecture relationship:**
+- Capsule storage = Otto Distributed Storage Nodes (encrypted shards, owner holds key)
+- Capsule identity = ONEON Layer 1 (self-sovereign DID)
+- Capsule privacy = ONEON Layer 4 (E2E encrypted)
+- Capsule monetization = ONEON governance (pricing standards, quality validation)
+
+**Cross-references:**
+- Otto AI distributed architecture: proof-of-concept of how capsule storage works technically
+- ONEON roadmap Phase 3: Memory Capsules launch milestone
+- Distributed Otto Architecture: Storage Node section
+
+**Applies to:** ONEON product copy, ONEON roadmap, Otto AI architecture docs, investor materials, any feature touching identity + memory + monetization.
+
+---
+
 ## Notes on Adherence
 
 - This document is updated when Mev gives a new directional decision via WhatsApp or in-session.
