@@ -168,6 +168,31 @@ async def dequeue(agent_id: str | None = None) -> dict | None:
     return result
 
 
+async def dequeue_by_id(interrupt_id: UUID) -> dict | None:
+    """Atomically claim and dequeue a specific interrupt by ID.
+
+    Used by the WebSocket streaming handler to avoid racing with the kernel loop.
+    Marks the interrupt as PROCESSING and returns it.
+    Returns None if already claimed or not found.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """UPDATE interrupt_queue
+           SET status = $1, started_at = NOW()
+           WHERE id = $2 AND status = $3
+           RETURNING id, interrupt_type, priority, source, payload,
+                     status, correlation_id, created_at, started_at, metadata, agent_id""",
+        InterruptStatus.PROCESSING.value,
+        interrupt_id,
+        InterruptStatus.PENDING.value,
+    )
+    if not row:
+        return None
+    result = dict(row)
+    log.info(f"Dequeued-by-id interrupt {result['id']}: {result['interrupt_type']} (P{result['priority']})")
+    return result
+
+
 async def complete(
     interrupt_id: UUID,
     result: dict | None = None,

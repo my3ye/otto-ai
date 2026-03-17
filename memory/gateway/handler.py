@@ -19,14 +19,17 @@ log = logging.getLogger("otto.gateway.handler")
 
 # Admin verification per channel
 ADMIN_IDS = {
-    "whatsapp": "94743806705@s.whatsapp.net",
+    "whatsapp": {
+        "94743806705@s.whatsapp.net",   # Classic JID
+        "26822473420906@lid",            # WhatsApp LID format
+    },
 }
 
 
 def is_admin(msg: GatewayMessage) -> bool:
     """Check if the sender is Admin (Mev)."""
     if msg.channel == "whatsapp":
-        return msg.sender_id == ADMIN_IDS["whatsapp"]
+        return msg.sender_id in ADMIN_IDS["whatsapp"]
     if msg.channel == "web":
         return msg.metadata.get("authenticated", False)
     return False
@@ -147,8 +150,8 @@ async def handle_message_stream(msg: GatewayMessage):
         },
     )
 
-    # Dequeue and stream directly (bypass kernel loop wait)
-    interrupt = await ivt.dequeue()
+    # Claim our specific interrupt by ID (avoids race with kernel background loop)
+    interrupt = await ivt.dequeue_by_id(interrupt_id)
     if not interrupt:
         yield "Hey Mev — something went wrong queuing your message."
         return
