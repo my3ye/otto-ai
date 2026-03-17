@@ -6,14 +6,19 @@ inception_article: VII
 identity:
   tagline: "The meme is the Trojan Horse. The civilization is what's inside."
   philosophy: >
-    Meme koins build communities fast then transfer wealth upward. Koink fixes this.
+    Meme koins hand the launch to insiders and leave the community fighting for crumbs.
+    Koink is built differently: the fair launch means everyone starts equal, and the
+    diamond hands multiplier means whoever holds longest earns most. Whale status
+    is not bought at inception — it is earned through conviction and contribution.
     Every laugh is a brick in the wall of Tusita.
   key_quote: "Born from PiPi — internet culture's meme energy redirected from nihilism to construction."
   what_it_is: >
     Financial chaos engine disguised as meme tokenomics. Quantum Koinkulator engine:
-    quantum randomness for fair launches (no snipers/bots), anti-whale hard wallet caps,
-    graduated sell taxes, contribution-weighted governance, 20% community treasury.
-    $KOINK Standard is an open-source tokenomics template any project can fork.
+    quantum randomness for fair launches (no snipers, no insider presales), merit-based
+    supply distribution so no entity starts dominant, graduated sell taxes, diamond hands
+    multiplier (3x over 12 months — the contribution-to-whale ladder), contribution-weighted
+    governance, 20% community treasury. $KOINK Standard is an open-source tokenomics
+    template any project can fork.
   what_it_is_not: >
     Not a rug pull. Not another meme koin that extracts from community. Not
     financial nihilism — it's financial construction wearing a meme costume.
@@ -39,7 +44,7 @@ ecosystem:
   category: life
   provides:
     - "Fair tokenomics standard ($KOINK Standard)"
-    - "Anti-whale mechanics"
+    - "Merit-based supply distribution (whale status earned, not bought)"
     - "Community treasury model"
     - "Quantum Koinkulator engine"
   depends_on: ["505-systems"]

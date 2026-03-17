@@ -236,7 +236,7 @@ tokens:
   KOINK:
     governs: "Community treasury, meme ecosystem"
     type: utility + meme
-    mechanics: "Anti-whale caps, graduated sell taxes, diamond hands multiplier"
+    mechanics: "Merit-based distribution, graduated sell taxes, diamond hands multiplier (earned whale ladder)"
 
 # ── Status Legend ──────────────────────────────────────────────────────────────
 # live      = deployed, users can interact

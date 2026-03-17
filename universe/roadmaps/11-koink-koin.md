@@ -7,7 +7,7 @@
 
 ## Dependencies
 - **Hard deps:** S0S Systems (governance mechanics, community treasury)
-- **Soft deps:** ONEON (identity verification for anti-whale), PiPi (mascot/culture)
+- **Soft deps:** ONEON (identity verification for merit-based distribution), PiPi (mascot/culture)
 - **Blocks:** Community funding mechanism, PiPi persona launch
 
 ## Note on $KOIN
@@ -21,9 +21,9 @@ Mev has introduced $KOIN as the new token within the Koink.fun ecosystem. $KOIN 
 ### Milestones
 1. **$KOIN tokenomics finalized** — Supply, allocation, vesting, treasury %
    - 20% community treasury
-   - Anti-whale hard caps
+   - Fair launch distribution caps (no presale concentration; whale status is earned)
    - Graduated sell taxes
-   - Diamond hands multiplier (grows to 3x over 12 months)
+   - Diamond hands multiplier (grows to 3x over 12 months — the path to earned whale status)
 2. **Quantum Koinkulator v1** — Fair launch engine: quantum randomness (VRF) for launch sequence, no bots/snipers
 3. **Smart contract audit** — External review before any deployment
 4. **PiPi persona live** — X account active, meme content seeding community anticipation
@@ -53,7 +53,7 @@ Mev has introduced $KOIN as the new token within the Koink.fun ecosystem. $KOIN 
 - 10,000+ unique holders
 - Community treasury ≥$100K funded
 - Diamond hands multiplier working on-chain
-- No single holder >5% of supply (anti-whale enforced)
+- No presale entity starts with >5% of supply — influence is earned through fair launch and contribution, not bought at inception
 
 ---
 
@@ -61,7 +61,7 @@ Mev has introduced $KOIN as the new token within the Koink.fun ecosystem. $KOIN 
 **Goal:** The tokenomics template is open-sourced. Other projects fork it.
 
 ### Milestones
-1. **$KOINK Standard v1.0** — Open-source tokenomics template: quantum fair launch + anti-whale + treasury + diamond hands
+1. **$KOINK Standard v1.0** — Open-source tokenomics template: quantum fair launch + merit-based distribution + treasury + diamond hands
 2. **Documentation** — How to deploy your own $KOINK Standard token in < 1 hour
 3. **First external fork** — Another project uses the $KOINK Standard
 4. **koink.fun marketplace** — Launch pad for projects using $KOINK Standard
@@ -104,4 +104,4 @@ Mev has introduced $KOIN as the new token within the Koink.fun ecosystem. $KOIN 
 | Ecosystem partnerships | 10% | 6-month cliff + linear |
 
 ## Key Innovation: Quantum Koinkulator
-Traditional launches: bots snipe first. Koink: quantum VRF determines launch sequence. No one — not even the team — can predict or front-run the order. The fairest launch possible.
+Traditional launches: insiders and bots capture the first tranche before the community knows the name. Koink: quantum VRF determines launch sequence with zero privileged access — not even the team can predict or front-run the order. Equal starting line. Whale status earned from that line forward through contribution and conviction.

@@ -70,7 +70,7 @@ The governance constitution for the entire ecosystem. Covers:
   - Structural Impact (did your contribution change the architecture?)
   - Consistent Energy (sustained engagement, not burst contributions)
   - Weighted Resonance (alignment with mission, verified by peers + on-chain outcomes)
-  - Capital amplifier: up to 3x DPC weight from stake (prevents pure plutocracy; base DPC still from participation)
+  - Capital amplifier: up to 3x DPC weight from stake (capital amplifies builders — contribution is the foundation, capital is the multiplier)
 - **Proposal Lifecycle**: Draft → Review (Steward level) → Community Comment (7d) → Vote → Execution
 - **Constitutional constraints**: founder-level majority + no Sovereign veto required for constitutional changes
 - **Contribution types**: code, design, teaching, hosting, content, capital (with weights)
@@ -262,8 +262,8 @@ Governance weight is earned, not bought. Not one token, one vote. One contributi
 
 ### Capital Amplifier
 - Token stake amplifies DPC weight up to **3×** (not 10×, not unlimited)
-- Prevents pure plutocracy (capital alone can't dominate)
-- Base DPC still comes from participation — capital amplifies, does not replace
+- Capital rewards those who support the mission — but contribution is the foundation
+- Base DPC comes from participation — capital amplifies what you've built, not what you've bought
 
 ### Contribution Types & Weights (v0.1)
 | Type | Base DPC |
@@ -278,7 +278,7 @@ Governance weight is earned, not bought. Not one token, one vote. One contributi
 | Financial contribution | Variable (capital amplifier) |
 
 ### Decay + Compounding
-- DPC **decays without activity** (prevents dormant whale governance)
+- DPC **decays without activity** (governance weight is earned through sustained contribution, not held passively)
 - DPC **compounds with sustained contribution** (rewards consistent builders)
 - Decay rate: ~5% per month of inactivity (suggested; governance can amend)
 
@@ -325,9 +325,9 @@ Governance weight is earned, not bought. Not one token, one vote. One contributi
 ## Risks
 
 ### 1. Governance Capture
-- **Risk:** Whale coalition acquires enough stake to overwhelm DPC base weight
-- **Mitigation:** 3× cap on capital amplifier; contribution-based DPC cannot be purchased; constitutional quorum requires broad participation minimum
-- **Signal:** Watch for wallet concentration in treasury + voting power
+- **Risk:** A capital coalition acquires enough stake to overwhelm DPC contribution weight
+- **Mitigation:** 3× cap on capital amplifier; contribution-based DPC cannot be purchased or transferred; constitutional quorum requires broad participation minimum
+- **Signal:** Watch for wallet concentration in treasury + voting power relative to contribution scores
 
 ### 2. Scope Creep
 - **Risk:** Education + refuge + governance = three large systems; doing all at once means doing none well
@@ -360,17 +360,17 @@ Governance weight is earned, not bought. Not one token, one vote. One contributi
 
 ---
 
-## The Anti-Dystopia Design
+## The Meritocratic Design
 
 Most decentralized projects fail because governance becomes one of:
-1. **Plutocratic** — rich whales win every vote; community theater
+1. **Token-Weighted Stagnation** — wallets, not builders, control the vote; the biggest bags win every decision
 2. **Abandoned** — no one votes; founding team decides everything anyway
 3. **Captured** — one faction gains control and entrenches itself
 
 505 Systems solves all three:
-- **DPC prevents plutocracy** — contribution weight, not capital weight (capital amplifies, does not replace)
+- **DPC roots governance in contribution** — building weight, not just holding weight (capital amplifies what you've built)
 - **Contribution-as-curriculum prevents abandonment** — people have personal advancement incentives to stay engaged
-- **Constitutional constraints prevent capture** — supermajority + quorum requirements; no single wallet or coalition can dominate
+- **Constitutional constraints prevent capture** — supermajority + quorum requirements; governance cannot be dominated by a single coalition
 
 **The unified ladder is the engine:** when rising through the system requires actually contributing to it, governance participation is inherently aligned with building the mission — not extracting from it.
 
