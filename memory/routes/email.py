@@ -1,12 +1,13 @@
 """
 Email API routes — Full inbox management + email-based authentication
 
-Otto can send and receive email via otto@otto.lk using Google Workspace (or
-any SMTP/IMAP provider).  Credentials live in ~/memory/.env:
+Otto sends/receives email via a self-hosted Postfix + Dovecot stack
+(docker-mailserver) running at ~/interfaces/email/.
+Credentials live in ~/memory/.env:
   OTTO_EMAIL_ADDRESS   — otto@otto.lk
-  OTTO_EMAIL_PASSWORD  — Google Workspace App Password
-  OTTO_SMTP_HOST       — smtp.gmail.com  (default)
-  OTTO_IMAP_HOST       — imap.gmail.com  (default)
+  OTTO_EMAIL_PASSWORD  — mailbox password (set via setup.sh)
+  OTTO_SMTP_HOST       — mail.otto.lk  (self-hosted Postfix, default)
+  OTTO_IMAP_HOST       — mail.otto.lk  (self-hosted Dovecot, default)
 
 Endpoints:
   GET  /email/status            — SMTP + IMAP health
