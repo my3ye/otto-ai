@@ -3,7 +3,8 @@
 import json
 import logging
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Request
+from fastapi.responses import JSONResponse
 from ..config import settings
 from ..db import get_pool
 from .models import GatewayMessage, GatewayResponse
@@ -28,6 +29,18 @@ async def gateway_health():
     """Gateway health check."""
     kernel_status = "enabled" if settings.kernel_enabled else "disabled"
     return {"status": "ok", "channels": ["whatsapp", "web"], "kernel": kernel_status}
+
+
+@router.get("/verify")
+async def gateway_verify(request: Request):
+    """Verify that a Bearer token is valid for the OMS web interface."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return JSONResponse({"valid": False, "error": "Missing Bearer token"}, status_code=401)
+    token = auth[len("Bearer "):]
+    if not settings.web_auth_token or token != settings.web_auth_token:
+        return JSONResponse({"valid": False, "error": "Invalid token"}, status_code=401)
+    return {"valid": True}
 
 
 @router.websocket("/ws")
