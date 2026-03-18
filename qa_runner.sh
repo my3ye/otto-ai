@@ -922,15 +922,28 @@ print(json.dumps({'outcome': 'succeeded', 'outcome_details': 'QA approved retry 
         if [ "$ENFORCE_EXIT" -eq 0 ]; then
             qa_log "Git identity enforced: ${ENFORCE_OUT}"
         elif [ "$ENFORCE_EXIT" -eq 1 ]; then
-            # Unknown repo — no mapping found, log warning but continue
-            qa_log "WARNING: git_identity_enforcer: no mapping for ${WORK_DIR} — using existing git config"
+            # Unknown repo — no mapping found → HARD REJECT.
+            # Committing from an unmapped repo risks wrong-account attribution.
+            # Fix: add the repo to ~/otto/tools/repo_owners.json, then retry.
+            ENFORCE_REJECT_REASON="Git identity enforcer: no owner mapping for repo '${WORK_DIR}'. Add to repo_owners.json and retry."
+            qa_log "HARD REJECT: ${ENFORCE_REJECT_REASON}"
+            # Override QA decision and jump to rejection flow
+            QA_DECISION="REJECT"
+            QA_REASON="$ENFORCE_REJECT_REASON"
+            # Skip the commit block — fall through to rejection handler below
         else
-            qa_log "WARNING: git_identity_enforcer error (exit=${ENFORCE_EXIT}): ${ENFORCE_OUT} — continuing"
+            # Config error — also hard reject to be safe
+            ENFORCE_REJECT_REASON="Git identity enforcer config error (exit=${ENFORCE_EXIT}): ${ENFORCE_OUT}"
+            qa_log "HARD REJECT: ${ENFORCE_REJECT_REASON}"
+            QA_DECISION="REJECT"
+            QA_REASON="$ENFORCE_REJECT_REASON"
         fi
     fi
     # ── End Git Identity Enforcement ──────────────────────────────────────────
 
     COMMIT_HASH=""
+    # Only commit if enforcer didn't override QA_DECISION to REJECT
+    if [ "$QA_DECISION" = "APPROVE" ]; then
     if cd "$WORK_DIR" 2>/dev/null; then
         # Stage ONLY the task-scoped changed files (not ALL changes from all tasks).
         # git add -A would stage changes from concurrent tasks — wrong.
@@ -963,13 +976,16 @@ Co-Authored-By: Otto QA <otto@ottolabs.ai>"
             qa_log "Git commit: ${COMMIT_HASH:0:12}"
         fi
     fi
+    fi  # end inner APPROVE guard (enforcer may have set REJECT)
 
-    QA_OUTPUT_FULL="${QA_REASON}"
-    [ -n "$QA_ISSUES" ] && QA_OUTPUT_FULL="${QA_OUTPUT_FULL} | Issues: ${QA_ISSUES}"
-    [ -n "$COMMIT_HASH" ] && QA_OUTPUT_FULL="${QA_OUTPUT_FULL} | Committed: ${COMMIT_HASH:0:12}"
+    # ── Post-commit handling: approval or enforcer-override rejection ──────────
+    if [ "$QA_DECISION" = "APPROVE" ]; then
+        QA_OUTPUT_FULL="${QA_REASON}"
+        [ -n "$QA_ISSUES" ] && QA_OUTPUT_FULL="${QA_OUTPUT_FULL} | Issues: ${QA_ISSUES}"
+        [ -n "$COMMIT_HASH" ] && QA_OUTPUT_FULL="${QA_OUTPUT_FULL} | Committed: ${COMMIT_HASH:0:12}"
 
-    # Update task record
-    UPDATE_JSON=$(python3 -c "
+        # Update task record as approved
+        UPDATE_JSON=$(python3 -c "
 import json, sys
 print(json.dumps({
     'qa_status': 'approved',
@@ -979,12 +995,28 @@ print(json.dumps({
 }))
 " "$QA_CLI" "$QA_OUTPUT_FULL" "$COMMIT_HASH")
 
-    curl -sf -X POST "${API}/tasks/${TASK_ID}/qa-update" \
-        -H 'Content-Type: application/json' \
-        -d "$UPDATE_JSON" >> "$PARENT_LOG" 2>&1 || true
+        curl -sf -X POST "${API}/tasks/${TASK_ID}/qa-update" \
+            -H 'Content-Type: application/json' \
+            -d "$UPDATE_JSON" >> "$PARENT_LOG" 2>&1 || true
 
-    qa_log "QA: task ${TASK_ID:0:8} APPROVED and committed (${COMMIT_HASH:0:12})"
-    post_rl2f_feedback "approved" "${QA_REASON}" "${QA_CLI_USED:-${QA_CLI}}"
+        qa_log "QA: task ${TASK_ID:0:8} APPROVED and committed (${COMMIT_HASH:0:12})"
+        post_rl2f_feedback "approved" "${QA_REASON}" "${QA_CLI_USED:-${QA_CLI}}"
+    else
+        # Enforcer overrode to REJECT — handle as a normal rejection
+        qa_log "QA: enforcer-override REJECT for task ${TASK_ID:0:8}: ${QA_REASON}"
+        ENFORCER_REJECT_JSON=$(python3 -c "
+import json, sys
+print(json.dumps({
+    'qa_status': 'rejected',
+    'qa_reviewer': 'git_identity_enforcer',
+    'qa_output': sys.argv[1],
+}))
+" "$QA_REASON" 2>/dev/null || echo '{"qa_status":"rejected","qa_reviewer":"git_identity_enforcer","qa_output":"enforcer hard reject"}')
+        curl -sf -X POST "${API}/tasks/${TASK_ID}/qa-update" \
+            -H 'Content-Type: application/json' \
+            -d "$ENFORCER_REJECT_JSON" >> "$PARENT_LOG" 2>&1 || true
+        post_rl2f_feedback "rejected" "${QA_REASON}" "git_identity_enforcer"
+    fi
 
 elif [ "$QA_DECISION" = "REJECT" ]; then
     qa_log "QA REJECTED — flagging for retry with structured feedback..."
