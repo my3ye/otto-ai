@@ -131,10 +131,23 @@ async def get_whatsapp_accounts():
                 if resp.status_code == 200:
                     data = resp.json()
                     athena_status["connected"] = data.get("connected", False)
+                    athena_status["needs_auth"] = data.get("needs_auth", False)
                     athena_status["silent_seconds"] = data.get("silent_seconds")
-                    athena_status["status"] = "connected" if data.get("connected") else "disconnected"
+                    # Use status from health endpoint directly if available
+                    svc_status = data.get("status", "")
+                    if svc_status == "ok" or data.get("connected"):
+                        athena_status["status"] = "connected"
+                        athena_status["error"] = None
+                    elif svc_status == "needs_qr" or data.get("has_qr"):
+                        athena_status["status"] = "needs_qr"
+                        athena_status["error"] = "QR code ready — scan from WhatsApp to link Athena"
+                    elif svc_status == "needs_auth" or data.get("needs_auth"):
+                        athena_status["status"] = "needs_auth"
+                        athena_status["error"] = "Session expired — trigger reconnect to get new QR"
+                    else:
+                        athena_status["status"] = "disconnected"
+                    athena_status["has_qr"] = data.get("has_qr", False)
                     athena_status["port"] = port
-                    athena_status["error"] = None
                     break
         except Exception:
             continue
@@ -146,6 +159,34 @@ async def get_whatsapp_accounts():
         "total": len(accounts),
         "connected": sum(1 for a in accounts if a.get("connected")),
     }
+
+
+@router.get("/accounts/athena/qr")
+async def get_athena_qr():
+    """Proxy the QR code from the Athena WhatsApp service for OMS display."""
+    for port in [3002, 3003, 3004]:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as http:
+                resp = await http.get(f"http://localhost:{port}/qr")
+                if resp.status_code in (200, 202):
+                    return resp.json()
+        except Exception:
+            continue
+    return {"status": "no_service", "qr": None}
+
+
+@router.post("/accounts/athena/reconnect")
+async def reconnect_athena():
+    """Trigger Athena reconnect to generate a fresh QR code."""
+    for port in [3002, 3003, 3004]:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as http:
+                resp = await http.get(f"http://localhost:{port}/qr")
+                if resp.status_code in (200, 202):
+                    return {"status": "triggered", "port": port}
+        except Exception:
+            continue
+    return {"status": "no_service"}
 
 
 @router.post("/accounts/send-test")
