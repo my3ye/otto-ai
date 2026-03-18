@@ -1379,7 +1379,7 @@ if [ -x "$WHATSAPP_SEND" ]; then
             awk 'NF > 0 { last=$0 } END { print last }' | \
             sed 's/^[#*-]* *//' | cut -c1-150 2>/dev/null || echo "")
         [ -z "$OUTPUT_SUMMARY" ] && OUTPUT_SUMMARY="Task complete"
-        WA_MSG="Task completed: ${TITLE}
+        WA_MSG="✅ ${TITLE}
 ${OUTPUT_SUMMARY}"
     else
         # Extract error reason from stderr or output
@@ -1387,7 +1387,7 @@ ${OUTPUT_SUMMARY}"
             grep -iE "^(error|fatal|failed|timeout|FATAL|ERROR)" | head -1 | \
             sed 's/^[^ ]* //' | cut -c1-150 2>/dev/null || echo "")
         [ -z "$ERROR_SUMMARY" ] && ERROR_SUMMARY="exit code ${EXIT_CODE} — check logs"
-        WA_MSG="Task failed: ${TITLE}
+        WA_MSG="❌ ${TITLE}
 ${ERROR_SUMMARY}"
     fi
     "$WHATSAPP_SEND" "$WA_MSG" >> "$LOG_FILE" 2>&1 && \
