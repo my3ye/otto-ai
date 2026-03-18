@@ -151,7 +151,31 @@ async def get_injection(
     8.  Procedures — filled until budget
     """
     pool = await get_pool()
-    return await build_context_text(pool, max_tokens=max_tokens, source=source)
+    context_text = await build_context_text(pool, max_tokens=max_tokens, source=source)
+
+    # Persist injection asynchronously (fire-and-forget, never block the hook)
+    token_estimate = len(context_text) // 4
+    # Map source to a human-readable trigger label
+    trigger_map = {
+        "startup": "startup",
+        "compact": "compact",
+        "resume": "resume",
+        "whatsapp": "whatsapp",
+        "heartbeat": "heartbeat",
+        "reflection": "reflection",
+        "task": "task",
+    }
+    trigger = trigger_map.get(source, source)
+    try:
+        await pool.execute(
+            """INSERT INTO context_injections (trigger, source, max_tokens, token_estimate, context_text)
+               VALUES ($1, $2, $3, $4, $5)""",
+            trigger, source, max_tokens, token_estimate, context_text,
+        )
+    except Exception as _persist_err:
+        log.warning(f"context injection persist failed (non-fatal): {_persist_err}")
+
+    return context_text
 
 
 @router.get("/unified")
@@ -438,3 +462,152 @@ async def compress_context(req: CompressRequest):
         compression_ratio=round(comp / orig, 3) if orig > 0 else 1.0,
         was_compressed=comp < orig,
     )
+
+
+# ── /context/injections — history browsing ────────────────────────────────────
+
+@router.get("/injections")
+async def list_injections(
+    limit: int = Query(default=50, le=200),
+    offset: int = Query(default=0),
+    trigger: str | None = Query(default=None),
+):
+    """List context injection history (newest first).
+
+    Returns summary rows (no full context_text) for efficient pagination.
+    """
+    pool = await get_pool()
+    where = "WHERE trigger = $3" if trigger else ""
+    params: list = [limit, offset]
+    if trigger:
+        params.append(trigger)
+
+    rows = await pool.fetch(
+        f"""SELECT id, trigger, source, max_tokens, token_estimate,
+                   LEFT(context_text, 200) AS preview,
+                   LENGTH(context_text) AS char_len,
+                   created_at
+            FROM context_injections
+            {where}
+            ORDER BY created_at DESC
+            LIMIT $1 OFFSET $2""",
+        *params,
+    )
+    total = await pool.fetchval(
+        f"SELECT COUNT(*) FROM context_injections {where}",
+        *(params[2:] if trigger else []),
+    )
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": [
+            {
+                "id": str(r["id"]),
+                "trigger": r["trigger"],
+                "source": r["source"],
+                "max_tokens": r["max_tokens"],
+                "token_estimate": r["token_estimate"],
+                "char_len": r["char_len"],
+                "preview": r["preview"],
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get("/injections/{injection_id}")
+async def get_injection_detail(injection_id: str):
+    """Get full context text for a single injection."""
+    import uuid as _uuid
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """SELECT id, trigger, source, max_tokens, token_estimate, context_text, created_at
+           FROM context_injections WHERE id = $1""",
+        _uuid.UUID(injection_id),
+    )
+    if not row:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Injection not found")
+    return {
+        "id": str(row["id"]),
+        "trigger": row["trigger"],
+        "source": row["source"],
+        "max_tokens": row["max_tokens"],
+        "token_estimate": row["token_estimate"],
+        "context_text": row["context_text"],
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+    }
+
+
+@router.get("/injections/{injection_id}/diff")
+async def get_injection_diff(injection_id: str):
+    """Compute unified diff between this injection and the previous one (same trigger type)."""
+    import uuid as _uuid
+    import difflib
+    pool = await get_pool()
+
+    row = await pool.fetchrow(
+        """SELECT id, trigger, source, token_estimate, context_text, created_at
+           FROM context_injections WHERE id = $1""",
+        _uuid.UUID(injection_id),
+    )
+    if not row:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail="Injection not found")
+
+    # Find previous injection of same trigger type
+    prev_row = await pool.fetchrow(
+        """SELECT id, token_estimate, context_text, created_at
+           FROM context_injections
+           WHERE trigger = $1 AND created_at < $2
+           ORDER BY created_at DESC
+           LIMIT 1""",
+        row["trigger"],
+        row["created_at"],
+    )
+
+    current_lines = row["context_text"].splitlines(keepends=True)
+
+    if not prev_row:
+        return {
+            "has_previous": False,
+            "diff": None,
+            "token_delta": None,
+            "current": {
+                "id": str(row["id"]),
+                "trigger": row["trigger"],
+                "token_estimate": row["token_estimate"],
+                "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+            },
+            "previous": None,
+        }
+
+    prev_lines = prev_row["context_text"].splitlines(keepends=True)
+    diff_lines = list(difflib.unified_diff(
+        prev_lines,
+        current_lines,
+        fromfile=f"injection/{str(prev_row['id'])[:8]}",
+        tofile=f"injection/{str(row['id'])[:8]}",
+        lineterm="",
+    ))
+
+    return {
+        "has_previous": True,
+        "diff": "".join(diff_lines),
+        "token_delta": row["token_estimate"] - prev_row["token_estimate"],
+        "lines_added": sum(1 for l in diff_lines if l.startswith("+") and not l.startswith("+++")),
+        "lines_removed": sum(1 for l in diff_lines if l.startswith("-") and not l.startswith("---")),
+        "current": {
+            "id": str(row["id"]),
+            "trigger": row["trigger"],
+            "token_estimate": row["token_estimate"],
+            "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        },
+        "previous": {
+            "id": str(prev_row["id"]),
+            "token_estimate": prev_row["token_estimate"],
+            "created_at": prev_row["created_at"].isoformat() if prev_row["created_at"] else None,
+        },
+    }
