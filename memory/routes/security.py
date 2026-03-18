@@ -342,3 +342,36 @@ async def get_system_map():
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM vuln_system_map ORDER BY criticality, otto_system")
         return {"systems": [dict(r) for r in rows]}
+
+
+@router.get("/security/audits")
+async def get_audit_history(limit: int = Query(10, le=50)):
+    """
+    Get recent security audit runs from episodic memory.
+    Queries episodic_events WHERE event_type = 'security_audit', ordered newest first.
+    """
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("""
+            SELECT id, content, event_type, importance, metadata, created_at
+            FROM episodic_events
+            WHERE event_type = 'security_audit'
+            ORDER BY created_at DESC
+            LIMIT $1
+        """, limit)
+
+        audits = []
+        for r in rows:
+            row_dict = dict(r)
+            meta = row_dict.get("metadata")
+            if isinstance(meta, str):
+                try:
+                    row_dict["metadata"] = json.loads(meta)
+                except Exception:
+                    row_dict["metadata"] = {}
+            audits.append(row_dict)
+
+        return {
+            "total": len(audits),
+            "audits": audits,
+        }
