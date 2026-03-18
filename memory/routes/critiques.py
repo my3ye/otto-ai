@@ -724,6 +724,124 @@ async def get_synthesis(synthesis_id: str):
     return _synthesis_row(row)
 
 
+@router.post("/run-social-posts", status_code=202)
+async def run_social_posts_critique(background_tasks: BackgroundTasks):
+    """Run persona critiques against all MY3YE X/social posts."""
+    pool = await get_pool()
+    await _ensure_tables(pool)
+
+    # Fetch all my3ye posts
+    rows = await pool.fetch(
+        """SELECT id, title, content, post_type, scheduled_at
+           FROM social_calendar_posts
+           WHERE character = 'my3ye'
+           ORDER BY scheduled_at ASC NULLS LAST""",
+    )
+
+    if not rows:
+        raise HTTPException(404, "No MY3YE social posts found")
+
+    # Group posts by category
+    categories = {
+        "Reveal": [],
+        "Hot Take": [],
+        "Builder Update": [],
+        "Thread": [],
+        "Lore": [],
+        "Meme": [],
+        "Other": [],
+    }
+
+    for row in rows:
+        title = row["title"] or ""
+        content = row["content"] or ""
+        text = title + " " + content
+
+        if "Reveal" in title:
+            categories["Reveal"].append(row)
+        elif "Hot Take" in title:
+            categories["Hot Take"].append(row)
+        elif "Builder Update" in title or "Autonomous Stats" in title or "Shipping" in title:
+            categories["Builder Update"].append(row)
+        elif "Thread" in title:
+            categories["Thread"].append(row)
+        elif "Lore" in title or "PiPi" in title or "Drop" in title:
+            categories["Lore"].append(row)
+        elif "meme" in text.lower() or "normie" in text.lower() or "Meme" in title:
+            categories["Meme"].append(row)
+        else:
+            categories["Other"].append(row)
+
+    # Build bundled content
+    total = len(rows)
+    lines = [
+        "# MY3YE X/Social Posts — Full Content Strategy Validation",
+        "",
+        f"This is a complete collection of {total} scheduled X/social media posts for the MY3YE ecosystem.",
+        "Please critique the overall content strategy, voice consistency, messaging effectiveness, and specific posts that stand out.",
+        "Consider: Does the overall narrative arc work? What's missing? What lands best for your audience?",
+        "",
+    ]
+
+    for category, cat_rows in categories.items():
+        if not cat_rows:
+            continue
+        lines.append(f"## {category} Posts ({len(cat_rows)} posts)")
+        lines.append("")
+        for row in cat_rows:
+            lines.append(f"**{row['title']}**")
+            lines.append(row["content"].strip())
+            lines.append("")
+            lines.append("---")
+            lines.append("")
+
+    article_content = "\n".join(lines)
+    article_title = f"MY3YE X/Social Posts — Full Strategy Validation ({total} posts)"
+    article_id = "my3ye_social_posts_batch"
+
+    # Create the run
+    run_row = await pool.fetchrow(
+        """INSERT INTO critique_runs (article_id, article_title, article_content, status)
+           VALUES ($1, $2, $3, 'running')
+           RETURNING *""",
+        article_id,
+        article_title,
+        article_content,
+    )
+    run_id = str(run_row["id"])
+
+    # Create critique records for each persona
+    for persona in PERSONAS:
+        await pool.execute(
+            """INSERT INTO critiques
+               (run_id, persona_id, persona_name, persona_figure, audience, status)
+               VALUES ($1, $2, $3, $4, $5, 'pending')""",
+            run_id,
+            persona["id"],
+            f"{persona['audience']} ({persona['figure']})",
+            persona["figure"],
+            persona["audience"],
+        )
+
+    # Kick off background processing
+    background_tasks.add_task(
+        _run_all_critiques,
+        run_id,
+        article_title,
+        article_content,
+    )
+
+    log.info("MY3YE social posts critique run started: %s (%d posts)", run_id, total)
+    return {
+        "run_id": run_id,
+        "article_title": article_title,
+        "total_posts": total,
+        "personas": [p["id"] for p in PERSONAS],
+        "status": "running",
+        "message": f"Running 6 persona critiques against {total} MY3YE posts in background",
+    }
+
+
 @router.get("")
 async def list_recent(limit: int = 10):
     """Summary endpoint — recent runs with their critique counts."""
