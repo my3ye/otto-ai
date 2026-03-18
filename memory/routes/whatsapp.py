@@ -194,8 +194,10 @@ async def send_test_message(account_id: str = "otto"):
     """Send a test message to verify WhatsApp connection."""
     if account_id == "otto":
         port = 3001
+    elif account_id == "athena":
+        port = 3002
     else:
-        return {"status": "error", "error": "Athena service not running"}
+        return {"status": "error", "error": f"Unknown account: {account_id}"}
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as http:
