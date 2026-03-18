@@ -912,6 +912,24 @@ print(json.dumps({'outcome': 'succeeded', 'outcome_details': 'QA approved retry 
     fi
     # ── End RL2F Phase 2 outcome resolution ───────────────────────────────────
 
+    # ── Git Identity Enforcement ──────────────────────────────────────────────
+    # Set the correct git user.name/email for this repo before committing.
+    # Prevents wrong-account commits (e.g. my3ye committing to ottomev repos).
+    GIT_ENFORCER="/home/web3relic/otto/tools/git_identity_enforcer.sh"
+    if [ -x "$GIT_ENFORCER" ]; then
+        ENFORCE_OUT=$("$GIT_ENFORCER" "$WORK_DIR" 2>&1)
+        ENFORCE_EXIT=$?
+        if [ "$ENFORCE_EXIT" -eq 0 ]; then
+            qa_log "Git identity enforced: ${ENFORCE_OUT}"
+        elif [ "$ENFORCE_EXIT" -eq 1 ]; then
+            # Unknown repo — no mapping found, log warning but continue
+            qa_log "WARNING: git_identity_enforcer: no mapping for ${WORK_DIR} — using existing git config"
+        else
+            qa_log "WARNING: git_identity_enforcer error (exit=${ENFORCE_EXIT}): ${ENFORCE_OUT} — continuing"
+        fi
+    fi
+    # ── End Git Identity Enforcement ──────────────────────────────────────────
+
     COMMIT_HASH=""
     if cd "$WORK_DIR" 2>/dev/null; then
         # Stage ONLY the task-scoped changed files (not ALL changes from all tasks).

@@ -1367,4 +1367,33 @@ TASK_SUCCESS="true"
 curl -sf -X POST "${API}/kernel/agents/task_worker/completed?success=${TASK_SUCCESS}" >> "$LOG_FILE" 2>&1 || \
     log "WARNING: Could not report agent completion to kernel"
 
+# ── WhatsApp Completion Notification ─────────────────────────────────────────
+# Sends a concise task result to Mev via WhatsApp.
+# Success: "✅ Task completed: {title}\n{one-line summary}"
+# Failure: "❌ Task failed: {title}\n{error reason}"
+WHATSAPP_SEND="/home/web3relic/otto/tools/whatsapp_send.sh"
+if [ -x "$WHATSAPP_SEND" ]; then
+    if [ "$EXIT_CODE" -eq 0 ]; then
+        # Extract a one-line summary: prefer last non-empty line from output (agent puts summary at end)
+        OUTPUT_SUMMARY=$(echo "$OUTPUT" | grep -v '^```' | grep -v '^---' | \
+            awk 'NF > 0 { last=$0 } END { print last }' | \
+            sed 's/^[#*-]* *//' | cut -c1-150 2>/dev/null || echo "")
+        [ -z "$OUTPUT_SUMMARY" ] && OUTPUT_SUMMARY="Task complete"
+        WA_MSG="Task completed: ${TITLE}
+${OUTPUT_SUMMARY}"
+    else
+        # Extract error reason from stderr or output
+        ERROR_SUMMARY=$(printf '%s\n%s' "$STDERR" "$OUTPUT" | \
+            grep -iE "^(error|fatal|failed|timeout|FATAL|ERROR)" | head -1 | \
+            sed 's/^[^ ]* //' | cut -c1-150 2>/dev/null || echo "")
+        [ -z "$ERROR_SUMMARY" ] && ERROR_SUMMARY="exit code ${EXIT_CODE} — check logs"
+        WA_MSG="Task failed: ${TITLE}
+${ERROR_SUMMARY}"
+    fi
+    "$WHATSAPP_SEND" "$WA_MSG" >> "$LOG_FILE" 2>&1 && \
+        log "WhatsApp completion notification sent" || \
+        log "WARNING: WhatsApp notification failed (non-fatal)"
+fi
+# ── End WhatsApp Completion Notification ──────────────────────────────────────
+
 log "Task runner finished."
