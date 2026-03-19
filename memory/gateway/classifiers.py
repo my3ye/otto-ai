@@ -271,7 +271,7 @@ async def classify_for_dispatch(user_message: str, otto_reply: str) -> dict | No
     ]
 
     try:
-        response = await provider_chat(messages, max_tokens=200, temperature=0.0)
+        response = await provider_chat(messages, max_tokens=350, temperature=0.0)
         log.info(f"Dispatch classifier raw response: {response[:300] if response else 'EMPTY'}")
         parsed = extract_json(response)
         log.info(f"Dispatch classifier parsed: {parsed}")
