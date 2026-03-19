@@ -14,12 +14,13 @@ type: project
 - First-person persona: a specific journey through the system (refugee → contributor → steward)
 - Skill bounties deep dive: how learning paths are generated and funded
 - Koink treasury → SOS funding flow
-- Constitutional amendment mechanics (for governance-focused audience)
+- NOTE: Constitutional amendment mechanics now covered in "The DAO Is Not a Corporation. It Is a Constitution." (8a2ae4bf) — do not repeat Founder-level majority / Sovereign veto mechanics as the central argument
 
 ## MY3YE (Ecosystem overview)
 
 **Covered:**
 - Landing page hero + protocol descriptions (rewritten 2026-03-19, 5 commits to Vercel)
+- Landing page copy — full four-section copy (Hero / Vision / Ecosystem / CTA) with all brand lines used verbatim (2026-03-19, DB: b6a0daef-6f82-45fc-b066-b3a78cc53d3f). Three CTA commitment levels: Follow / Manifesto / Pink Paper.
 - "The Eye That Sees What Must Be Built" — full ecosystem intro, all 14 projects, all four story beats (2026-03-19, DB: af414a05)
 
 **Open angles:**
@@ -40,7 +41,7 @@ type: project
 - ONEON — sovereign network / communication
 - Otto AI — decentralized intelligence
 - Koink.Fun — meme tokenomics / $KOINK Standard
-- Panik App — protection / privacy for activists
+- Panik App — inception article written (DB: d6132803). Open: guardian model, mesh tech, Shakrah handoff, conflict zone narrative.
 - Otto Music — decentralized music / artists + royalties
 - Otto Travel — community-governed travel
 - Ottolabs — hardware / robotics / physical means of production
