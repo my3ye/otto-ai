@@ -28,7 +28,7 @@ Orchestrator
 │  STEP 0: Retrieval (researcher agent)               │
 │  Multi-source gather: web + semantic memory +       │
 │  knowledge graph + papers DB + codebase             │
-│  Output: structured raw findings (≤2000 tokens)     │
+│  Output: structured raw findings (≤3000 tokens)     │
 └──────────────────────┬──────────────────────────────┘
                        │
                        ▼
@@ -161,7 +161,7 @@ Orchestrator
 
 ### Risks
 
-- **Context overflow at synthesis step**: If retrieval returns too much, synthesis agent gets overloaded. Mitigation: enforce ≤2000 token output rule in retrieval step prompt.
+- **Context overflow at synthesis step**: If retrieval returns too much, synthesis agent gets overloaded. Mitigation: enforce ≤3000 token output rule in retrieval step prompt.
 
 - **Validation step is slow/expensive**: Reviewer doing adversarial analysis on research is thorough but adds 600s+. Mitigation: `on_failure: skip` — if validation times out, pipeline continues. The synthesis output is still valuable.
 
