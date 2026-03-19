@@ -101,6 +101,12 @@ class Settings(BaseSettings):
     cdp_api_key_name: str = ""                 # CDP AgentKit key name (Phase 2 execution)
     cdp_api_key_private_key: str = ""          # CDP AgentKit private key (Phase 2 execution)
 
+    # ── Secrets Vault ─────────────────────────────────────────────────
+    # Fernet master key — ONLY secret that must stay in .env.
+    # Generate with: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    # Back this up separately — loss = all vault secrets unrecoverable.
+    vault_master_key: str = ""
+
     @property
     def dsn(self) -> str:
         return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"

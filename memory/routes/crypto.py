@@ -65,16 +65,16 @@ class ParseRequest(BaseModel):
     text: str
 
 
-class ExecuteRequest(BaseModel):
-    text: str
-    dry_run: bool = True
-    chain: Optional[_CHAIN] = None
-
-
 _CHAIN = Literal["base", "eth", "polygon", "solana", "hyperliquid", "bsc", "avalanche"]
 _MONITOR_TYPE = Literal["limit_buy", "limit_sell", "stop_loss", "dca", "take_profit"]
 _TRIGGER_TYPE = Literal["above", "below"]
 _DIRECTION = Literal["long", "short", "neutral", "exit"]
+
+
+class ExecuteRequest(BaseModel):
+    text: str
+    dry_run: bool = True
+    chain: Optional[_CHAIN] = None
 
 
 class MonitorRequest(BaseModel):
