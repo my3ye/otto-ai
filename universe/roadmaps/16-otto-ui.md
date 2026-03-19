@@ -507,7 +507,7 @@ These are resolved at Phase 1 completion, not before:
 
 Every civilization that built at scale needed standardized parts. Ford's assembly line. Lego's 4×2 stud. POSIX. TCP/IP. The power was never in any single component — it was in the fact that every component connected to every other without negotiation.
 
-MY3YE is building 18 projects. Without Otto UI, each project designer starts at zero: which shade of black? what button radius? what does an error look like? These are not interesting questions. They are overhead. And overhead compounds.
+MY3YE is building projects across many verticals. Without Otto UI, each project designer starts at zero: which shade of black? what button radius? what does an error look like? These are not interesting questions. They are overhead. And overhead compounds.
 
 With Otto UI, every project designer starts at solved. The questions they answer are: what does this project say, and who is it for? Not: what does a button look like.
 
@@ -515,7 +515,7 @@ Sovereignty should feel consistent. Not because we want uniformity — but becau
 
 ---
 
-*Provides: shared design tokens, component library, per-project theming, UX consistency for all 18 projects*
+*Provides: shared design tokens, component library, per-project theming, UX consistency across all projects*
 *Depends on: none (pure infrastructure)*
 *Required by: OMS, WebAssist, MY3YE web, Tusita web, ONEON, all project sites, Ottolabs device interfaces*
 *Roadmap index: [README](README.md)*
