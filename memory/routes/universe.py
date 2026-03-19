@@ -453,6 +453,134 @@ async def delete_project_content(project_id: str, content_id: str):
     return {"ok": True, "id": content_id}
 
 
+@router.get("/health")
+async def get_ecosystem_health():
+    """
+    Return enriched project list with computed readiness scores.
+    Performs async HTTP checks on known live_url domains.
+    """
+    import aiohttp
+
+    if not PROJECTS_DIR.exists():
+        raise HTTPException(status_code=404, detail="Universe projects directory not found")
+
+    project_files = sorted(PROJECTS_DIR.glob("*.yaml"))
+    projects_data = []
+    for pf in project_files:
+        if pf.name == "_template.yaml":
+            continue
+        data = _read_yaml(pf)
+        data["_id"] = pf.stem
+        projects_data.append(data)
+
+    # Async site reachability checks
+    async def check_url(url: str) -> str:
+        """Returns 'up', 'down', or 'none'."""
+        if not url:
+            return "none"
+        try:
+            timeout = aiohttp.ClientTimeout(total=5)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(url, allow_redirects=True, ssl=False) as resp:
+                    return "up" if resp.status < 500 else "down"
+        except Exception:
+            return "down"
+
+    def _get_domain(p: dict) -> str:
+        """Domain lives in brand.domain for most projects."""
+        return (p.get("brand") or {}).get("domain") or (p.get("technical") or {}).get("domain") or ""
+
+    def _get_live_url(p: dict) -> str:
+        return (p.get("technical") or {}).get("live_url") or ""
+
+    def _get_repo(p: dict) -> str:
+        return (p.get("technical") or {}).get("repo") or ""
+
+    def _get_status(p: dict) -> str:
+        return (p.get("technical") or {}).get("status") or p.get("status") or "concept"
+
+    # Fire all checks in parallel
+    urls = [_get_live_url(p) for p in projects_data]
+    site_statuses = await asyncio.gather(*[check_url(u) for u in urls])
+
+    # Compute readiness score per project
+    def compute_score(p: dict, site_status: str) -> int:
+        score = 0
+        # Domain exists
+        if _get_domain(p):
+            score += 10
+        # Live URL exists
+        if _get_live_url(p):
+            score += 10
+        # Site is reachable
+        if site_status == "up":
+            score += 30
+        # Repo exists
+        if _get_repo(p):
+            score += 10
+        # Inception article present
+        if p.get("inception_article") or (p.get("identity") or {}).get("inception_article"):
+            score += 10
+        # Status bonus
+        status = _get_status(p)
+        if status == "live":
+            score += 20
+        elif status == "active":
+            score += 15
+        elif status == "early":
+            score += 5
+        # Content richness
+        has_roadmap = bool(p.get("roadmap"))
+        has_brand = bool(p.get("brand"))
+        has_marketing = bool(p.get("marketing"))
+        score += sum([has_roadmap * 3, has_brand * 3, has_marketing * 4])
+        return min(score, 100)
+
+    def score_tier(score: int) -> str:
+        if score >= 80:
+            return "green"
+        elif score >= 40:
+            return "yellow"
+        else:
+            return "red"
+
+    enriched = []
+    for p, site_status in zip(projects_data, site_statuses):
+        status = _get_status(p)
+        score = compute_score(p, site_status)
+        enriched.append({
+            "id": p["_id"],
+            "name": p.get("name", p["_id"]),
+            "category": (p.get("ecosystem") or {}).get("category") or p.get("category", ""),
+            "status": status,
+            "domain": _get_domain(p),
+            "live_url": _get_live_url(p),
+            "repo": _get_repo(p),
+            "site_status": site_status,
+            "readiness_score": score,
+            "tier": score_tier(score),
+            "tagline": (p.get("identity") or {}).get("tagline") or p.get("tagline", ""),
+            "one_liner": ((p.get("identity") or {}).get("what_it_is") or "")[:120],
+        })
+
+    # Sort by readiness score descending
+    enriched.sort(key=lambda x: x["readiness_score"], reverse=True)
+
+    tiers = {"green": 0, "yellow": 0, "red": 0}
+    for p in enriched:
+        tiers[p["tier"]] += 1
+
+    return {
+        "projects": enriched,
+        "count": len(enriched),
+        "summary": {
+            "launch_ready": tiers["green"],
+            "in_progress": tiers["yellow"],
+            "concept_only": tiers["red"],
+        },
+    }
+
+
 @router.get("/projects/{project_id}/summary")
 async def get_project_summary(project_id: str):
     """Get project YAML overview + content counts per type."""
