@@ -104,7 +104,7 @@ next_action: >
   Cost: near-zero. Impact: proves the model works before writing custom code.
 
 brand:
-  domain: ""
+  domain: "505.systems"
   domains_alt: []
   colors:
     primary: "#000000"
@@ -117,7 +117,7 @@ technical:
   repo: "/mnt/media/projects/505-systems-web"
   repo_url: "https://github.com/my3ye/505-systems-web"
   stack: ["Next.js"]
-  live_url: ""
+  live_url: "https://505.systems"
   status: early
 
 ecosystem:

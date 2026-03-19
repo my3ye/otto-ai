@@ -90,7 +90,7 @@ next_action: >
   which is the highest-value conversion split on the landing page.
 
 brand:
-  domain: ""
+  domain: "shakrah.xyz"
   domains_alt: []
   colors:
     primary: "#000000"
@@ -103,7 +103,7 @@ technical:
   repo: "/mnt/media/projects/shakrah-web"
   repo_url: "https://github.com/my3ye/shakrah-web"
   stack: ["Next.js", "GSAP"]
-  live_url: ""
+  live_url: "https://shakrah.xyz"
   status: early
 
 ecosystem:

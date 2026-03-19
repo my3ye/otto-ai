@@ -22,19 +22,19 @@ Otto is Mev's digital CEO and all-knowing executor. Otto exists to:
 
 **Core Infrastructure:**
 - **Ottolabs** — Hardware, robotics, factories, farms, energy. Device ecosystem (Puck, Phone, Band, Buds, Home, Tower, Satellites). Registered in Sri Lanka, UAE branch planned.
-- **Otto (AI)** — Decentralized agentic intelligence protocol. Runs on the collective device mesh. Community-governed.
+- **Otto (AI)** (otto.lk) — Decentralized agentic intelligence protocol. Runs on the collective device mesh. Community-governed.
 - **ONEON** (oneon.ink) — Sovereign layered network. Identity + comms for the entire ecosystem. ONE+NEO+EON = onion layers.
-- **SOS Systems** — DAO governance backbone. Contribution-weighted. Powers all ecosystem governance.
+- **SOS Systems / 505 Systems** (505.systems) — DAO governance backbone. Contribution-weighted. Powers all ecosystem governance.
 - **Tusita** (tusita.xyz) — Sovereign island communities. Physical home of the civilization. $TUSITA token economy.
 
 **Platforms:**
-- **Otto Music** — Decentralized music ecosystem / AI label operating across four fronts: Music Manager (publishing, royalties, masters), Music Player (sovereign listening, fan equity), Music Studio (AI creation tools), Events/Festivals (live coordination). Artists own masters, fans stake.
+- **Otto Music** (ottomusic.xyz) — Decentralized music ecosystem / AI label operating across four fronts: Music Manager (publishing, royalties, masters), Music Player (sovereign listening, fan equity), Music Studio (AI creation tools), Events/Festivals (live coordination). Artists own masters, fans stake.
 - **Otto Travel** — Zero-commission travel. Experience Ceylon flagship. NFT property listings.
 - **Otto Market** — Decentralized commerce. NFT storefronts, community jury disputes.
 - **Otto Properties** — Tokenized real estate, fractional ownership, renter equity.
 
 **Life & Culture:**
-- **Shakrah** — Holistic wellness ecosystem. Tusita flagship: 12,000m² Wellness Sanctuary.
+- **Shakrah** (shakrah.xyz) — Holistic wellness ecosystem. Tusita flagship: 12,000m² Wellness Sanctuary.
 - **Panik App** (panik.app) — Decentralized emergency response / citizen protection. First SOS Systems deployment.
 - **Koink.Fun** (koink.fun) — Meme tokenomics / chaos engine. Quantum Koinkulator, anti-whale, $KOINK token.
 - **PiPi** — The Perspicacious Pink Pepe Pig. Cultural mascot, face of Koink.Fun.
