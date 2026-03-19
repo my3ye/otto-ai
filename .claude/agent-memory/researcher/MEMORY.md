@@ -1,5 +1,32 @@
 # Researcher Agent Memory
 
+## BANKR Bot Comprehensive Research (2026-03-19)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_bankr_bot_research.md
+
+### Key Finding: Full-Stack AI Trading Agent with Open REST API
+- **Platforms**: X (active), Farcaster, Base App, XMTP, Private Terminal. Telegram suspended Oct 2025.
+- **Chains**: Base (primary, gas sponsored), Ethereum, Polygon, Unichain, Solana
+- **Wallet backend**: Privy server wallets — users abstracted from keys, tied to X account
+- **Order types**: Spot, limit (EVM only), stop-loss, DCA, TWAP, conditional cross-asset triggers, bridging
+- **DEX routing**: 0x Swap API v2 (9M+ tokens), Doppler/Uniswap V4 (Base launches), Raydium (Solana)
+- **Token launch**: Doppler fair launch on Base (57% fee to creator), Raydium bonding curve on Solana (0.5% per trade)
+- **Agent API**: REST at api.bankr.bot — async job pattern (POST prompt → poll jobId). Key format: `bk_...`
+- **LLM Gateway**: OpenAI-compatible proxy to Claude/GPT/Gemini/Kimi/Qwen via llm.bankr.bot
+- **Rate limits**: 100 msg/day standard, 1,000/day Bankr Club, 60 req/min LLM gateway
+- **Skills repo**: github.com/BankrBot/skills (16 skills incl. signals, neynar/Farcaster, QN RPC, Veil privacy)
+- **BANKR Signals**: bankrsignals.com — on-chain TX-hash verified signal platform (by Axiom)
+- **BNKR token**: Base ERC-20, 100B supply, Feb 2025 launch (deployed by the AI agent itself on Farcaster)
+- **Coinbase Ventures backed** via Base Ecosystem Fund
+- **ACP integration**: Jan 2026 — Virtuals Protocol Agent Commerce Protocol
+
+### Otto Integration Options
+1. Agent API for trading/portfolio (bk_... key, async job pattern)
+2. LLM Gateway to route LLM calls (separate credit balance)
+3. bankr-signals for verified signal publishing
+4. Token launch via bankr launch CLI for $KOINK
+5. Neynar skill for Farcaster social operations
+
 ## AutoResearchClaw Evaluation (2026-03-18)
 
 Research file: ~/otto/.claude/agent-memory/researcher/project_autoresearchclaw_eval.md
