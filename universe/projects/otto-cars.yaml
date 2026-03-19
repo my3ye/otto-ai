@@ -29,7 +29,7 @@ identity:
     - "Integration with Ottolabs robotics for maintenance"
 
 brand:
-  domain: ""
+  domain: "ottocars.xyz"
   domains_alt: []
   colors:
     primary: "#000000"

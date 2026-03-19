@@ -9,8 +9,8 @@
 # Bump `version` and add changelog entry on every URL change.
 
 schema_version: 1
-registry_version: "1.0.0"
-last_updated: "2026-03-19"
+registry_version: "1.1.0"
+last_updated: "2026-03-20"
 maintained_by: "Otto (mev.otto.lk)"
 
 # ── Project URLs ──────────────────────────────────────────────────────────────
@@ -100,6 +100,48 @@ projects:
     status: live
     note: "Shares domain with Otto. Physical means of production."
 
+  - id: otto-market
+    name: "Otto Market"
+    canonical: "ottomarket.xyz"
+    url: "https://ottomarket.xyz"
+    status: coming_soon
+    note: "Decentralized commerce marketplace. Storefronts as NFTs."
+
+  - id: otto-properties
+    name: "Otto Properties"
+    canonical: "ottoproperties.xyz"
+    url: "https://ottoproperties.xyz"
+    status: coming_soon
+    note: "Community-governed real estate and property ownership."
+
+  - id: otto-travel
+    name: "Otto Travel"
+    canonical: "ottotravel.xyz"
+    url: "https://ottotravel.xyz"
+    status: coming_soon
+    note: "Zero-commission decentralized travel platform. Properties as NFTs."
+
+  - id: otto-billboards
+    name: "Otto Billboards"
+    canonical: "ottobillboards.xyz"
+    url: "https://ottobillboards.xyz"
+    status: coming_soon
+    note: "Community-governed digital billboard network. Sovereign advertising."
+
+  - id: otto-cars
+    name: "Otto Cars"
+    canonical: "ottocars.xyz"
+    url: "https://ottocars.xyz"
+    status: coming_soon
+    note: "Community-governed automated taxis + custom super cars."
+
+  - id: otto-ui
+    name: "Otto UI"
+    canonical: "ottoui.xyz"
+    url: "https://ottoui.xyz"
+    status: coming_soon
+    note: "Universal interface for the entire MY3YE ecosystem."
+
 # ── Internal System URLs ──────────────────────────────────────────────────────
 
 internal:
@@ -118,6 +160,12 @@ internal:
 # Format: version | date | change
 
 changelog:
+  - version: "1.1.0"
+    date: "2026-03-20"
+    changes:
+      - "Added 6 concept project domains: otto-market, otto-properties, otto-travel, otto-billboards, otto-cars, otto-ui"
+      - "All 18 ecosystem projects now have canonical domains assigned"
+
   - version: "1.0.0"
     date: "2026-03-19"
     changes:

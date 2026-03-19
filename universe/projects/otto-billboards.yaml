@@ -33,7 +33,7 @@ identity:
     - "Integration with ONEON for verified content provenance"
 
 brand:
-  domain: ""
+  domain: "ottobillboards.xyz"
   domains_alt: []
   colors:
     primary: "#000000"
