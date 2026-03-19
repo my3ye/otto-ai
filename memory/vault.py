@@ -15,6 +15,7 @@ Master key lives in VAULT_MASTER_KEY env var (~/memory/.env).
 If VAULT_MASTER_KEY is empty, vault is in passthrough mode (no encryption, no storage).
 """
 
+import json
 import logging
 from typing import Optional
 
@@ -29,7 +30,12 @@ _fernet: Optional[Fernet] = None
 
 
 def _get_fernet() -> Optional[Fernet]:
-    """Return Fernet instance, or None if master key not configured."""
+    """Return Fernet instance, or None if master key not configured.
+
+    VAULT_MASTER_KEY must be a valid Fernet key: URL-safe base64-encoded 32 bytes.
+    Generate with: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    This is NOT a human-readable passphrase — it is a raw cryptographic key.
+    """
     global _fernet
     if _fernet is not None:
         return _fernet
@@ -99,7 +105,6 @@ async def get_secret(
                 # Scope check
                 allowed = row["allowed_services"]
                 if isinstance(allowed, str):
-                    import json
                     allowed = json.loads(allowed)
                 if "*" not in allowed and service not in allowed:
                     logger.warning(f"Secret '{key_name}' denied for service '{service}' (allowed: {allowed})")
@@ -167,7 +172,6 @@ async def set_secret(
     if allowed_services is None:
         allowed_services = ["*"]
 
-    import json
     encrypted = encrypt_value(value)
 
     row = await pool.fetchrow(
@@ -185,7 +189,7 @@ async def set_secret(
                 last_rotated_at    = NOW(),
                 updated_at         = NOW(),
                 revoked_at         = NULL
-        RETURNING id
+        RETURNING id, (xmax = 0) AS is_new
         """,
         key_name,
         display_name,
@@ -196,15 +200,9 @@ async def set_secret(
     )
 
     secret_id = row["id"]
-    action = "created"
-
-    # Determine if this was an update
-    existing = await pool.fetchval(
-        "SELECT COUNT(*) FROM secrets_audit_log WHERE key_name = $1 AND action = 'created'",
-        key_name,
-    )
-    if existing and existing > 0:
-        action = "updated"
+    # Use xmax = 0 to reliably detect INSERT vs UPDATE (avoids audit log race conditions
+    # and revoke→re-create cycles that previously caused mis-classification)
+    action = "created" if row["is_new"] else "updated"
 
     try:
         await pool.execute(

@@ -18,10 +18,11 @@ Authentication:
 
 import json
 import logging
+import re
 from typing import Optional, List
 
 from fastapi import APIRouter, HTTPException, Header, Query, Request  # Header kept for x_otto_service
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 from ..config import settings
 from ..db import get_pool
@@ -34,9 +35,21 @@ router = APIRouter(prefix="/secrets", tags=["secrets"])
 # ── Auth helper ───────────────────────────────────────────────────────────────
 
 def _check_auth(request: Request):
-    """Raise 401 if Authorization: Bearer token doesn't match web_auth_token."""
+    """Raise 401 if Authorization: Bearer token doesn't match web_auth_token.
+
+    Deny-by-default: if web_auth_token is not configured, all requests are rejected
+    (prevents accidental exposure in misconfigured deployments). Set
+    ALLOW_UNAUTHENTICATED=true in .env to explicitly allow unauthenticated access
+    in dev/test environments where no secrets are stored.
+    """
     if not settings.web_auth_token:
-        return  # Auth not configured — allow (dev mode)
+        if getattr(settings, "allow_unauthenticated", False):
+            logger.warning("Secrets API: unauthenticated access allowed (ALLOW_UNAUTHENTICATED=true)")
+            return
+        raise HTTPException(
+            status_code=503,
+            detail="Secrets vault: WEB_AUTH_TOKEN not configured. Set it in memory/.env to enable access.",
+        )
     auth = request.headers.get("Authorization", "")
     token = auth.removeprefix("Bearer ").strip() if auth.startswith("Bearer ") else ""
     if token != settings.web_auth_token:
@@ -53,6 +66,9 @@ def _get_bearer_token(request: Request) -> Optional[str]:
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
 
+_KEY_NAME_RE = re.compile(r"^[a-z0-9_]{1,128}$")
+
+
 class SecretCreate(BaseModel):
     key_name: str
     display_name: str
@@ -60,6 +76,15 @@ class SecretCreate(BaseModel):
     service_group: str = "general"
     allowed_services: List[str] = ["*"]
     description: Optional[str] = None
+
+    @field_validator("key_name")
+    @classmethod
+    def validate_key_name(cls, v: str) -> str:
+        if not _KEY_NAME_RE.match(v):
+            raise ValueError(
+                "key_name must be lowercase alphanumeric and underscores only (e.g. 'openai_api_key')"
+            )
+        return v
 
 
 class SecretRotate(BaseModel):
@@ -230,11 +255,17 @@ async def get_secret_value(
     # Either valid auth token OR a service header (for agent access)
     bearer = _get_bearer_token(request)
     is_admin = bool(bearer and settings.web_auth_token and bearer == settings.web_auth_token)
-    service = x_otto_service or ("*" if is_admin else "unknown")
 
-    # Admin bypass: no scope restriction
-    if is_admin:
-        service = "*"
+    # Reject if neither a valid bearer token nor a service identity header is present.
+    # This prevents unauthenticated clients from reading ["*"]-scoped secrets.
+    if not is_admin and not x_otto_service:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: provide Authorization: Bearer <token> or X-Otto-Service header",
+        )
+
+    # Admin bypass: full access regardless of service scope
+    service = "*" if is_admin else x_otto_service
 
     pool = await get_pool()
     value = await get_secret(key_name, service=service, pool=pool, agent_task_id=agent_task_id)
