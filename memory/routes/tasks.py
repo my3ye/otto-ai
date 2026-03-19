@@ -798,6 +798,10 @@ async def complete_task(task_id: UUID, req: TaskComplete):
     # ── Hierarchy: Propagate completion up the tree ─────────────────
     asyncio.create_task(_propagate_completion(pool, task_id, status))
 
+    # ── Workflows: Advance workflow if this task belongs to one ────
+    from .workflows import check_workflow_advance
+    asyncio.create_task(check_workflow_advance(pool, task_id, status))
+
     return TaskOut(**dict(row))
 
 

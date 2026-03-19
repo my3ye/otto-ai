@@ -234,14 +234,19 @@ def _build_system_prompt(context_text: str, channel: str) -> str:
         "whatsapp": (
             "You're responding on WhatsApp. Keep it SHORT and conversational. "
             "No essays, no formal structure. 1-3 short paragraphs max. "
-            "You can't directly access the filesystem from this channel, but if Mev "
-            "asks you to build, create, fix, or research something, acknowledge it "
-            "and confirm you're on it — a task will be automatically created and launched."
+            "You CANNOT execute actions from this channel — no filesystem, no code, no tools. "
+            "If Mev asks you to build, create, write, rewrite, fix, or research something, "
+            "just acknowledge briefly and confirm you're on it. A dedicated specialist agent "
+            "will be automatically dispatched to do the actual work. "
+            "NEVER draft content, code, copy, articles, or any deliverable inline in your reply. "
+            "The specialist agent has access to the full system and will produce proper output. "
+            "Your reply here is just conversational — keep it to 1-2 sentences for action requests."
         ),
         "web": (
             "You're responding on the web interface. Conversational with more room. "
-            "Short paragraphs, markdown OK. You can't directly access the filesystem, "
-            "but action requests from Mev automatically create and launch tasks."
+            "Short paragraphs, markdown OK. You CANNOT execute actions from this channel. "
+            "Action requests from Mev automatically dispatch dedicated specialist agents. "
+            "NEVER draft content, code, or deliverables inline — the specialist agent handles it."
         ),
     }
 
@@ -562,6 +567,146 @@ def setup_post_process_hooks():
     log.info(f"Phase 5 hooks registered: {hooks.list_hooks()}")
 
 
+async def _gather_task_context(title: str, prompt: str) -> str:
+    """Gather rich context for a task before it is inserted into the DB.
+
+    Runs three queries concurrently:
+    1. Semantic memory (A-RAG search, top 8)
+    2. Knowledge graph (Graphiti search, top 5 facts)
+    3. Filesystem — existing blog articles (content-creator tasks only)
+
+    Returns a formatted context block (~2000 chars max) to append to the
+    task prompt, or an empty string if all queries fail.
+    """
+    import httpx
+
+    combined_lower = (title + " " + prompt).lower()
+    is_content_task = any(
+        kw in combined_lower
+        for kw in (
+            # Content types
+            "article", "blog", "post", "write", "draft", "content", "copy",
+            "essay", "manifesto", "whitepaper", "publish", "tagline", "slogan",
+            "narrative", "story", "editorial", "newsletter", "announcement",
+            "landing page", "brand", "voice", "tone", "messaging",
+            # Ecosystem projects — any content for these is ecosystem content
+            "my3ye", "tusita", "oneon", "otto", "ottolabs", "sos systems",
+            "koink", "shakrah", "panik", "pipi", "inception",
+            "otto music", "otto travel", "otto market", "otto properties",
+        )
+    )
+
+    query = f"{title}: {prompt}"[:300]
+
+    async def _fetch_semantic() -> list[dict]:
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.post(
+                    "http://localhost:8100/semantic/arag_search",
+                    json={"query": query, "limit": 8},
+                )
+                if resp.status_code == 200:
+                    return resp.json().get("results", [])
+        except Exception as e:
+            log.debug(f"Context gather — semantic search failed: {e}")
+        return []
+
+    async def _fetch_graph() -> list[dict]:
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.post(
+                    "http://localhost:8100/graph/search",
+                    json={"query": title, "max_facts": 5},
+                )
+                if resp.status_code == 200:
+                    return resp.json().get("facts", [])
+        except Exception as e:
+            log.debug(f"Context gather — graph search failed: {e}")
+        return []
+
+    async def _fetch_existing_content() -> list[dict]:
+        """Query the unified content DB for existing pieces related to this task."""
+        if not is_content_task:
+            return []
+        try:
+            # Search content DB by title keyword (extract first meaningful word from title)
+            search_term = title.split(":")[0].strip()[:40]
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                resp = await client.get(
+                    "http://localhost:8100/content",
+                    params={"search": search_term, "limit": 10},
+                )
+                if resp.status_code == 200:
+                    return resp.json().get("items", [])
+        except Exception as e:
+            log.debug(f"Context gather — content DB query failed: {e}")
+        return []
+
+    semantic_results, graph_facts, existing_content = await asyncio.gather(
+        _fetch_semantic(),
+        _fetch_graph(),
+        _fetch_existing_content(),
+        return_exceptions=False,
+    )
+
+    # Build context string, budgeting ~2000 chars total
+    parts: list[str] = []
+    char_budget = 2000
+
+    # Semantic memories
+    if semantic_results:
+        mem_lines = []
+        for r in semantic_results:
+            line = f"- [{r.get('category', '?')}] {r.get('content', '')}"
+            mem_lines.append(line[:120])
+        block = "## Relevant Memories\n" + "\n".join(mem_lines)
+        if len(block) <= char_budget:
+            parts.append(block)
+            char_budget -= len(block)
+
+    # Knowledge graph facts
+    if graph_facts and char_budget > 100:
+        fact_lines = []
+        for f in graph_facts:
+            fact_text = f.get("fact") or f.get("name") or str(f)
+            fact_lines.append(f"- {fact_text}"[:120])
+        block = "## Knowledge Graph\n" + "\n".join(fact_lines)
+        if len(block) <= char_budget:
+            parts.append(block)
+            char_budget -= len(block)
+
+    # Existing content from DB
+    if existing_content and char_budget > 80:
+        content_lines = []
+        for c in existing_content:
+            t = c.get("title", "?")
+            ct = c.get("content_type", "?")
+            st = c.get("status", "?")
+            proj = c.get("project_id") or ""
+            content_lines.append(f"- [{ct}/{st}] {t}" + (f" ({proj})" if proj else ""))
+        block = "## Existing Content in DB (for reference/consistency)\n" + "\n".join(
+            line[:120] for line in content_lines
+        )
+        if len(block) <= char_budget:
+            parts.append(block)
+            char_budget -= len(block)
+
+    # Brand & ecosystem reference pointers (no file reads — keep it cheap)
+    if is_content_task and char_budget > 100:
+        parts.append(
+            "## Brand & Ecosystem References\n"
+            "- Read /mnt/media/projects/my3ye-web/BRAND.md for voice and tone guidelines\n"
+            "- Read /mnt/media/projects/my3ye-web/content/blog/ for existing articles\n"
+            "- Query /semantic/search with ecosystem project names for relevant context\n"
+            "- All content must follow MY3YE voice: builder in the arena, calm authority, poetic but clear"
+        )
+
+    if not parts:
+        return ""
+
+    return "\n\n=== GATHERED CONTEXT ===\n\n" + "\n\n".join(parts) + "\n\n=== END CONTEXT ==="
+
+
 async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> None:
     """Reactive Dispatch: detect action in admin messages and auto-create tasks.
 
@@ -582,6 +727,49 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
 
     log.info(f"Reactive dispatch triggered: '{title}' (urgency={urgency}, P{priority})")
 
+    # ── Workflow detection: start a pipeline instead of a single task ──
+    workflow_template = dispatch.get("workflow_template")
+    if workflow_template:
+        try:
+            tmpl = await pool.fetchval(
+                "SELECT id FROM workflow_templates WHERE name = $1 AND NOT archived",
+                workflow_template,
+            )
+            if tmpl:
+                variables = dispatch.get("workflow_variables") or {}
+                from ..routes.workflows import _advance_workflow
+                inst_row = await pool.fetchrow(
+                    """INSERT INTO workflow_instances
+                       (template_id, name, variables, priority, working_directory,
+                        trigger_source, trigger_message, created_by)
+                       VALUES ($1, $2, $3::jsonb, $4, '/home/web3relic/otto',
+                               'reactive_dispatch', $5, 'reactive_dispatch')
+                       RETURNING id""",
+                    tmpl, title,
+                    __import__("json").dumps(variables),
+                    priority, content[:500],
+                )
+                instance_id = inst_row["id"]
+                asyncio.create_task(_advance_workflow(pool, instance_id))
+                log.info(f"Reactive dispatch started workflow '{workflow_template}' (instance={instance_id})")
+
+                # Notify Mev
+                try:
+                    notify_msg = f"Workflow started: {title}\nPipeline: {workflow_template}\nPriority: P{priority}"
+                    proc = await asyncio.create_subprocess_exec(
+                        "/home/web3relic/otto/tools/whatsapp_send.sh", notify_msg,
+                        stdout=asyncio.subprocess.DEVNULL,
+                        stderr=asyncio.subprocess.DEVNULL,
+                    )
+                    await asyncio.wait_for(proc.communicate(), timeout=10)
+                except Exception:
+                    pass
+                return  # Don't create a standalone task
+            else:
+                log.info(f"Reactive dispatch: workflow template '{workflow_template}' not found, falling back to single task")
+        except Exception as e:
+            log.warning(f"Reactive dispatch workflow start failed (falling back to task): {e}")
+
     # Dedup — skip if a similar task exists (any status within last 2 hours)
     try:
         existing = await pool.fetchval(
@@ -597,6 +785,15 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
     except Exception as e:
         log.warning(f"Reactive dispatch dedup check failed (proceeding): {e}")
 
+    # Enrich prompt with gathered context before DB insertion
+    try:
+        gathered = await _gather_task_context(title, prompt)
+        if gathered:
+            prompt = prompt + gathered
+            log.info(f"Reactive dispatch enriched prompt with {len(gathered)} chars of context")
+    except Exception as e:
+        log.warning(f"Reactive dispatch context gather failed (proceeding without): {e}")
+
     # Scale budget/timeout by priority
     if priority >= 8:
         max_budget, max_turns, timeout = 10.0, 50, 1800
@@ -605,14 +802,8 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
     else:
         max_budget, max_turns, timeout = 3.0, 30, 600
 
-    # Infer agent_type from prompt keywords
-    prompt_lower = prompt.lower()
-    if any(kw in prompt_lower for kw in ("fix", "debug", "error", "broken", "crash", "fail")):
-        agent_type = "debugger"
-    elif any(kw in prompt_lower for kw in ("research", "investigate", "find", "search", "explore")):
-        agent_type = "researcher"
-    else:
-        agent_type = "coder"
+    # Use agent_type from dispatch classifier
+    agent_type = dispatch.get("agent_type", "coder")
 
     # Create task
     metadata = {

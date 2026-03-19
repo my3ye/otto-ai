@@ -23,6 +23,10 @@ ADMIN_IDS = {
         "94743806705@s.whatsapp.net",   # Classic JID
         "26822473420906@lid",            # WhatsApp LID format
     },
+    "email": {
+        "abraottomev@gmail.com",        # Mev's personal Gmail
+        "admin@otto.lk",                # Otto admin (self-sent / OTP)
+    },
 }
 
 
@@ -32,6 +36,8 @@ def is_admin(msg: GatewayMessage) -> bool:
         return msg.sender_id in ADMIN_IDS["whatsapp"]
     if msg.channel == "web":
         return msg.metadata.get("authenticated", False)
+    if msg.channel == "email":
+        return msg.sender_id.lower() in ADMIN_IDS["email"]
     return False
 
 

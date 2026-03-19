@@ -1,13 +1,12 @@
 """
 Email API routes — Full inbox management + email-based authentication
 
-Otto sends/receives email via a self-hosted Postfix + Dovecot stack
-(docker-mailserver) running at ~/interfaces/email/.
+Otto sends/receives email via Zoho Mail (admin@otto.lk).
 Credentials live in ~/memory/.env:
-  OTTO_EMAIL_ADDRESS   — otto@otto.lk
-  OTTO_EMAIL_PASSWORD  — mailbox password (set via setup.sh)
-  OTTO_SMTP_HOST       — mail.otto.lk  (self-hosted Postfix, default)
-  OTTO_IMAP_HOST       — mail.otto.lk  (self-hosted Dovecot, default)
+  OTTO_EMAIL_ADDRESS   — admin@otto.lk
+  OTTO_EMAIL_PASSWORD  — Zoho account password
+  OTTO_SMTP_HOST       — smtppro.zoho.com (SSL, port 465)
+  OTTO_IMAP_HOST       — imappro.zoho.com (SSL, port 993)
 
 Endpoints:
   GET  /email/status            — SMTP + IMAP health

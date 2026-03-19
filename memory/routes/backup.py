@@ -111,7 +111,9 @@ async def list_backups():
     entries: list[BackupEntry] = []
 
     for entry in sorted(BACKUP_DIR.iterdir(), reverse=True):
-        if entry.name.startswith("otto-backup-") and entry.name.endswith(".tar.gz"):
+        if entry.name.startswith("otto-backup-") and (
+            entry.name.endswith(".tar.gz") or entry.name.endswith(".tar.gz.gpg")
+        ):
             stat = entry.stat()
             created_at = datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc).isoformat()
             entries.append(BackupEntry(
@@ -192,6 +194,26 @@ async def backup_instructions():
             "OMS env checklist: mev.otto.lk/environment",
         ],
     )
+
+
+# ── Encryption Key ────────────────────────────────────────────────────────
+
+KEY_FILE = Path("/home/web3relic/memory/.backup-key")
+
+
+@router.get("/encryption-key")
+async def get_encryption_key():
+    """Return the backup encryption key. Save this somewhere safe."""
+    if not KEY_FILE.exists():
+        return {"exists": False, "message": "No encryption key yet. Run a backup to generate one."}
+    key = KEY_FILE.read_text().strip()
+    return {
+        "exists": True,
+        "key": key,
+        "key_file": str(KEY_FILE),
+        "algorithm": "AES-256 (GPG symmetric)",
+        "warning": "Save this key in a password manager. Lost key = unrecoverable backups.",
+    }
 
 
 # ── Env Check ──────────────────────────────────────────────────────────────

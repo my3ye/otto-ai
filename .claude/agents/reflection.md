@@ -234,6 +234,96 @@ done
 # Read the agent file, then Edit to add the pattern
 ```
 
+### 3c. Workflow evolution monitoring
+
+Otto's workflow engine has auto-eval and self-improving templates. Your job: monitor fitness trends, detect stagnation, and trigger deeper structural mutations the automated system won't attempt.
+
+```bash
+# Check workflow template fitness and recent run scores
+curl -sf 'http://localhost:8100/workflows/templates' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for t in d.get('templates', []):
+    name = t['name']
+    fitness = t.get('fitness_score', 'none')
+    version = t.get('version', 1)
+    steps = len(t.get('steps', []))
+    print(f'{name}: v{version}, fitness={fitness}, {steps} steps')
+"
+
+# Check recent workflow runs and their eval scores
+curl -sf 'http://localhost:8100/workflows/instances?limit=10' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for i in d.get('instances', []):
+    scores = i.get('eval_scores', {})
+    overall = scores.get('overall', '?') if isinstance(scores, dict) else '?'
+    print(f'{i[\"name\"]}: status={i[\"status\"]}, step={i[\"current_step\"]}, fitness={overall}, cost={i.get(\"cost_total\", 0)}')
+"
+
+# Check experiment history for active evolution
+curl -sf 'http://localhost:8100/workflows/templates' | python3 -c "
+import json, sys, urllib.request
+d = json.load(sys.stdin)
+for t in d.get('templates', []):
+    tid = t['id']
+    resp = urllib.request.urlopen(f'http://localhost:8100/workflows/templates/{tid}/experiments?limit=5')
+    exps = json.loads(resp.read()).get('experiments', [])
+    if exps:
+        for e in exps:
+            kept = 'KEPT' if e.get('kept') else 'DISCARDED' if e.get('kept') is False else 'PENDING'
+            print(f'  [{t[\"name\"]}] v{e[\"template_version\"]} {e.get(\"mutation_type\", \"?\")} → {kept} (Δ={e.get(\"improvement\", \"?\")})')
+    else:
+        print(f'  [{t[\"name\"]}] No experiments yet')
+"
+```
+
+**Look for and act on:**
+
+1. **Stagnating fitness** — if a template has had 5+ runs without improvement, trigger a manual evolution:
+   ```bash
+   curl -sf -X POST "http://localhost:8100/workflows/templates/{template_id}/evolve"
+   ```
+
+2. **Structural mutations** — the automated system only mutates prompts, budgets, and models. YOU can propose deeper changes:
+   - **Add a step** — if reviews consistently find the same issue, add a dedicated step to handle it
+   - **Remove a step** — if a step's output is consistently ignored or scored low, remove it
+   - **Reorder steps** — if the review step would work better before implementation, swap them
+   - **Split a step** — if one step is doing too much and timing out, split into two focused steps
+   - **Merge steps** — if two consecutive steps by the same agent could be one, merge them
+
+   Apply structural mutations by editing the template directly via `PUT /workflows/templates/{id}`.
+
+3. **Evaluation criteria drift** — if the auto-eval consistently scores everything 0.85+ (score inflation), the criteria are too soft. Update the eval prompt in `workflows.py:_auto_eval_workflow` to be more rigorous.
+
+4. **Agent-workflow mismatch** — if a step consistently underperforms with its assigned agent_type, swap the agent. The evolution system handles this for prompt_edit but won't change agent_type unless explicitly told.
+
+5. **Cost optimization** — if a step consistently completes well below budget, reduce its allocation. If it keeps timing out, increase it.
+
+**Record all structural observations as semantic memories** so the automated evolution system can leverage them:
+```bash
+curl -sf -X POST http://localhost:8100/semantic/remember \
+  -H 'Content-Type: application/json' \
+  -d '{"content": "Workflow insight: [observation]", "category": "workflow_evolution", "confidence": 0.8}'
+```
+
+#### Autoresearch Principles for Workflow Evolution
+
+Apply these principles from Karpathy's autoresearch when evaluating workflows:
+
+1. **Simplicity criterion** — a 0.01 fitness improvement that adds a whole new step? Probably not worth it. A 0.01 improvement from *removing* a step? Definitely keep. Simpler workflows that score the same are strictly better.
+
+2. **Score inflation detection** — if the auto-eval consistently scores everything 0.85+, the evaluation criteria are too soft. Tighten them by editing `_auto_eval_workflow` in `workflows.py`. The eval metric must be honest — a gamed metric is worse than no metric.
+
+3. **Crash triage** — when a workflow step fails, distinguish:
+   - **Fixable failures** (wrong file path, timeout too short, missing context) → fix the step config and retry
+   - **Structural failures** (wrong agent for the job, step ordering issue) → mutate the template
+   - **Fundamental failures** (task is impossible for any agent) → escalate to Mev
+
+4. **Autonomous action** — you do NOT need Mev's permission to evolve workflow templates. Mutate, test, measure, keep/discard. The data will show whether the change was good. If you're uncertain, run the experiment — a reverted mutation costs nothing.
+
+5. **Compound improvements** — after 3+ individual prompt mutations, consider whether the accumulated changes are coherent or have become a mess. Sometimes a clean rewrite of a step's prompt is better than layered edits.
+
 ### 4. Procedural memory growth
 
 **This is how Otto gets smarter.** Check what procedures exist:

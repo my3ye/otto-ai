@@ -56,14 +56,43 @@ Your memory lives at `http://localhost:8100`. Key endpoints:
 | `/kernel/slices/rebuild` | POST | Rebuild CID slices |
 | `/kernel/providers` | GET | LLM provider status |
 
-## WhatsApp (Mev Contact)
+## Communication Channels
 
-To message Mev:
+### WhatsApp (Primary — Mev Contact)
+
 ```bash
 /home/web3relic/otto/tools/whatsapp_send.sh "Your message here"
 ```
 
-Keep messages short and clear. WhatsApp is for important updates, questions, and milestones — not logs.
+Use for: urgent alerts, quick updates to Mev, casual coordination. Keep messages short.
+
+### Email (Secondary — admin@otto.lk via Zoho)
+
+```bash
+# Send via API
+curl -X POST http://localhost:8100/email/send \
+  -H 'Content-Type: application/json' \
+  -d '{"to": "recipient@example.com", "subject": "Subject", "body": "Body text"}'
+
+# Check inbox
+curl http://localhost:8100/email/inbox?limit=20&unread_only=true
+
+# Reply to email (by IMAP UID)
+curl -X POST http://localhost:8100/email/reply \
+  -H 'Content-Type: application/json' \
+  -d '{"uid": "123", "body": "Reply text"}'
+```
+
+Use for: external contacts, formal communications, documents, OTP auth. Auto-refreshes in OMS inbox.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /email/send` | Send email |
+| `GET /email/inbox` | Fetch inbox (supports `?folder=Sent`) |
+| `POST /email/reply` | Reply with threading |
+| `GET /email/threads` | Grouped conversations |
+| `GET /email/search?q=...` | Search inbox |
+| `GET /email/status` | SMTP + IMAP health |
 
 ## Autonomy Boundaries
 
@@ -125,6 +154,61 @@ Keep messages short and clear. WhatsApp is for important updates, questions, and
 | Neo4j | :7474/:7687 | Knowledge graph |
 | Graphiti | :8000 | Temporal knowledge graph API |
 | WhatsApp | :3001 | WhatsApp interface (systemd: whatsapp) |
+| Email (Zoho) | SMTP :465 / IMAP :993 | admin@otto.lk via smtppro/imappro.zoho.com |
+
+## Workflow Engine
+
+Multi-agent pipelines that chain specialist agents through sequential steps. **Prefer workflows over single tasks for multi-step work.**
+
+### Templates (reusable pipelines)
+
+| Template | Steps | Use For |
+|---|---|---|
+| `content-publishing-pipeline` | content-creator → reviewer → content-creator → coder → notify | Articles, blog posts, landing page copy, any content |
+| `feature-development` | architect → coder → reviewer → debugger → notify | Code features, API endpoints, infrastructure changes |
+
+### Key API Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/workflows/templates` | GET | List available templates |
+| `/workflows/start` | POST | Start a workflow: `{template_name, name, variables, priority, working_directory}` |
+| `/workflows/instances` | GET | List running/paused/completed workflows |
+| `/workflows/instances/{id}` | GET | Instance detail with step progress |
+| `/workflows/instances/{id}/approve` | POST | Approve/reject/skip paused step: `{action: "approve"\|"reject"\|"skip"}` |
+| `/workflows/instances/{id}/cancel` | POST | Cancel a workflow |
+| `/workflows/templates/{id}/evolve` | POST | Manually trigger evolution cycle |
+| `/workflows/templates/{id}/experiments` | GET | View evolution history (mutations, fitness deltas) |
+| `/workflows/agents/available` | GET | List 138 unemployed agents from agency-agents repo |
+| `/workflows/agents/activate` | POST | Activate an agent: `{name, source_path}` |
+
+### Starting a Workflow
+
+```bash
+curl -s -X POST http://localhost:8100/workflows/start \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "template_name": "content-publishing-pipeline",
+    "name": "SOS Systems Article",
+    "variables": {"content_type": "article", "topic": "SOS Systems intro", "requirements": "Paragraph + X thread"},
+    "priority": 7,
+    "working_directory": "/home/web3relic/otto"
+  }'
+```
+
+### How It Works
+- Each step creates a task executed by task_runner.sh with the step's `agent_type`
+- Output flows between steps via `{prev_output}` and `{step_N_output}` template variables
+- Steps can pause for human approval (`review_mode: "human_approval"`)
+- Auto-eval scores every completed run on quality/relevance/efficiency
+- Evolution mutates templates (prompts, budgets, agents, step order) every 3 runs to improve fitness
+- Reflection agent monitors fitness trends and proposes structural mutations
+
+### OMS Dashboard
+- `/workflows` — template list, instance list, pipeline visualization
+- `/workflows/detail?id=template-{uuid}` — evolution history, fitness chart, step config
+- `/workflows/detail?id=instance-{uuid}` — step-by-step progress, approval buttons, eval scores
+- `/agents` — active agents + 138 available agents from agency-agents repo
 
 ## Conventions
 

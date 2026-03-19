@@ -19,6 +19,25 @@ LOG_FILE="${LOG_DIR}/${TASK_ID:0:8}-${TIMESTAMP}.log"
 
 log() { echo "$(date -Iseconds) $*" >> "$LOG_FILE"; }
 
+# ── Zombie Prevention Trap ────────────────────────────────────────────────────
+# With set -euo pipefail, any unguarded command failure kills the script before
+# the completion callback runs, leaving the task as "running" forever (zombie).
+# This trap catches unexpected exits and marks the task as failed via API.
+TASK_COMPLETED=false
+cleanup_on_exit() {
+    local exit_code=$?
+    if [ "$TASK_COMPLETED" = "false" ] && [ -n "${TASK_ID:-}" ]; then
+        log "FATAL: Task runner exited unexpectedly (exit_code=${exit_code}, line=${BASH_LINENO[0]:-unknown})"
+        curl -sf -X POST "${API}/tasks/${TASK_ID}/complete" \
+            -H 'Content-Type: application/json' \
+            -d "{\"output\": \"Task runner crashed at line ${BASH_LINENO[0]:-unknown}\", \"exit_code\": ${exit_code:-1}, \"error\": \"Process died: set -e triggered (exit_code=${exit_code})\"}" \
+            >> "${LOG_FILE:-/dev/null}" 2>&1 || true
+        log "Zombie prevention: marked task as failed via API"
+    fi
+}
+trap cleanup_on_exit EXIT
+# ── End Zombie Prevention Trap ────────────────────────────────────────────────
+
 log "Task runner starting for task ${TASK_ID}"
 
 # Report start to kernel
@@ -286,7 +305,7 @@ except Exception:
 import json, sys
 try:
     procs = json.load(sys.stdin)
-    relevant = [p['name'] for p in procs if p.get('trust_score', 0) >= 0.55 and p.get('steps')]
+    relevant = [p['name'] for p in procs if p.get('trust_score', 0) >= 0.40 and p.get('steps')]
     print('\n'.join(relevant))
 except Exception:
     pass
@@ -381,14 +400,17 @@ fi
 # Check git status if in a git repo (gated by progressive loading)
 PREFLIGHT_GIT=""
 if [ "$GIT_PREFLIGHT" = "1" ] && { [ -d "${WORK_DIR}/.git" ] || git -C "$WORK_DIR" rev-parse --git-dir &>/dev/null 2>&1; }; then
-    GIT_DIRTY=$(git -C "$WORK_DIR" status --porcelain 2>/dev/null | head -20)
+    # Count dirty files without piping through head (avoids SIGPIPE with pipefail)
+    DIRTY_COUNT=$(git -C "$WORK_DIR" status --porcelain 2>/dev/null | wc -l || echo "0")
     GIT_BRANCH=$(git -C "$WORK_DIR" branch --show-current 2>/dev/null || echo "unknown")
     GIT_LAST=$(git -C "$WORK_DIR" log --oneline -3 2>/dev/null || echo "no commits")
     PREFLIGHT_GIT="Git branch: ${GIT_BRANCH}
 Recent commits:
 ${GIT_LAST}"
-    if [ -n "$GIT_DIRTY" ]; then
-        DIRTY_COUNT=$(echo "$GIT_DIRTY" | wc -l)
+    if [ "$DIRTY_COUNT" -gt 0 ] 2>/dev/null; then
+        # Only show first 20 files — capture to var first to avoid SIGPIPE
+        GIT_DIRTY=$(git -C "$WORK_DIR" status --porcelain -uno 2>/dev/null || true)
+        GIT_DIRTY=$(echo "$GIT_DIRTY" | head -20 || true)
         PREFLIGHT_GIT="${PREFLIGHT_GIT}
 Uncommitted changes (${DIRTY_COUNT} files):
 ${GIT_DIRTY}"
@@ -958,6 +980,7 @@ curl -sf -X POST "${API}/tasks/${TASK_ID}/complete" \
     -d "$RESULT_JSON" >> "$LOG_FILE" 2>&1 || {
     log "WARNING: Failed to report task completion to API"
 }
+TASK_COMPLETED=true  # Prevent zombie trap from double-reporting
 
 # ── JitRL Experience Ingestion ────────────────────────────────────────────────
 # Feed this task's outcome into the JitRL experience buffer so future tasks
