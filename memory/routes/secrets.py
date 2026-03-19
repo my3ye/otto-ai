@@ -11,16 +11,16 @@ Endpoints:
   GET    /secrets/audit              Recent access/rotation log
 
 Authentication:
-  - Write operations (POST, DELETE, rotate) require X-Auth-Token: <web_auth_token>
+  - Write operations (POST, DELETE, rotate) require Authorization: Bearer <web_auth_token>
   - Read /secrets/get/{key_name} uses X-Otto-Service header for scope check
-  - Listing metadata requires X-Auth-Token
+  - Listing metadata requires Authorization: Bearer <web_auth_token>
 """
 
 import json
 import logging
 from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, Header, Query
+from fastapi import APIRouter, HTTPException, Header, Query, Request  # Header kept for x_otto_service
 from pydantic import BaseModel
 
 from ..config import settings
@@ -33,12 +33,22 @@ router = APIRouter(prefix="/secrets", tags=["secrets"])
 
 # ── Auth helper ───────────────────────────────────────────────────────────────
 
-def _check_auth(x_auth_token: Optional[str]):
-    """Raise 401 if token doesn't match web_auth_token."""
+def _check_auth(request: Request):
+    """Raise 401 if Authorization: Bearer token doesn't match web_auth_token."""
     if not settings.web_auth_token:
         return  # Auth not configured — allow (dev mode)
-    if x_auth_token != settings.web_auth_token:
+    auth = request.headers.get("Authorization", "")
+    token = auth.removeprefix("Bearer ").strip() if auth.startswith("Bearer ") else ""
+    if token != settings.web_auth_token:
         raise HTTPException(status_code=401, detail="Unauthorized")
+
+
+def _get_bearer_token(request: Request) -> Optional[str]:
+    """Extract bearer token from Authorization header, or None."""
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        return auth.removeprefix("Bearer ").strip()
+    return None
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -105,11 +115,11 @@ def _row_to_response(row) -> dict:
 
 @router.post("", summary="Create or update a secret")
 async def create_secret(
+    request: Request,
     body: SecretCreate,
-    x_auth_token: Optional[str] = Header(None),
 ):
     """Create or update a secret. Requires Mev auth."""
-    _check_auth(x_auth_token)
+    _check_auth(request)
     pool = await get_pool()
     secret_id = await set_secret(
         key_name=body.key_name,
@@ -126,12 +136,12 @@ async def create_secret(
 
 @router.get("", summary="List all secrets (metadata only, no values)")
 async def list_secrets(
+    request: Request,
     service_group: Optional[str] = Query(None),
     include_revoked: bool = Query(False),
-    x_auth_token: Optional[str] = Header(None),
 ):
     """List vault secrets — metadata only, no decryption."""
-    _check_auth(x_auth_token)
+    _check_auth(request)
     pool = await get_pool()
 
     conditions = []
@@ -159,12 +169,12 @@ async def list_secrets(
 
 @router.get("/audit", summary="Recent audit log")
 async def get_audit_log(
+    request: Request,
     limit: int = Query(50, le=200),
     key_name: Optional[str] = Query(None),
-    x_auth_token: Optional[str] = Header(None),
 ):
     """Get recent secret access/rotation events."""
-    _check_auth(x_auth_token)
+    _check_auth(request)
     pool = await get_pool()
 
     if key_name:
@@ -206,19 +216,20 @@ async def get_audit_log(
 
 @router.get("/get/{key_name}", summary="Decrypt and return secret value")
 async def get_secret_value(
+    request: Request,
     key_name: str,
     x_otto_service: Optional[str] = Header(None),
-    x_auth_token: Optional[str] = Header(None),
     agent_task_id: Optional[str] = Query(None),
 ):
     """
     Return decrypted secret value.
 
-    For OMS/Mev use: pass X-Auth-Token for full access.
+    For OMS/Mev use: pass Authorization: Bearer <token> for full access.
     For agent use: pass X-Otto-Service header; scope check is enforced.
     """
     # Either valid auth token OR a service header (for agent access)
-    is_admin = (x_auth_token == settings.web_auth_token and settings.web_auth_token)
+    bearer = _get_bearer_token(request)
+    is_admin = bool(bearer and settings.web_auth_token and bearer == settings.web_auth_token)
     service = x_otto_service or ("*" if is_admin else "unknown")
 
     # Admin bypass: no scope restriction
@@ -236,11 +247,11 @@ async def get_secret_value(
 
 @router.get("/{secret_id}", summary="Get secret metadata by ID")
 async def get_secret_meta(
+    request: Request,
     secret_id: str,
-    x_auth_token: Optional[str] = Header(None),
 ):
     """Get secret metadata (no value)."""
-    _check_auth(x_auth_token)
+    _check_auth(request)
     pool = await get_pool()
     row = await pool.fetchrow(
         """
@@ -258,11 +269,11 @@ async def get_secret_meta(
 
 @router.delete("/{secret_id}", summary="Revoke a secret (soft delete)")
 async def revoke_secret(
+    request: Request,
     secret_id: str,
-    x_auth_token: Optional[str] = Header(None),
 ):
     """Soft-delete a secret. Keeps audit history."""
-    _check_auth(x_auth_token)
+    _check_auth(request)
     pool = await get_pool()
     row = await pool.fetchrow(
         "UPDATE secrets_vault SET revoked_at = NOW(), updated_at = NOW() "
@@ -281,12 +292,12 @@ async def revoke_secret(
 
 @router.post("/{secret_id}/rotate", summary="Rotate (update) encrypted value")
 async def rotate_secret(
+    request: Request,
     secret_id: str,
     body: SecretRotate,
-    x_auth_token: Optional[str] = Header(None),
 ):
     """Update the encrypted value of an existing secret."""
-    _check_auth(x_auth_token)
+    _check_auth(request)
     pool = await get_pool()
 
     encrypted = encrypt_value(body.value)
