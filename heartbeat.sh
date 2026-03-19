@@ -26,7 +26,7 @@ if [ -f "$LOCK_FILE" ]; then
 fi
 
 # ── Self-healing: ensure sibling timers are enabled ──────────────────────────
-for TIMER in otto-reflection.timer otto-maintenance.timer; do
+for TIMER in otto-reflection.timer otto-maintenance.timer otto-security-audit.timer otto-vuln-sync.timer; do
     if ! systemctl is-active "$TIMER" &>/dev/null; then
         echo "$(date -Iseconds) HEAL: $TIMER was inactive — re-enabling" >> "$LOG_FILE"
         sudo systemctl enable --now "$TIMER" 2>/dev/null || true
@@ -127,6 +127,69 @@ fi
 if grep -qE "HTTP 429|RateLimitError|overloaded_error|too_many_requests|rate_limit_exceeded|\"error\".*rate" "$LOG_FILE" 2>/dev/null; then
     date +%s > "$RATE_LIMIT_FILE"
     echo "$(date -Iseconds) Rate limit detected — sentinel written to ${RATE_LIMIT_FILE}. Next heartbeat cycle will be skipped." >> "$LOG_FILE"
+fi
+
+# ── Public site health checks ────────────────────────────────────────────────
+# Check all public-facing MY3YE domains. Log failures and alert via WhatsApp
+# if a site has been down for 2+ consecutive cycles.
+PUBLIC_SITES=(
+    "https://webassist.ink"
+    "https://my3ye.xyz"
+    "https://otto.lk"
+    "https://mev.otto.lk"
+    "https://oneon.ink"
+    "https://tusita.xyz"
+)
+SITE_FAIL_FILE="/tmp/otto-site-failures"
+SITE_ALERT_FILE="/tmp/otto-site-alerted"
+
+# Load previous failure counts
+declare -A PREV_FAILS
+if [ -f "$SITE_FAIL_FILE" ]; then
+    while IFS='=' read -r domain count; do
+        PREV_FAILS["$domain"]="$count"
+    done < "$SITE_FAIL_FILE"
+fi
+
+declare -A CUR_FAILS
+SITE_ALERTS=""
+for SITE_URL in "${PUBLIC_SITES[@]}"; do
+    HTTP_CODE=$(curl -sf -o /dev/null -w "%{http_code}" --max-time 10 "$SITE_URL" 2>/dev/null || echo "000")
+    DOMAIN=$(echo "$SITE_URL" | sed 's|https\?://||')
+    if [[ "$HTTP_CODE" -ge 200 && "$HTTP_CODE" -lt 400 ]]; then
+        # Site is up — clear failure count
+        CUR_FAILS["$DOMAIN"]=0
+        if [[ "${PREV_FAILS[$DOMAIN]:-0}" -ge 2 ]]; then
+            echo "$(date -Iseconds) SITE_RECOVERED: $SITE_URL (was down ${PREV_FAILS[$DOMAIN]} cycles)" >> "$LOG_FILE"
+            # Clear alert state so recovery is noticed
+            sed -i "/${DOMAIN}/d" "$SITE_ALERT_FILE" 2>/dev/null || true
+        fi
+    else
+        # Site is down
+        PREV_COUNT="${PREV_FAILS[$DOMAIN]:-0}"
+        NEW_COUNT=$(( PREV_COUNT + 1 ))
+        CUR_FAILS["$DOMAIN"]=$NEW_COUNT
+        echo "$(date -Iseconds) SITE_DOWN: $SITE_URL HTTP=${HTTP_CODE} (consecutive failures: ${NEW_COUNT})" >> "$LOG_FILE"
+        # Alert via WhatsApp after 2 consecutive failures (to filter transient blips)
+        if [[ "$NEW_COUNT" -ge 2 ]]; then
+            ALREADY_ALERTED=$(grep -c "$DOMAIN" "$SITE_ALERT_FILE" 2>/dev/null || echo "0")
+            if [[ "$ALREADY_ALERTED" -eq 0 ]]; then
+                SITE_ALERTS="${SITE_ALERTS}⚠️ ${DOMAIN} is DOWN (${NEW_COUNT} cycles, HTTP ${HTTP_CODE})\n"
+                echo "$DOMAIN" >> "$SITE_ALERT_FILE"
+            fi
+        fi
+    fi
+done
+
+# Persist current failure counts
+> "$SITE_FAIL_FILE"
+for domain in "${!CUR_FAILS[@]}"; do
+    echo "${domain}=${CUR_FAILS[$domain]}" >> "$SITE_FAIL_FILE"
+done
+
+# Send WhatsApp alert if any sites went down
+if [ -n "$SITE_ALERTS" ]; then
+    /home/web3relic/otto/tools/whatsapp_send.sh "🚨 Otto Site Monitor Alert:\n${SITE_ALERTS}\nCheck: mev.otto.lk/ecosystem" 2>/dev/null || true
 fi
 
 # ── Auto-repair: detect repeat error patterns and spawn fix tasks ─────────────
