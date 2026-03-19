@@ -80,6 +80,16 @@ class Settings(BaseSettings):
     otto_trading_wallet_private_key: str = ""
     hyperliquid_network: str = "mainnet"
 
+    # BANKR Bot integration
+    bankr_api_key: str = ""                    # bk_... key from bankr.bot dashboard
+    bankr_enabled: bool = False                # master feature flag (requires API key)
+    bankr_signals_enabled: bool = False        # publish signals to bankrsignals.com
+    bankr_llm_gateway_enabled: bool = False    # Phase 3 only — LLM cost routing
+    bankr_api_url: str = "https://api.bankr.bot"
+    bankr_signals_url: str = "https://api.bankrsignals.com"
+    bankr_job_poll_timeout: int = 30           # seconds to poll inline before queuing
+    bankr_job_poll_interval: float = 2.0       # seconds between polls
+
     @property
     def dsn(self) -> str:
         return f"postgresql://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
