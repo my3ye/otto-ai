@@ -4,6 +4,21 @@ description: All articles written by the content-creator agent — topics, angle
 type: project
 ---
 
+## MY3YE Ecosystem
+
+**Article 1: "The Eye That Sees What Must Be Built"**
+- Content DB ID: af414a05-6559-4036-924c-f8ccf8d1a0d6
+- File: /mnt/media/projects/my3ye-web/content/blog/the-eye-that-sees-what-must-be-built.mdx
+- Angle: Full civilization stack overview — all 14 projects as "fourteen currents in one river," grounded in the law that contribution compounds and extraction collapses. The single ecosystem introduction piece.
+- Story beat: All four (Law + Mission + Frame + Dream)
+- Status: draft
+- DO NOT repeat: the full "fourteen currents" list frame, the collapse-of-civilizations opening beat, the "lake vs river" problem diagnosis as the article opener
+
+**Angles NOT yet written for MY3YE overview:**
+- The mechanism deep dive: how DPC works across the full stack (cross-project contribution weighting)
+- The founder story: how MY3YE came to be built / origin narrative
+- The economics: universal tokenomics — 60/30/10 split, $0 raised, what that means
+
 ## SOS Systems / 505 Systems
 
 **Article 1: "505 Systems: The DAO Is Not a New Form of Corporation. It Is a New Form of Civilization."**

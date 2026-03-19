@@ -20,10 +20,12 @@ type: project
 
 **Covered:**
 - Landing page hero + protocol descriptions (rewritten 2026-03-19, 5 commits to Vercel)
+- "The Eye That Sees What Must Be Built" — full ecosystem intro, all 14 projects, all four story beats (2026-03-19, DB: af414a05)
 
 **Open angles:**
-- The full civilization stack as one narrative arc
-- What it means that these are 14 projects, not 14 companies
+- The mechanism: how DPC contribution weighting works across all 14 projects simultaneously
+- The origin: founder narrative / why MY3YE came to exist
+- The economics: universal tokenomics deep dive — $0 raised, 60/30/10 split, what that signals
 
 ## Shakrah
 
