@@ -8,8 +8,11 @@ logging.getLogger("otto").setLevel(logging.INFO)
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
-from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from .db import get_pool, close_pool
 from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist, articles, contacts, services, live_systems, autoevolve, orders, trading, conclusions, social_calendar, backup, security, email, education, omnisearch, critiques, content, workflows, investors  # noqa
@@ -102,11 +105,16 @@ async def lifespan(app: FastAPI):
     await close_pool()
 
 
+# Rate limiter — 120 req/min per IP for public-facing endpoints
+limiter = Limiter(key_func=get_remote_address, default_limits=["120/minute"])
+
 app = FastAPI(
     title="Otto Memory API",
     version="0.1.0",
     lifespan=lifespan,
 )
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Register routes
 app.include_router(sessions.router)
