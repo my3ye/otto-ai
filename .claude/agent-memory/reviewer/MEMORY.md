@@ -3,3 +3,4 @@
 ## Projects
 - [universe_page_audit.md](project_universe_page.md) — Universe page at mev.otto.lk/universe audit (2026-03-13): critical name display bug, 8 tasks created for public readiness
 - [project_crypto_native.md](project_crypto_native.md) — Native crypto engine Phase 1 review (2026-03-19): NEEDS_CHANGES (minor). 8 patterns flagged for Phase 2 attention. No blockers.
+- [project_bankr_oms_frontend.md](project_bankr_oms_frontend.md) — BANKR OMS Crypto Engine frontend review (commit c0e25a3, 2026-03-19): NEEDS_CHANGES (minor). React key on fragment bug, silent error suppression, duplicate fetch.
