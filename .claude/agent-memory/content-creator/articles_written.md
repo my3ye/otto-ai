@@ -87,3 +87,73 @@ type: project
 - The mesh: technical — how P2P routing works offline via ONEON, Ottolabs hardware nodes
 - The crisis protocol: Panik→Shakrah handoff for mental health emergencies
 - The conflict zone: field narrative from a humanitarian crisis context
+
+## ONEON
+
+**Article 1 (REWRITE of inception): "The Network Is Not a Service. It Is a Commons."**
+- Content DB ID: 35aacd26-f736-4080-a602-7d7e1e04c5e7
+- File: /mnt/media/projects/my3ye-web/content/blog/the-network-is-not-a-service-it-is-a-commons.mdx
+- Angle: Engineering argument for commons architecture. Opens with platform revocation scene (account deleted). Self-sovereign identity as structural property, not feature. ZEN Network principles enforced at architecture level. ONEON as connective tissue for all MY3YE protocols. Dominant metaphor: architecture / commons / weight (no river).
+- Story beat: The Mission
+- Status: draft
+- DO NOT repeat: platform revocation as opening scene, ZEN Network acronym breakdown, "the domain is .ink because everything here is inscribed" line, "the network no single actor can capture" as closing argument
+
+**Angles NOT yet written for ONEON:**
+- The technical: how five-layer architecture works (Public/Community/Governance/Encrypted/Sovereign Self)
+- The identity portability: what it means to carry contribution history across all protocols
+- The waitlist: origin story of the .ink terminal interface
+
+## TUSITA
+
+**Article 1 (REWRITE of inception): "The Place You Can Actually Live"**
+- Content DB ID: ac0e39b6-dc49-4fbd-9fb4-35ff6b60c34e
+- File: /mnt/media/projects/my3ye-web/content/blog/the-place-you-can-actually-live.mdx
+- Angle: Opens with dome architecture scene — meditation circle at center, dedicated spaces per tradition, open apex. Tusita = contentment (Pali). Arrive as visitor, stay as builder. Contribution Score governs weight. Civilization roadmap to legal sovereignty. Dominant metaphor: dome / circle / architecture of belonging (no river).
+- Story beat: The Dream
+- Status: draft
+- DO NOT repeat: dome-center scene as opener, "contentment not happiness" Pali etymology as the section opener, resort-vs-community framing, "arrive as visitor / stay as builder" as the section heading
+
+**Angles NOT yet written for TUSITA:**
+- The governance: how Tusita OS actually works, NFT tiers and Contribution Score mechanics
+- The physical zones: wellness dome / motorsport / cultural quarter / agricultural ring detail
+- The island form: jurisdictional argument — why islands, legal sovereignty pathway
+
+## KOINK
+
+**Article 1 (REWRITE of inception): "Chaos With Structure. Chaos That Compounds."**
+- Content DB ID: 9c46d865-cab2-4271-91ae-3f8fc88c871d
+- File: /mnt/media/projects/my3ye-web/content/blog/chaos-with-structure-chaos-that-compounds.mdx
+- Angle: Opens with the chain-agnostic design spec as a statement. Surface (meme chaos) vs below (five $KOINK Standard principles). Anti-whale = physics not punishment. Treasury flows to SOS. Meme as onboarding door. Dominant metaphor: physics / pressure / structure (no river).
+- Story beat: The Frame
+- Status: draft
+- DO NOT repeat: chain-agnostic as opening statement, "the meme is the door" as closing line, treasury→SOS flow connection, "this is not punishment. this is physics." as the brand line that defines the section
+
+**Angles NOT yet written for KOINK:**
+- The $KOINK Standard technical deep dive (separate from existing KOINK Standard whitepaper in DB)
+- The creator journey: who launches on Koink.fun and why
+- The cross-chain reality: Solana vs Base vs Polkadot deployment comparison
+
+## SHAKRAH
+
+**Article 1 (REWRITE of inception): "What the Body Knows Before the Protocol Does"**
+- Content DB ID: f8ab84ff-d2b9-4b1f-828f-09707425ec0d
+- File: /mnt/media/projects/my3ye-web/content/blog/what-the-body-knows-before-the-protocol-does.mdx
+- Angle: Opens with pre-failure pattern — person slows down before project fails. Nervous system argument: substrate must be addressed for sustained building. Not optimization — restoration. Community-governed marketplace. Otto Band biometrics owned by wearer. Panik App crisis handoff. Tusita Wellness Sanctuary physical anchor. Dominant metaphor: substrate / ground / nervous system (no river).
+- Story beat: The Frame + The Dream
+- Status: draft
+- DO NOT repeat: "before any protocol fails, a person fails" as opening, nervous system argument for sustained building, "load-bearing part that looks soft" line, Panik→Shakrah crisis handoff as the section closer
+
+**Angles NOT yet written for SHAKRAH:**
+- The practitioner: who works on Shakrah, how they are verified, what the marketplace looks like for a healer
+- The modalities: what traditions are included and why pluralism is the design choice
+- The Otto Band integration: granular view of biometric data ownership mechanics
+
+## OTTOLABS
+
+**Article 1 (REWRITE of inception): "The Workshop Is the Revolution"**
+- Content DB ID: 5892656b-47b8-4735-b1e2-4796a43c3e23
+- File: /mnt/media/projects/my3ye-web/content/blog/the-workshop-is-the-revolution.mdx
+- Angle: Opens with governance protocol running perfectly — still dependent on AWS. Digital sovereignty without physical infrastructure = performance not sovereignty. Ottolabs builds the stage. Otto Band + AR Glasses ($199). WebAssist/TechAssist services = revenue model. Robotics tiers = each funds next. Dominant metaphor: forge / workshop / hands / stage (no river).
+- Story beat: The Mission
+- Status: draft
+- DO NOT repeat: AWS dependency as the opening paradox, "digital performance on an analog stage" line, robotics-tier-funds-next-tier sequence, "intelligence without matter is theory" as the kicker before close
