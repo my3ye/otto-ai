@@ -35,16 +35,67 @@ type: project
 
 **Open:** Further pieces TBD
 
+## ONEON
+
+**Covered:**
+- Commons architecture / engineering argument for self-sovereign identity (inception rewrite 2026-03-19, DB: 35aacd26)
+  - Angle: commons not service, architecture enforces ZEN principles not policy, ONEON as backbone
+
+**Open:**
+- Five-layer architecture technical explainer
+- Identity portability mechanics across all protocols
+- The .ink waitlist origin story
+
+## TUSITA
+
+**Covered:**
+- Arrive as visitor / stay as builder / dome architecture / civilization roadmap (inception rewrite 2026-03-19, DB: ac0e39b6)
+  - Angle: what Tusita IS (not what it isn't), architecture of belonging, legal sovereignty as milestone
+
+**Open:**
+- Tusita OS + NFT tiers + Contribution Score governance mechanics
+- Physical zones detail: wellness / motorsport / cultural / agricultural
+- Island jurisdictional argument and sovereignty pathway
+
+## KOINK
+
+**Covered:**
+- Chain-agnostic design / $KOINK Standard / anti-whale physics / treasury→SOS flow (inception rewrite 2026-03-19, DB: 9c46d865)
+  - Angle: engineering beneath chaos, meme as onboarding door, physics not punishment
+
+**Open:**
+- Creator journey: who launches on Koink.fun
+- Cross-chain deployment comparison (Solana vs Base vs Polkadot)
+- Community treasury governance mechanics in depth
+
+## SHAKRAH
+
+**Covered:**
+- Nervous system / substrate argument / community-governed marketplace / Otto Band ownership / Panik handoff (inception rewrite 2026-03-19, DB: f8ab84ff)
+  - Angle: substrate not optimization, load-bearing infrastructure that looks soft
+
+**Open:**
+- Practitioner perspective: what the marketplace looks like for a healer
+- Modality pluralism: why all traditions, how verification works
+- Otto Band biometric data ownership mechanics in depth
+
+## OTTOLABS
+
+**Covered:**
+- Physical sovereignty / robotics tiers / Otto Band + AR Glasses / WebAssist services (inception rewrite 2026-03-19, DB: 5892656b)
+  - Angle: workshop as honest expression of mission, digital sovereignty requires physical layer
+
+**Open:**
+- Otto device line deep dive (Band, Phone, Puck, Buds, Home, Tower, Satellites)
+- Factory ownership model: how community governs production decisions
+- Satellites and long-term orbital compute vision
+
 ## Other Projects (no content yet)
 
-- TUSITA — physical community / parallel civilization / dome architecture
-- ONEON — sovereign network / communication
 - Otto AI — decentralized intelligence
-- Koink.Fun — meme tokenomics / $KOINK Standard
 - Panik App — inception article written (DB: d6132803). Open: guardian model, mesh tech, Shakrah handoff, conflict zone narrative.
 - Otto Music — decentralized music / artists + royalties
 - Otto Travel — community-governed travel
-- Ottolabs — hardware / robotics / physical means of production
 - PiPi — mascot / emotional bridge to mission
 
 **Why:** Keep track so heartbeat/orchestrator can commission the right angle rather than re-covering ground.
