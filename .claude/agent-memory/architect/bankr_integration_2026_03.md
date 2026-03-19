@@ -30,6 +30,12 @@ type: project
 
 **Phases:** Phase 1 (Foundation, $7–8) → Phase 2 (Execution, $9–10) → Phase 3 (Signals & UI, $9–10). Total ~$25–28 across 9 tasks.
 
+**BACKEND STATUS (2026-03-19):** Phase 1 backend COMPLETE. All 7 crypto modules exist (nlparser, executor, price_feed, portfolio, monitors, signals, launch). All 13 routes in /crypto/* active. /crypto/status verified working. DB tables crypto_trades, price_monitors, crypto_signals, token_launches all applied.
+
+**REMAINING GAP:** OMS frontend only. No /crypto page exists. Trading page (existing) = Hyperliquid perps only. Need: interfaces/web-next/src/app/crypto/page.tsx + sidebar update.
+
+**OMS Crypto Page design (2026-03-19):** 6 sections — Status Bar (engine health + wallet addresses), NL Terminal (parse→preview→execute), Portfolio (multi-chain balances), Price Monitors (conditional orders table + create form), Signal Board (signals table + stats + close form), Trade History (trades table). Sidebar: add "Crypto Engine" under Products after Trading. One implementation task (frontend-developer, $4, 900s).
+
 **No blockers:** CDP keys already configured. CoinGecko needs no key. Implementation can start immediately.
 
-**How to apply:** Use crypto-native-architecture-2026-03-19.md as the design doc. Implementation starts with Task 1 (DB + Config). `/crypto/*` namespace for all new routes. Do NOT create `/bankr/*` routes.
+**How to apply:** Use crypto-native-architecture-2026-03-19.md as the design doc. Backend done. Next task: frontend only. `/crypto/*` namespace for all new routes. Do NOT create `/bankr/*` routes.
