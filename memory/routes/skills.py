@@ -117,6 +117,14 @@ SKILL_REGISTRY = [
         "cost": "low",
     },
     {
+        "name": "research-synthesizer",
+        "description": "Research synthesis specialist. Receives raw multi-source findings and consolidates into structured, actionable intelligence with confidence scoring. Step 1 in the research-pipeline workflow.",
+        "keywords": ["synthesize", "synthesis", "consolidate", "findings", "compress", "insights", "confidence", "research", "cross-reference"],
+        "skill_type": "agent",
+        "agent_type": "research-synthesizer",
+        "cost": "low",
+    },
+    {
         "name": "memory-query",
         "description": "Query and store knowledge in Otto's memory system. Use when needing context from past experiences, decisions, lessons, or stored knowledge.",
         "keywords": ["memory", "query", "recall", "remember", "past", "history", "context", "knowledge", "semantic", "episodic"],
