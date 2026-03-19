@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     otto_trading_wallet_private_key: str = ""
     hyperliquid_network: str = "mainnet"
 
-    # BANKR Bot integration
+    # BANKR Bot integration (legacy — kept for reference, replaced by native crypto engine)
     bankr_api_key: str = ""                    # bk_... key from bankr.bot dashboard
     bankr_enabled: bool = False                # master feature flag (requires API key)
     bankr_signals_enabled: bool = False        # publish signals to bankrsignals.com
@@ -89,6 +89,15 @@ class Settings(BaseSettings):
     bankr_signals_url: str = "https://api.bankrsignals.com"
     bankr_job_poll_timeout: int = 30           # seconds to poll inline before queuing
     bankr_job_poll_interval: float = 2.0       # seconds between polls
+
+    # ── Native Crypto Engine (replaces Bankr integration) ─────────────
+    crypto_enabled: bool = False               # Master feature flag
+    crypto_execution_enabled: bool = False     # Enables actual trade execution (set True only after key review)
+    alchemy_api_key: str = ""                  # For EVM balance queries (Base, ETH, Polygon)
+    zerox_api_key: str = ""                    # Optional — improves 0x rate limits
+    coingecko_api_key: str = ""               # Optional — removes CoinGecko rate limits
+    birdeye_api_key: str = ""                  # Optional — Solana token data
+    zerox_api_url: str = "https://api.0x.org"  # 0x Swap API base URL
 
     @property
     def dsn(self) -> str:

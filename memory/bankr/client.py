@@ -268,11 +268,9 @@ class BankrClient:
         start = time.monotonic()
         elapsed = 0.0
         while elapsed < self.poll_timeout:
-            await asyncio.sleep(self.poll_interval)
-            elapsed = time.monotonic() - start
-
             job = await self.get_job(job_id)
             status = job.get("status", "").lower()
+            elapsed = time.monotonic() - start
 
             if status in ("completed", "success"):
                 logger.info("BANKR job %s completed in %.1fs", job_id, elapsed)
@@ -295,7 +293,9 @@ class BankrClient:
                     "timed_out": False,
                     "elapsed": elapsed,
                 }
-            # still pending — continue polling
+            # still pending — sleep then continue polling
+            await asyncio.sleep(self.poll_interval)
+            elapsed = time.monotonic() - start
 
         logger.warning("BANKR job %s timed out after %.1fs", job_id, elapsed)
         return {

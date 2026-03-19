@@ -116,6 +116,8 @@ class BankrSignals:
         """Fetch Otto's published signal history from bankrsignals.com."""
         if not self.enabled:
             return {"signals": [], "reason": "BANKR_SIGNALS_ENABLED=false"}
+        if not self.api_key:
+            return {"signals": [], "reason": "BANKR_API_KEY not configured"}
 
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:

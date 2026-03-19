@@ -18,9 +18,10 @@ All execution endpoints gate on BANKR_ENABLED. Status, history, and signals
 endpoints work even when disabled (show config state + local DB records).
 """
 
+import json
 import logging
 import uuid
-from typing import Optional, Any
+from typing import Literal, Optional, Any
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -65,11 +66,11 @@ class TradeRequest(BaseModel):
 
 
 class LimitOrderRequest(BaseModel):
-    action: str                    # "buy" | "sell"
+    action: Literal["buy", "sell"]
     token: str
     amount: str
     amount_unit: str = "USD"
-    trigger_type: str = "price"    # "price" | "pct_change"
+    trigger_type: Literal["price", "pct_change"] = "price"
     trigger_value: str
     chain: Optional[str] = None
     thread_id: Optional[str] = None
@@ -79,14 +80,14 @@ class DCARequest(BaseModel):
     token: str
     amount: str
     amount_unit: str = "USD"
-    frequency: str = "weekly"      # "daily" | "weekly" | "monthly"
+    frequency: Literal["daily", "weekly", "monthly"] = "weekly"
     duration: Optional[str] = None
     chain: Optional[str] = None
     thread_id: Optional[str] = None
 
 
 class StopLossRequest(BaseModel):
-    token: str = "all"
+    token: str                     # required — no default to avoid accidental all-holdings stop-loss
     trigger_pct: str               # e.g. "-20%"
     chain: Optional[str] = None
     all_holdings: bool = False
@@ -95,13 +96,13 @@ class StopLossRequest(BaseModel):
 
 class SignalPublishRequest(BaseModel):
     token: str
-    direction: str                 # "long" | "short" | "neutral"
+    direction: Literal["long", "short", "neutral"]
     chain: Optional[str] = None
     confidence: float = 0.7
     entry_price: Optional[float] = None
     target_price: Optional[float] = None
     stop_price: Optional[float] = None
-    signal_type: str = "whale_convergence"
+    signal_type: Literal["whale_convergence", "limit_trigger", "manual"] = "whale_convergence"
     metadata: Optional[dict] = None
 
 
@@ -109,7 +110,7 @@ class LaunchRequest(BaseModel):
     token_name: str
     token_symbol: str
     supply: str                    # e.g. "1000000000"
-    platform: str = "doppler"     # "doppler" | "raydium"
+    platform: Literal["doppler", "raydium"] = "doppler"
     description: Optional[str] = None
     chain: Optional[str] = None
     thread_id: Optional[str] = None
@@ -145,7 +146,7 @@ async def _save_trade(pool, prompt: str, job_result: dict, chain: Optional[str] 
         chain,
         tx_hash,
         status,
-        __import__("json").dumps(raw_result) if raw_result else None,
+        json.dumps(raw_result) if raw_result else None,
         error,
     )
     return trade_id
@@ -319,7 +320,7 @@ async def place_limit_order(req: LimitOrderRequest):
         trigger_value=req.trigger_value,
         chain=req.chain,
     )
-    logger.info("Limit order prompt: %s", prompt)
+    logger.debug("Limit order prompt: %s", prompt)
 
     client = BankrClient.from_settings()
     pool = await get_pool()
@@ -361,7 +362,7 @@ async def setup_dca(req: DCARequest):
         duration=req.duration,
         chain=req.chain,
     )
-    logger.info("DCA prompt: %s", prompt)
+    logger.debug("DCA prompt: %s", prompt)
 
     client = BankrClient.from_settings()
     pool = await get_pool()
@@ -401,7 +402,7 @@ async def set_stop_loss(req: StopLossRequest):
         chain=req.chain,
         all_holdings=req.all_holdings,
     )
-    logger.info("Stop-loss prompt: %s", prompt)
+    logger.debug("Stop-loss prompt: %s", prompt)
 
     client = BankrClient.from_settings()
     pool = await get_pool()
@@ -451,7 +452,7 @@ async def publish_signal(req: SignalPublishRequest):
         req.entry_price,
         req.target_price,
         req.stop_price,
-        __import__("json").dumps(req.metadata) if req.metadata else None,
+        json.dumps(req.metadata) if req.metadata else None,
     )
 
     # Publish to bankrsignals.com if enabled
@@ -514,10 +515,12 @@ async def get_signals(
         *params, limit, offset,
     )
 
-    # Compute win rate from closed signals
+    # Single query for all stats (avoids 3 round-trips)
     stats_row = await pool.fetchrow(
         """
         SELECT
+            COUNT(*) as total_signals,
+            COUNT(*) FILTER (WHERE published = TRUE) as published,
             COUNT(*) FILTER (WHERE win IS NOT NULL) as closed,
             COUNT(*) FILTER (WHERE win = TRUE) as wins,
             COUNT(*) FILTER (WHERE win = FALSE) as losses,
@@ -534,8 +537,8 @@ async def get_signals(
     return {
         "signals": [dict(r) for r in rows],
         "stats": {
-            "total_signals": await pool.fetchval("SELECT COUNT(*) FROM bankr_signals"),
-            "published": await pool.fetchval("SELECT COUNT(*) FROM bankr_signals WHERE published=TRUE"),
+            "total_signals": stats_row["total_signals"],
+            "published": stats_row["published"],
             "open": stats_row["open"],
             "closed": closed,
             "wins": wins,
@@ -623,7 +626,7 @@ async def get_job_status(job_id: str):
                 await pool.execute(
                     "UPDATE bankr_jobs SET status=$1, result=$2::jsonb, poll_count=poll_count+1, updated_at=NOW() WHERE job_id=$3",
                     status,
-                    __import__("json").dumps(live_job),
+                    json.dumps(live_job),
                     job_id,
                 )
 

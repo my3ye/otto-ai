@@ -12,7 +12,8 @@ CREATE TABLE IF NOT EXISTS bankr_trades (
     amount_in   NUMERIC,
     amount_out  NUMERIC,
     tx_hash     TEXT,                          -- on-chain TX hash on success
-    status      TEXT NOT NULL DEFAULT 'pending',  -- pending|completed|failed|cancelled
+    status      TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
     raw_result  JSONB,                         -- full BANKR job response
     error       TEXT,
     created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -22,6 +23,16 @@ CREATE TABLE IF NOT EXISTS bankr_trades (
 CREATE INDEX IF NOT EXISTS idx_bankr_trades_status ON bankr_trades(status);
 CREATE INDEX IF NOT EXISTS idx_bankr_trades_created ON bankr_trades(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_bankr_trades_chain ON bankr_trades(chain);
+
+-- Auto-update updated_at on any UPDATE
+CREATE OR REPLACE FUNCTION update_bankr_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN NEW.updated_at = NOW(); RETURN NEW; END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_bankr_trades_ts
+    BEFORE UPDATE ON bankr_trades
+    FOR EACH ROW EXECUTE FUNCTION update_bankr_updated_at();
 
 CREATE TABLE IF NOT EXISTS bankr_signals (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -50,9 +61,11 @@ CREATE INDEX IF NOT EXISTS idx_bankr_signals_created ON bankr_signals(created_at
 CREATE TABLE IF NOT EXISTS bankr_jobs (
     id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     job_id      TEXT NOT NULL UNIQUE,          -- BANKR job ID for polling
-    job_type    TEXT NOT NULL,                 -- "trade"|"dca"|"limit"|"launch"|"portfolio"
+    job_type    TEXT NOT NULL
+        CHECK (job_type IN ('trade', 'limit', 'dca', 'stop_loss', 'launch', 'portfolio')),
     prompt      TEXT NOT NULL,
-    status      TEXT NOT NULL DEFAULT 'pending',  -- pending|completed|failed|cancelled
+    status      TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'completed', 'failed', 'cancelled')),
     result      JSONB,
     error       TEXT,
     poll_count  INTEGER NOT NULL DEFAULT 0,
@@ -63,3 +76,7 @@ CREATE TABLE IF NOT EXISTS bankr_jobs (
 
 CREATE INDEX IF NOT EXISTS idx_bankr_jobs_job_id ON bankr_jobs(job_id);
 CREATE INDEX IF NOT EXISTS idx_bankr_jobs_status ON bankr_jobs(status);
+
+CREATE TRIGGER trg_bankr_jobs_ts
+    BEFORE UPDATE ON bankr_jobs
+    FOR EACH ROW EXECUTE FUNCTION update_bankr_updated_at();
