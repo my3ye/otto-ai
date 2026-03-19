@@ -241,13 +241,14 @@ Default to "coder" if unclear.
 
 WORKFLOW DETECTION: If the request clearly involves multi-step work that would benefit from
 a pipeline (draft→review→revise→implement, or design→build→review→fix), also return:
-- "workflow_template": name of the matching template (one of: "content-publishing-pipeline", "feature-development", "social-content-pipeline"), or null
+- "workflow_template": name of the matching template (one of: "content-publishing-pipeline", "feature-development", "social-content-pipeline", "research-pipeline"), or null
 - "workflow_variables": dict of variables for the template (e.g. {"topic": "...", "content_type": "...", "requirements": "..."})
 
 Use "content-publishing-pipeline" for: writing articles, blog posts, landing page copy, content rewrites, any content that should be reviewed before publishing.
 Use "feature-development" for: building features, implementing systems, code changes that should be architected and reviewed.
 Use "social-content-pipeline" for: creating social media posts, X/Twitter content, social calendars, posting schedules, content plans for social platforms. Variables: {platform, account, brand, objective, timeframe, audience, requirements, character}.
-Use null (no workflow) for: simple fixes, quick research, small config changes, one-off tasks.
+Use "research-pipeline" for: deep research investigations, market research, competitive analysis, technical investigation requiring synthesis + validation + storage. Variables: {topic, scope, requirements, research_depth}. research_depth: "surface" (web only), "standard" (web + memory), "deep" (all sources + papers).
+Use null (no workflow) for: simple fixes, quick lookups, small config changes, one-off tasks.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {"action_needed": true/false, "task_title": "<imperative title, max 80 chars>", "task_prompt": "<detailed task prompt, 100-400 chars>", "urgency": "normal|high|critical", "priority": <5-9>, "agent_type": "<one of the types above>", "workflow_template": "<template name or null>", "workflow_variables": {<variables or null>}}
