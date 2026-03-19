@@ -70,6 +70,9 @@ class Settings(BaseSettings):
     # Sync pulse interval in minutes (in addition to event-driven sync)
     sync_interval_minutes: int = 60
 
+    # Investor page
+    investor_password: str = "MY3YE2026"
+
     # Hyperliquid trading wallets
     otto_wallet_address: str = ""
     otto_wallet_private_key: str = ""
