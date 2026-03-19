@@ -1,9 +1,9 @@
 # OMS (Otto Management System) — Comprehensive Roadmap
 *Full visibility and control for Mev. The cockpit of the civilization.*
-*Last updated: 2026-03-16*
+*Last updated: 2026-03-20*
 
 ## Current Status
-**LIVE** at mev.otto.lk | 10+ pages functional. Contacts, Universe, Orders, Social Calendar built.
+**LIVE** at mev.otto.lk | 30+ pages functional. Secrets Vault, Crypto Engine, Ecosystem Health, Capital Tracker, Roadmap, Research Hub, Workflows, Social Calendar, Universe, Tasks (Kanban + onchain indicators), Whiteboard, Memory Explorer, Chat, Contacts, Orders built.
 
 ## Dependencies
 - **Hard deps:** Otto AI (API backend), Memory API (:8100)
@@ -17,14 +17,26 @@
 
 ### Completed
 - [x] Dashboard with live system status
-- [x] Task queue — view all tasks, statuses, outputs
-- [x] Universe browser — all 15+ projects visible and editable
+- [x] Task queue — Kanban board + list view, drag-drop, upvote + chain indicators
+- [x] Universe browser — all 18 projects visible and editable with NL edit
 - [x] Contact system — contact list with conversation threading
 - [x] Orders page — WebAssist order tracking
-- [x] Social calendar — content planning
+- [x] Social calendar — content planning (34 scheduled slots)
 - [x] Hello/onboarding page
 - [x] CTRL/LIVE mode tab switcher
 - [x] Navigation logically grouped by product area
+- [x] Secrets Vault — encrypted API key management with audit log
+- [x] Crypto Engine — portfolio, signals, BANKR terminal, trade history
+- [x] Ecosystem Health Dashboard — all 18 projects with readiness scores
+- [x] Capital Raise Tracker — 4 paths with live WebAssist data
+- [x] Release Roadmap — phase tracking with milestone completion bars
+- [x] Research Hub — multi-agent pipeline results and notes
+- [x] Workflows — multi-agent pipeline management + evolution history
+- [x] Memory Explorer — semantic search + episodic timeline
+- [x] Chat — kernel-connected conversational interface (WS)
+- [x] Whiteboard — embedded planning canvas
+- [x] Kernel Monitor — IVT, drift, slices, L1 cache viewer
+- [x] Security page — system hardening status
 
 ### Success Criteria (met)
 - Mev can see system status, tasks, and projects from one URL
@@ -32,36 +44,40 @@
 
 ---
 
-## Phase 2 — Control Capabilities (NOW → 30 days)
+## Phase 2 — Control Capabilities (ACTIVE)
 **Goal:** Mev can act through OMS, not just observe.
 
-### Milestones
-1. **Task creation UI** — Mev creates Otto tasks from browser (no CLI needed)
-2. **Message Mev** → **Reply from OMS** — Mev can respond to WhatsApp threads from OMS UI
-3. **Whiteboard** — Excalidraw embedded for live planning
-4. **Article versioning** — All articles with edit history visible
-5. **Universe natural language edit** — Already partially built; polish to be reliable
+### Completed
+- [x] Task creation UI (from Tasks page)
+- [x] Whiteboard embedded
+- [x] Universe natural language edit
+- [x] Workflow start/cancel/approve from OMS
+
+### Remaining
+1. **Reply from OMS** — Mev can respond to WhatsApp threads from the Chat page (currently read-only)
+2. **Article versioning** — edit history visible on articles in Content Hub
+3. **One-click task approval** — bulk approve reviewed tasks from Tasks page
+4. **Mobile-responsive OMS** — critical pages readable on phone
 
 ### Success Criteria
-- Mev can create a task without touching CLI
 - Mev can respond to a WhatsApp thread from OMS
-- 0 page crashes in a 24-hour session
+- Mev completes ≥80% of Otto management tasks without touching CLI
 
 ---
 
 ## Phase 3 — Ecosystem Dashboard (30→90 days)
-**Goal:** OMS becomes single pane of glass for all 15 projects.
+**Goal:** OMS becomes single pane of glass for all ecosystem projects.
 
 ### Milestones
 1. **Revenue dashboard** — WebAssist orders, Stripe revenue, MRR trend
-2. **Project health** — Each of 15 projects shows: status, next action, open blockers
+2. **Project health** — Each ecosystem project shows: status, next action, open blockers
 3. **Broadcast management** — Post content to X/Telegram/WhatsApp from OMS
 4. **Memory explorer** — Search semantic memory, see episodic timeline
 5. **RL2F + system health** — Heartbeat stats, RL2F score, task completion rate
 
 ### Success Criteria
 - Revenue visible in real time from OMS
-- All 15 project health visible from /universe
+- All ecosystem project health visible from /universe
 - Mev completes ≥80% of Otto management tasks from OMS (vs CLI)
 
 ---

@@ -58,20 +58,22 @@ Tomorrow: distributed. Federated. Community-governed. Unstoppable.
 | **Reflection Heartbeat** | ✅ Live | `reflection.sh` / `otto-reflection.timer` | Hourly :30. $1 budget. Self-improvement. |
 | **Task Queue** | ✅ Live | `task_runner.sh` | Max 5 concurrent. Claude/Gemini/Kimi CLIs. |
 | **WhatsApp Interface** | ✅ Live | `interfaces/whatsapp/service.mjs` | Baileys on :3001. Ottolabs account. |
-| **OMS (Management UI)** | ✅ Live | `interfaces/web-next/` | mev.otto.lk. Next.js 15. 10+ pages. |
+| **OMS (Management UI)** | ✅ Live | `interfaces/web-next/` | mev.otto.lk. Next.js 15. 30+ pages. Secrets Vault, Crypto Engine, Workflows, Research Hub. |
 | **Broadcast System** | ⚠️ Manual | `projects/broadcast/` | X + Telegram. Needs automation + credentials. |
-| **Universe System** | ✅ Live | `universe/` | YAML registry of 15 projects. API + UI. |
+| **Universe System** | ✅ Live | `universe/` | YAML registry of ecosystem projects. API + UI. |
 | **AgentOS Peripherals** | ✅ Live | `memory/peripherals/` | WhatsApp, Web, Scheduler adapters |
 | **Gateway API** | ✅ Live | `memory/gateway/` | WebSocket chat, auth, classifier routing |
 | **Agent Agents** | ✅ Live | `.claude/agents/heartbeat.md` `.claude/agents/reflection.md` | Orchestrator + self-improvement prompts |
 
 ### Current Capabilities
-- **403+ tasks completed** autonomously via task queue
+- **595+ tasks completed** autonomously via task queue
 - **Semantic memory**: ~205 active memories (0.84 avg relevance)
 - **Knowledge graph**: Graphiti temporal graph over Neo4j
 - **Self-improvement**: MARS adversarial reflection each 30min cycle
-- **Communication**: WhatsApp (real-time Mev contact) + Web UI
+- **Communication**: WhatsApp (real-time Mev contact) + Web UI (OMS)
 - **Autonomy**: Full VM autonomy — installs packages, creates services, manages Docker, spawns sub-agents
+- **Workflow engine**: Multi-agent pipelines with auto-evolution + fitness scoring
+- **Onchain task system**: Phase 1 live — upvotes, dependency scoring, chain anchoring
 
 ---
 
