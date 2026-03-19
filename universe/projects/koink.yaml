@@ -37,8 +37,8 @@ technical:
   repo: ""
   repo_url: ""
   stack: ["Solana"]
-  live_url: ""
-  status: concept
+  live_url: "https://koink.fun"
+  status: early
 
 ecosystem:
   category: life
