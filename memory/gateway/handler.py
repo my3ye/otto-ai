@@ -136,31 +136,40 @@ async def handle_message_stream(msg: GatewayMessage):
 
     Used by the WebSocket endpoint for real-time partial responses.
     Falls back to non-streaming for non-admin or errors.
+
+    Bypasses IVT enqueue/dequeue to avoid the race condition where the
+    kernel background loop claims the interrupt before dequeue_by_id can.
+    Instead, builds a synthetic interrupt dict and calls the stream handler
+    directly. The ivt.complete() call inside will silently no-op on the
+    fake UUID (UPDATE 0 rows, no error), while post-processing still runs.
     """
     if not is_admin(msg):
         return
 
-    from ..kernel import ivt, InterruptType
+    from uuid import uuid4
+    from datetime import datetime, timezone
     from ..kernel.ric import _handle_admin_message_stream
 
-    # Create interrupt (needed for IVT tracking and post-processing)
-    interrupt_id = await ivt.enqueue(
-        interrupt_type=InterruptType.SIG_MSG_ADMIN,
-        source=msg.channel,
-        payload={
+    # Build synthetic interrupt dict — bypasses IVT to avoid race with kernel loop
+    interrupt = {
+        "id": uuid4(),
+        "interrupt_type": "SIG_MSG_ADMIN",
+        "priority": 1,
+        "source": msg.channel,
+        "payload": {
             "content": msg.content,
             "sender_id": msg.sender_id,
             "sender_name": msg.sender_name or "Mev",
             "channel": msg.channel,
             "metadata": msg.metadata,
         },
-    )
-
-    # Claim our specific interrupt by ID (avoids race with kernel background loop)
-    interrupt = await ivt.dequeue_by_id(interrupt_id)
-    if not interrupt:
-        yield "Hey Mev — something went wrong queuing your message."
-        return
+        "status": "processing",
+        "agent_id": "otto",
+        "created_at": datetime.now(timezone.utc),
+        "started_at": datetime.now(timezone.utc),
+        "metadata": {},
+        "correlation_id": None,
+    }
 
     async for chunk in _handle_admin_message_stream(interrupt):
         yield chunk
