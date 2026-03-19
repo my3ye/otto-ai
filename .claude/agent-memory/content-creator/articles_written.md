@@ -38,6 +38,14 @@ type: project
 - Status: draft
 - DO NOT repeat: "protocols, not prayers" contrast, "the prayer version / engineering version" structure, the "the rules are the problem" as the section-closing move on the zero-sum opening, "their win funds someone else's floor" re: Koink/SOS relationship
 
+**Document 1: "What We Are Building"**
+- Content DB ID: 474227ce-b0a1-41b8-a712-6e421a74e414
+- File: DB only (founding vision document, not a blog article)
+- Angle: Full ecosystem founding vision — problem (extractive lake systems), river law, all 14 projects in compact descriptor form, bigger picture destination. Covers all projects but none in depth. Founder-level, 870 words.
+- Story beat: All four beats
+- Status: draft
+- DO NOT repeat: lake-as-extractive-design framing as the document opener, compact bolded project descriptors in founding-doc format, "$0 raised" + "contribution graph is only currency" as the economics summary, "one ladder / arrive from anywhere" for SOS, "$199 AR Glasses" Ottolabs product pricing, "The meme is the door. The protocol is the floor." for Koink
+
 **Angles NOT yet written for MY3YE overview:**
 - The mechanism deep dive: how DPC works across the full stack (cross-project contribution weighting)
 - The founder story: how MY3YE came to be built / origin narrative
