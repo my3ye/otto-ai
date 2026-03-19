@@ -13,12 +13,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional, Literal
 
+import aiohttp
+import asyncio
+import json
 import yaml
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-
-import asyncio
-import json
 
 from ..llm import llm_chat, extract_json
 from ..db import get_pool
@@ -459,8 +459,6 @@ async def get_ecosystem_health():
     Return enriched project list with computed readiness scores.
     Performs async HTTP checks on known live_url domains.
     """
-    import aiohttp
-
     if not PROJECTS_DIR.exists():
         raise HTTPException(status_code=404, detail="Universe projects directory not found")
 
@@ -473,16 +471,16 @@ async def get_ecosystem_health():
         data["_id"] = pf.stem
         projects_data.append(data)
 
-    # Async site reachability checks
-    async def check_url(url: str) -> str:
+    # Async site reachability checks — shared session, proper SSL validation
+    timeout = aiohttp.ClientTimeout(total=5)
+
+    async def check_url(session: aiohttp.ClientSession, url: str) -> str:
         """Returns 'up', 'down', or 'none'."""
         if not url:
             return "none"
         try:
-            timeout = aiohttp.ClientTimeout(total=5)
-            async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(url, allow_redirects=True, ssl=False) as resp:
-                    return "up" if resp.status < 500 else "down"
+            async with session.get(url, allow_redirects=True) as resp:
+                return "up" if resp.status < 500 else "down"
         except Exception:
             return "down"
 
@@ -499,9 +497,10 @@ async def get_ecosystem_health():
     def _get_status(p: dict) -> str:
         return (p.get("technical") or {}).get("status") or p.get("status") or "concept"
 
-    # Fire all checks in parallel
+    # Fire all checks in parallel — single shared session for all URLs
     urls = [_get_live_url(p) for p in projects_data]
-    site_statuses = await asyncio.gather(*[check_url(u) for u in urls])
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        site_statuses = await asyncio.gather(*[check_url(session, u) for u in urls])
 
     # Compute readiness score per project
     def compute_score(p: dict, site_status: str) -> int:
