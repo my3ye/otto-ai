@@ -542,17 +542,21 @@ async def _advance_workflow(pool, instance_id: UUID):
 
         # Handle non-task actions (notify)
         if step.get("action") == "notify":
-            msg = _interpolate(step.get("notify_template", "Workflow step complete."), dict(inst))
-            log.info(f"Workflow {instance_id} step {current}: notify action")
+            raw_msg = _interpolate(step.get("notify_template", "Workflow step complete."), dict(inst))
+
+            # For research pipelines, replace {prev_output} with a proper deliverable extract
+            # (The raw_msg may already contain the full step output — trim it intelligently)
+            msg = _smart_truncate(raw_msg, 3500)
+            log.info(f"Workflow {instance_id} step {current}: notify action ({len(msg)} chars)")
 
             # Send WhatsApp notification
             try:
                 proc = await asyncio.create_subprocess_exec(
-                    "/home/web3relic/otto/tools/whatsapp_send.sh", msg[:1500],
+                    "/home/web3relic/otto/tools/whatsapp_send.sh", msg,
                     stdout=asyncio.subprocess.DEVNULL,
                     stderr=asyncio.subprocess.DEVNULL,
                 )
-                await asyncio.wait_for(proc.communicate(), timeout=10)
+                await asyncio.wait_for(proc.communicate(), timeout=15)
             except Exception as e:
                 log.warning(f"Workflow notify failed: {e}")
 
@@ -1140,17 +1144,138 @@ async def get_fitness_history(template_id: UUID, limit: int = 20):
 
 # ── Notifications ────────────────────────────────────────────────────────
 
+def _extract_deliverable(text: str, max_chars: int = 3000) -> str:
+    """Extract the most relevant content from a workflow step output.
+
+    Priority:
+    1. Content between [DELIVERABLE] ... [/DELIVERABLE] markers
+    2. A '## WHATSAPP DELIVERY' or '## RESEARCH DELIVERABLE' section
+    3. A '### Top 3' or '## Final Report' or '## Summary' section
+    4. Last N chars (findings usually at the end)
+    5. First N chars truncated at newline boundary
+    """
+    if not text:
+        return "(no output)"
+
+    # 1. Explicit delivery markers
+    import re
+    marker_match = re.search(r'\[DELIVERABLE\](.*?)\[/DELIVERABLE\]', text, re.DOTALL | re.IGNORECASE)
+    if marker_match:
+        return marker_match.group(1).strip()[:max_chars]
+
+    # 2. Named delivery sections
+    for section_header in ['## WHATSAPP DELIVERY', '## RESEARCH DELIVERABLE', '## DELIVERY SUMMARY']:
+        idx = text.find(section_header)
+        if idx >= 0:
+            section = text[idx:idx + max_chars]
+            # Cut at next ## heading if present
+            next_heading = re.search(r'\n##\s', section[3:])
+            if next_heading:
+                section = section[:next_heading.start() + 3]
+            return section.strip()
+
+    # 3. Summary/report sections
+    for section_header in ['### Top 3 Actionable', '## Final Report', '## Summary', '### Summary']:
+        idx = text.find(section_header)
+        if idx >= 0:
+            return text[idx:idx + max_chars].strip()
+
+    # 4. If text is short enough, return it all
+    if len(text) <= max_chars:
+        return text.strip()
+
+    # 5. Take the last max_chars chars (findings usually at the end), break at newline
+    tail = text[-max_chars:]
+    nl = tail.find('\n')
+    if nl > 0:
+        tail = tail[nl + 1:]
+    return tail.strip()
+
+
+def _smart_truncate(msg: str, limit: int = 3500) -> str:
+    """Truncate at a newline boundary near the limit."""
+    if len(msg) <= limit:
+        return msg
+    cutoff = msg[:limit].rfind('\n')
+    if cutoff > limit // 2:
+        return msg[:cutoff] + "\n...[truncated]"
+    return msg[:limit] + "...[truncated]"
+
+
 async def _notify_workflow_complete(inst: dict, tmpl: dict):
-    """Notify Mev when a workflow completes."""
+    """Notify Mev when a workflow completes.
+
+    For research pipelines, include the research findings summary.
+    For other workflows, include the last step output preview.
+    """
     try:
-        step_count = len(tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"]))
-        msg = f"Workflow complete: {inst['name']}\n{step_count} steps finished.\nID: {inst['id']}"
+        steps = tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"])
+        step_count = len(steps)
+        name = inst.get("name", "Workflow")
+        instance_id = inst.get("id", "")
+
+        # Determine if this is a research pipeline
+        tags = tmpl.get("tags") or []
+        if isinstance(tags, str):
+            try:
+                tags = json.loads(tags)
+            except Exception:
+                tags = []
+        is_research = "research" in tags or "research" in tmpl.get("name", "").lower()
+
+        step_outputs = inst.get("step_outputs") or {}
+        if isinstance(step_outputs, str):
+            try:
+                step_outputs = json.loads(step_outputs)
+            except Exception:
+                step_outputs = {}
+
+        # Check if the last step is a notify action (already sent a delivery WhatsApp)
+        last_step = steps[-1] if steps else {}
+        has_notify_step = last_step.get("action") == "notify"
+
+        if has_notify_step:
+            # The notify step already sent the research findings via WhatsApp.
+            # Send only a brief confirmation so Mev isn't double-pinged.
+            log.info(f"Workflow {name}: notify step already sent delivery — skipping duplicate notification")
+            return
+
+        if is_research and step_outputs:
+            # No notify step — find the last non-notify step output and deliver it
+            last_output = ""
+            for i in range(step_count - 1, -1, -1):
+                step = steps[i] if i < len(steps) else {}
+                if step.get("action") != "notify":
+                    last_output = step_outputs.get(str(i), "")
+                    break
+
+            variables = inst.get("variables") or {}
+            if isinstance(variables, str):
+                try:
+                    variables = json.loads(variables)
+                except Exception:
+                    variables = {}
+            topic = variables.get("topic", name)
+
+            deliverable = _extract_deliverable(last_output, max_chars=2500)
+            msg = f"✅ Research complete: {topic}\n\n{deliverable}"
+        else:
+            # Generic workflow completion — include last step preview
+            last_output = step_outputs.get(str(step_count - 2), "") if step_count >= 2 else ""
+            preview = _smart_truncate(last_output, 500) if last_output else ""
+            msg = f"✅ Workflow complete: {name}\n{step_count} steps done."
+            if preview:
+                msg += f"\n\nLast step output:\n{preview}"
+            msg += f"\nID: {instance_id}"
+
+        msg = _smart_truncate(msg, 3500)
         proc = await asyncio.create_subprocess_exec(
             "/home/web3relic/otto/tools/whatsapp_send.sh", msg,
             stdout=asyncio.subprocess.DEVNULL,
             stderr=asyncio.subprocess.DEVNULL,
         )
-        await asyncio.wait_for(proc.communicate(), timeout=10)
+        await asyncio.wait_for(proc.communicate(), timeout=15)
+        log.info(f"Workflow completion notified: {name} ({len(msg)} chars)")
     except Exception as e:
         log.warning(f"Workflow completion notification failed: {e}")
 
