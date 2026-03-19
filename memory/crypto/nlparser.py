@@ -146,6 +146,7 @@ async def parse(text: str) -> TradeIntent:
 
 def _fallback_intent(text: str, reason: str) -> TradeIntent:
     """Return a low-confidence fallback intent when parsing fails."""
+    log.warning(f"NL parser fallback triggered. Reason: {reason}. Input: {text[:100]!r}")
     return TradeIntent(
         action="unknown",
         raw_text=text,

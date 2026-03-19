@@ -98,6 +98,8 @@ class Settings(BaseSettings):
     coingecko_api_key: str = ""               # Optional — removes CoinGecko rate limits
     birdeye_api_key: str = ""                  # Optional — Solana token data
     zerox_api_url: str = "https://api.0x.org"  # 0x Swap API base URL
+    cdp_api_key_name: str = ""                 # CDP AgentKit key name (Phase 2 execution)
+    cdp_api_key_private_key: str = ""          # CDP AgentKit private key (Phase 2 execution)
 
     @property
     def dsn(self) -> str:

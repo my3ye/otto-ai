@@ -18,9 +18,11 @@ Provides the full Bankr-equivalent feature set built natively:
 """
 
 import logging
-from typing import Optional
+import time
+from collections import defaultdict
+from typing import Literal, Optional
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel
 
 from ..config import settings
@@ -36,6 +38,26 @@ log = logging.getLogger("otto.routes.crypto")
 
 router = APIRouter(prefix="/crypto", tags=["crypto"])
 
+# Simple in-memory rate limiter for LLM-backed endpoints (e.g. /parse).
+# Tracks call timestamps per client IP within a rolling window.
+_PARSE_RATE_LIMIT = 20          # max requests per window
+_PARSE_RATE_WINDOW = 60         # seconds
+_parse_call_log: dict[str, list[float]] = defaultdict(list)
+
+
+def _check_parse_rate_limit(client_ip: str) -> None:
+    """Raise HTTP 429 if client has exceeded parse rate limit."""
+    now = time.time()
+    window_start = now - _PARSE_RATE_WINDOW
+    calls = [t for t in _parse_call_log[client_ip] if t > window_start]
+    if len(calls) >= _PARSE_RATE_LIMIT:
+        raise HTTPException(
+            status_code=429,
+            detail=f"Rate limit exceeded: max {_PARSE_RATE_LIMIT} /crypto/parse calls per {_PARSE_RATE_WINDOW}s"
+        )
+    calls.append(now)
+    _parse_call_log[client_ip] = calls
+
 
 # ─── Request/Response Models ────────────────────────────────────────────────
 
@@ -46,17 +68,23 @@ class ParseRequest(BaseModel):
 class ExecuteRequest(BaseModel):
     text: str
     dry_run: bool = True
-    chain: Optional[str] = None
+    chain: Optional[_CHAIN] = None
+
+
+_CHAIN = Literal["base", "eth", "polygon", "solana", "hyperliquid", "bsc", "avalanche"]
+_MONITOR_TYPE = Literal["limit_buy", "limit_sell", "stop_loss", "dca", "take_profit"]
+_TRIGGER_TYPE = Literal["above", "below"]
+_DIRECTION = Literal["long", "short", "neutral", "exit"]
 
 
 class MonitorRequest(BaseModel):
-    monitor_type: str                    # limit_buy | limit_sell | stop_loss | dca | take_profit
-    chain: str = "base"
+    monitor_type: _MONITOR_TYPE
+    chain: _CHAIN = "base"
     token_in: str
     token_out: Optional[str] = None
     amount_usd: Optional[float] = None
     trigger_price: Optional[float] = None
-    trigger_type: Optional[str] = None   # above | below
+    trigger_type: Optional[_TRIGGER_TYPE] = None
     trigger_pct: Optional[float] = None
     dca_interval_hours: Optional[int] = None
     dca_max_runs: Optional[int] = None
@@ -65,8 +93,8 @@ class MonitorRequest(BaseModel):
 
 class SignalRequest(BaseModel):
     token: str
-    chain: str = "base"
-    direction: str                       # long | short | neutral | exit
+    chain: _CHAIN = "base"
+    direction: _DIRECTION
     confidence: Optional[float] = None
     rationale: Optional[str] = None
     entry_price: Optional[float] = None
@@ -86,7 +114,7 @@ class CloseSignalRequest(BaseModel):
 class LaunchRequest(BaseModel):
     name: str
     symbol: str
-    chain: str                           # base | solana
+    chain: Literal["base", "solana"]
     supply: Optional[float] = None
     creator_fee_pct: Optional[float] = None
     description: Optional[str] = None
@@ -118,19 +146,22 @@ async def get_status():
             "zerox": bool(settings.zerox_api_key),
             "coingecko": True,                           # free tier, no key needed
             "birdeye": bool(settings.birdeye_api_key),
-            "cdp_agentkit": bool(settings.cdp_api_key_name if hasattr(settings, 'cdp_api_key_name') else False),
+            "cdp_agentkit": bool(settings.cdp_api_key_name),
         },
         "note": "Phase 1 — price, portfolio, NL parse, and signals active. Execution wired in Phase 2.",
     }
 
 
 @router.post("/parse")
-async def parse_intent(req: ParseRequest):
+async def parse_intent(req: ParseRequest, request: Request):
     """Parse a natural language trading command into a structured TradeIntent.
 
     This endpoint is always safe — no execution occurs regardless of intent.
     Use it to preview what Otto would do before executing.
+    Rate-limited: max 20 calls/min per IP to control LLM cost.
     """
+    client_ip = request.client.host if request.client else "unknown"
+    _check_parse_rate_limit(client_ip)
     intent = await nl_parse(req.text)
     valid, reason = intent.is_valid_for_execution()
     return {
@@ -213,6 +244,7 @@ async def get_portfolio(chains: str = Query(default="base,eth")):
         "total_value_usd": summary.total_value_usd,
         "hyperliquid_equity": summary.hyperliquid_equity,
         "error": summary.error,
+        "warnings": summary.warnings,
     }
 
 
@@ -254,7 +286,7 @@ async def get_token_price(tokens: str = Query(description="Comma-separated token
 
 
 @router.get("/history")
-async def get_trade_history(limit: int = 50, chain: Optional[str] = None, status: Optional[str] = None):
+async def get_trade_history(limit: int = Query(default=50, ge=1, le=500), chain: Optional[str] = None, status: Optional[str] = None):
     """Get trade history from crypto_trades table."""
     from ..db import get_pool
     pool = await get_pool()
@@ -311,7 +343,7 @@ async def create_price_monitor(req: MonitorRequest):
 
 
 @router.get("/monitors")
-async def get_price_monitors(status: str = "active", limit: int = 50):
+async def get_price_monitors(status: str = "active", limit: int = Query(default=50, ge=1, le=500)):
     """List price monitors (conditional orders)."""
     monitors = await list_monitors(status=status, limit=limit)
     return {"monitors": monitors, "count": len(monitors)}
@@ -348,7 +380,7 @@ async def create_signal(req: SignalRequest):
 
 
 @router.get("/signals")
-async def get_signals(status: Optional[str] = None, limit: int = 50):
+async def get_signals(status: Optional[str] = None, limit: int = Query(default=50, ge=1, le=500)):
     """List signals and performance stats."""
     signals = await list_signals(status=status, limit=limit)
     stats = await get_signal_stats()
@@ -369,7 +401,7 @@ async def close_signal_endpoint(signal_id: str, req: CloseSignalRequest):
 @router.post("/launch")
 async def launch_token(req: LaunchRequest):
     """Launch a new token (Phase 3 — records intent, execution wired later)."""
-    params = req.dict()
+    params = req.model_dump()
     if req.chain == "base":
         result = await launch_on_base(params)
     elif req.chain == "solana":
@@ -380,7 +412,7 @@ async def launch_token(req: LaunchRequest):
 
 
 @router.get("/launches")
-async def get_launches(limit: int = 50):
+async def get_launches(limit: int = Query(default=50, ge=1, le=500)):
     """List token launches."""
     launches = await list_launches(limit=limit)
     return {"launches": launches, "count": len(launches)}

@@ -15,10 +15,26 @@ from .price_feed import get_price, PriceData
 
 log = logging.getLogger("otto.crypto.portfolio")
 
-ALCHEMY_ENDPOINTS: dict[str, str] = {
-    "base": f"https://base-mainnet.g.alchemy.com/v2/{settings.alchemy_api_key}" if settings.alchemy_api_key else "",
-    "eth": f"https://eth-mainnet.g.alchemy.com/v2/{settings.alchemy_api_key}" if settings.alchemy_api_key else "",
-    "polygon": f"https://polygon-mainnet.g.alchemy.com/v2/{settings.alchemy_api_key}" if settings.alchemy_api_key else "",
+ALCHEMY_BASE_URLS: dict[str, str] = {
+    "base": "https://base-mainnet.g.alchemy.com/v2",
+    "eth": "https://eth-mainnet.g.alchemy.com/v2",
+    "polygon": "https://polygon-mainnet.g.alchemy.com/v2",
+}
+
+# Known ERC-20 token decimals to avoid incorrect balance scaling.
+# Tokens not in this map default to 18 decimals (safe for most governance/DeFi tokens).
+# CRITICAL: USDC/USDT/WBTC have non-18 decimals — wrong decimals = values off by 10^12.
+KNOWN_TOKEN_DECIMALS: dict[str, int] = {
+    # 6-decimal stablecoins
+    "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48": 6,   # USDC (Ethereum)
+    "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913": 6,   # USDC (Base)
+    "0x2791bca1f2de4661ed88a30c99a7a9449aa84174": 6,   # USDC.e (Polygon)
+    "0xdac17f958d2ee523a2206206994597c13d831ec7": 6,   # USDT (Ethereum)
+    "0x3c499c542cef5e3811e1192ce70d8cc03d5c3359": 6,   # USDT (Polygon native)
+    "0x94b008aa00579c1307b0ef2c499ad98a8ce58e58": 6,   # USDT (Optimism, ref)
+    # 8-decimal tokens
+    "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599": 8,   # WBTC (Ethereum)
+    "0x1bfd67037b42cf73acf2047067bd4f2c47d9bfd6": 8,   # WBTC (Polygon)
 }
 
 HL_INFO_URL = "https://api.hyperliquid.xyz/info"
@@ -49,6 +65,7 @@ class PortfolioSummary:
     total_value_usd: float = 0.0
     hyperliquid_equity: float = 0.0
     error: Optional[str] = None
+    warnings: list[str] = field(default_factory=list)
 
 
 async def get_evm_balances(wallet_address: str, chain: str = "base") -> ChainPortfolio:
@@ -61,7 +78,7 @@ async def get_evm_balances(wallet_address: str, chain: str = "base") -> ChainPor
     Returns:
         ChainPortfolio with native + token balances
     """
-    rpc_url = ALCHEMY_ENDPOINTS.get(chain, "")
+    rpc_url = f"{ALCHEMY_BASE_URLS.get(chain, '')}/{settings.alchemy_api_key}" if settings.alchemy_api_key else ""
     if not rpc_url or not settings.alchemy_api_key:
         # Return empty portfolio if no Alchemy key configured
         native_symbol = {"base": "ETH", "eth": "ETH", "polygon": "POL"}.get(chain, "ETH")
@@ -115,12 +132,15 @@ async def get_evm_balances(wallet_address: str, chain: str = "base") -> ChainPor
 
         for tok in non_zero:
             amount_raw = int(tok.get("tokenBalance", "0x0"), 16)
-            # Default to 18 decimals — metadata lookup would be more precise
-            # but we skip for simplicity (Phase 1 — show approximate values)
-            amount = amount_raw / 1e18
+            contract = (tok.get("contractAddress") or "").lower()
+            # Use known decimals map to avoid massive errors on USDC/USDT (6 decimals)
+            # and WBTC (8 decimals). Unknown tokens default to 18 which is correct for
+            # most governance/DeFi tokens. Phase 2 will call alchemy_getTokenMetadata.
+            decimals = KNOWN_TOKEN_DECIMALS.get(contract, 18)
+            amount = amount_raw / (10 ** decimals)
             if amount > 0.000001:  # skip dust
                 token_balances.append(TokenBalance(
-                    symbol="ERC20",  # symbol resolution requires additional call
+                    symbol="ERC20",  # symbol resolution requires Phase 2 metadata call
                     amount=amount,
                     contract_address=tok.get("contractAddress"),
                 ))
@@ -196,8 +216,23 @@ async def get_portfolio_summary(chains: list[str] = None) -> PortfolioSummary:
     total_evm = sum(cp.total_value_usd for cp in chain_portfolios)
     total_value = total_evm + hl_equity
 
+    # Warn if any ERC-20 tokens are showing with placeholder symbols/values
+    has_erc20_placeholders = any(
+        t.symbol == "ERC20"
+        for cp in chain_portfolios
+        for t in cp.token_balances
+    )
+    warnings = []
+    if has_erc20_placeholders:
+        warnings.append(
+            "ERC-20 token symbols and USD values are unavailable (Phase 2 will resolve via "
+            "alchemy_getTokenMetadata). Balances shown are raw amounts only. "
+            "Known stablecoins (USDC/USDT) use correct 6-decimal scaling."
+        )
+
     return PortfolioSummary(
         chains=chain_portfolios,
         total_value_usd=total_value,
         hyperliquid_equity=hl_equity,
+        warnings=warnings,
     )

@@ -5,6 +5,7 @@ Phase 2 feature. Phase 1: CRUD only, polling engine in Phase 2.
 
 import logging
 from typing import Optional
+import asyncpg
 from ..db import get_pool
 
 log = logging.getLogger("otto.crypto.monitors")
@@ -54,12 +55,16 @@ async def list_monitors(status: str = "active", limit: int = 50) -> list[dict]:
 async def cancel_monitor(monitor_id: str) -> bool:
     """Cancel an active price monitor."""
     pool = await get_pool()
-    result = await pool.execute("""
-        UPDATE price_monitors
-        SET status = 'cancelled'
-        WHERE id = $1 AND status = 'active'
-    """, monitor_id)
-    return result == "UPDATE 1"
+    try:
+        result = await pool.execute("""
+            UPDATE price_monitors
+            SET status = 'cancelled'
+            WHERE id = $1 AND status = 'active'
+        """, monitor_id)
+        return result == "UPDATE 1"
+    except asyncpg.DataError:
+        # Invalid UUID format — treat as not found
+        return False
 
 
 async def check_monitors() -> list[dict]:

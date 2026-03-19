@@ -5,6 +5,7 @@ Replaces bankrsignals.com with Otto's own sovereign signal board.
 
 import logging
 from typing import Optional
+import asyncpg
 from ..db import get_pool
 
 log = logging.getLogger("otto.crypto.signals")
@@ -60,13 +61,17 @@ async def list_signals(status: Optional[str] = None, limit: int = 50) -> list[di
 async def close_signal(signal_id: str, win: bool, exit_price: float, pnl_pct: float) -> Optional[dict]:
     """Close a signal with outcome."""
     pool = await get_pool()
-    row = await pool.fetchrow("""
-        UPDATE crypto_signals
-        SET status = 'closed', win = $2, exit_price = $3, pnl_pct = $4, closed_at = NOW()
-        WHERE id = $1 AND status = 'open'
-        RETURNING *
-    """, signal_id, win, exit_price, pnl_pct)
-    return dict(row) if row else None
+    try:
+        row = await pool.fetchrow("""
+            UPDATE crypto_signals
+            SET status = 'closed', win = $2, exit_price = $3, pnl_pct = $4, closed_at = NOW()
+            WHERE id = $1 AND status = 'open'
+            RETURNING *
+        """, signal_id, win, exit_price, pnl_pct)
+        return dict(row) if row else None
+    except asyncpg.DataError:
+        # Invalid UUID format — treat as not found
+        return None
 
 
 async def get_signal_stats() -> dict:
