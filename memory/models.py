@@ -353,6 +353,12 @@ class TaskOut(BaseModel):
     decomposed: bool = False
     children_total: int = 0
     children_completed: int = 0
+    # Onchain task system fields (migration 062)
+    upvotes: int = 0
+    dependency_score: float = 0.0
+    chain_id: str | None = None
+    chain_hash: str | None = None
+    chain_anchored_at: datetime | None = None
 
 
 class TaskComplete(BaseModel):

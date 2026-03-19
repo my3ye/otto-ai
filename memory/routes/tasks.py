@@ -26,7 +26,8 @@ TASK_COLUMNS = """id, title, prompt, context, priority, status, model, cli, agen
     created_at, updated_at, metadata,
     qa_status, qa_output, qa_reviewer, commit_hash, owner,
     parent_id, task_type, position, requires_decomposition, decomposed,
-    children_total, children_completed"""
+    children_total, children_completed,
+    upvotes, dependency_score, chain_id, chain_hash, chain_anchored_at"""
 
 # Per-CLI concurrency limits: 3 claude, 1 gemini, 1 kimi (total max 5)
 CLI_CONCURRENCY = {"claude": 3, "gemini": 1, "kimi": 1}
@@ -1546,3 +1547,64 @@ async def patch_task_metadata(task_id: UUID, updates: dict):
     if not isinstance(d.get("metadata"), dict):
         d["metadata"] = {}
     return TaskOut(**d)
+
+
+# ── Onchain Task System ──────────────────────────────────────────────────────
+
+@router.post("/{task_id}/upvote")
+async def upvote_task(task_id: UUID):
+    """Increment upvote count on a task. Returns new upvote count.
+
+    Part of the onchain task priority system. Higher upvotes increase
+    computed_priority_score: final = 0.5*base + 0.3*dependency + 0.2*upvote_factor
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "UPDATE tasks SET upvotes = upvotes + 1, updated_at = now() WHERE id = $1 RETURNING id, title, upvotes, priority",
+        task_id
+    )
+    if not row:
+        raise HTTPException(404, "Task not found")
+    d = dict(row)
+    upvote_factor = round(d["upvotes"] / (d["upvotes"] + 10), 3)
+    computed_score = round(
+        0.5 * (d["priority"] / 10.0) + 0.2 * upvote_factor,
+        3
+    )
+    return {
+        "id": str(d["id"]),
+        "title": d["title"],
+        "upvotes": d["upvotes"],
+        "upvote_factor": upvote_factor,
+        "computed_score": computed_score,
+    }
+
+
+@router.post("/{task_id}/set-dependency-score")
+async def set_dependency_score(task_id: UUID, score: float = 0.0):
+    """Set the dependency score (0.0-1.0) for a task.
+
+    Higher score = more critical systems depend on this task.
+    Drives the dependency component of computed_priority_score.
+    """
+    if not 0.0 <= score <= 1.0:
+        raise HTTPException(400, "dependency_score must be between 0.0 and 1.0")
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "UPDATE tasks SET dependency_score = $2, updated_at = now() WHERE id = $1 RETURNING id, title, dependency_score, upvotes, priority",
+        task_id, score
+    )
+    if not row:
+        raise HTTPException(404, "Task not found")
+    d = dict(row)
+    upvote_factor = d["upvotes"] / (d["upvotes"] + 10)
+    computed_score = round(
+        0.5 * (d["priority"] / 10.0) + 0.3 * d["dependency_score"] + 0.2 * upvote_factor,
+        3
+    )
+    return {
+        "id": str(d["id"]),
+        "title": d["title"],
+        "dependency_score": d["dependency_score"],
+        "computed_score": computed_score,
+    }
