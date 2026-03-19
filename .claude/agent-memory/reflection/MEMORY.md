@@ -1,16 +1,17 @@
 # Reflection Agent Memory
 
-## System Baselines (updated 2026-03-18 cycle 326)
-- Memory: Evolve healthy (1095 decay, 4 facts, 0 dupes this cycle). GLOVE: 0/15 mismatches (clean, 27+ consecutive cycles).
+## System Baselines (updated 2026-03-19 cycle 338)
+- Memory: Evolve healthy (1211 decay, 5 facts, 0 dupes this cycle). GLOVE: 0/15 mismatches (clean, 29+ consecutive cycles).
 - Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Docker: postgres, neo4j, graphiti.
-- Disk: ~40% boot. RAM: ~4.4GB/16GB.
-- Procedures: 14. Top 3 ACTIVELY USED: research_and_implement_cycle trust 0.85 (174 uses, 96.6% success), reactive_analysis_dispatch trust 0.75 (105 uses, 94.3%), deploy_webassist_changes trust 0.72 (24 uses, 87.5%). 11 others at trust 0.45-0.50 with 0-1 uses. **Threshold mismatch FIXED cycle 327**: PROC_NAMES tracking was at ≥0.55 while injection at ≥0.40 — 11 procedures could never build trust. Fixed to ≥0.40.
-- Queue: 0 unreviewed. 0 pending. 0 running. ~500 completed, 38 failed.
-- RL2F accuracy: 64% (32/50) IMPROVING. AutoEvolve gen-1 KEPT.
-- Agent memory audit (cycle 326): researcher 427L, coder 81L, reviewer 4L, debugger 6L. architect+memory-curator have no memory files. All agents 100% success in last 30 tasks. Low priority.
+- Disk: ~40% boot. RAM: ~5.7GB/16GB.
+- Procedures: 15. Top 3 ACTIVELY USED: reactive_analysis_dispatch trust 0.99 (133 uses), research_and_implement_cycle trust 0.90 (201 uses), create_and_launch_task trust 0.98 (44 uses).
+- Queue: 5 unreviewed. 0 pending. 1 running. 583 completed, 45 failed.
+- RL2F accuracy: 60% (30/50) FLAT. Trajectory: 56%→62%→64%→62%→60%→60%. AutoEvolve gen-1 KEPT, gen-2 trigger met (RL2F<70%) but deferred (rate limited).
+- Workflows: 10 instances completed. Templates: feature-dev v3 (0.82), content-publishing v1 (0.76), social-content v2 (0.68), research-pipeline v1 (no fitness). 1 running (landing page copy).
+- Agent performance (last 30 tasks): All 10 agent types at 100% success.
 
 ## Known Gaps (persistent)
-- **RL2F accuracy: 64% (32/50) IMPROVING** — improved from 56% (cycle 205) → 62% (cycle 323) → 64% (cycle 326). Gen-1 KEPT. Trend confirmed by API.
+- **RL2F accuracy: 60% (30/50) FLAT** — trajectory: 56% (cycle 205) → 62% (cycle 323) → 64% (cycle 326) → 62% (cycle 334) → 60% (cycles 335-338). Gen-1 KEPT. API trend field says "improving" but raw count unchanged — don't trust trend when count is static. Orchestrator compliance gap: reported 45% when actual was 60% (principle #9 exists but not followed). AutoEvolve gen-2 trigger met but rate-limited.
 - **Zombie task gap (FIXED cycle 323)**: task_runner.sh had `set -euo pipefail` with NO trap handler. Any unguarded command failure killed the script before the completion callback, creating zombies. 7 total process-died failures. FIX: added `trap cleanup_on_exit EXIT` handler that marks tasks as failed via API on unexpected exit. Secondary fix needed: add `|| true` guards to pre-flight git commands. Stale-task reaper still recommended as defense-in-depth.
 - **LLM fallback chain**: Kimi→OpenAI→Claude CLI. Working since cycle 93. Claude CLI fallback untested but non-critical.
 - **Agent swarm**: Only `coder` and `researcher` have memory. Tasks don't use agent_type classification. Low priority.
