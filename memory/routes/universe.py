@@ -580,6 +580,76 @@ async def get_ecosystem_health():
     }
 
 
+@router.get("/canonical-urls")
+async def get_canonical_urls():
+    """Return the canonical URL registry — single source of truth for all project domains."""
+    registry_path = UNIVERSE_DIR / "canonical_urls.yaml"
+    if not registry_path.exists():
+        raise HTTPException(status_code=404, detail="canonical_urls.yaml not found")
+    data = _read_yaml(registry_path)
+    return {
+        "registry_version": data.get("registry_version", "unknown"),
+        "last_updated": data.get("last_updated"),
+        "maintained_by": data.get("maintained_by"),
+        "projects": data.get("projects", []),
+        "internal": data.get("internal", []),
+        "changelog": data.get("changelog", []),
+    }
+
+
+@router.put("/canonical-urls/{project_id}")
+async def update_canonical_url(project_id: str, body: dict):
+    """Update a single project's canonical URL. Bumps registry version and logs change."""
+    registry_path = UNIVERSE_DIR / "canonical_urls.yaml"
+    if not registry_path.exists():
+        raise HTTPException(status_code=404, detail="canonical_urls.yaml not found")
+
+    data = _read_yaml(registry_path)
+    projects = data.get("projects", [])
+    target = next((p for p in projects if p["id"] == project_id), None)
+    if not target:
+        raise HTTPException(status_code=404, detail=f"Project '{project_id}' not in canonical URL registry")
+
+    old_url = target.get("canonical", "")
+    new_url = body.get("canonical", old_url)
+    new_status = body.get("status", target.get("status"))
+    new_note = body.get("note", target.get("note", ""))
+
+    target["canonical"] = new_url
+    target["url"] = f"https://{new_url}" if new_url and not new_url.startswith("http") else new_url
+    target["status"] = new_status
+    if new_note:
+        target["note"] = new_note
+
+    # Bump registry version (patch)
+    version_parts = data.get("registry_version", "1.0.0").split(".")
+    version_parts[-1] = str(int(version_parts[-1]) + 1)
+    data["registry_version"] = ".".join(version_parts)
+    data["last_updated"] = datetime.now().strftime("%Y-%m-%d")
+
+    # Append changelog entry
+    changelog = data.get("changelog", [])
+    changelog.append({
+        "version": data["registry_version"],
+        "date": data["last_updated"],
+        "changes": [f"{project_id}: {old_url} → {new_url}"],
+    })
+    data["changelog"] = changelog
+
+    _write_yaml(registry_path, data)
+    append_changelog(f"canonical-urls: updated {project_id} → {new_url}")
+
+    # Also sync to project YAML if it exists
+    project_yaml_path = PROJECTS_DIR / f"{project_id}.yaml"
+    if project_yaml_path.exists():
+        p_data = _read_yaml(project_yaml_path)
+        if "brand" in p_data:
+            p_data["brand"]["domain"] = new_url
+        _write_yaml(project_yaml_path, p_data)
+
+    return {"ok": True, "project_id": project_id, "canonical": new_url, "version": data["registry_version"]}
+
+
 @router.get("/projects/{project_id}/summary")
 async def get_project_summary(project_id: str):
     """Get project YAML overview + content counts per type."""

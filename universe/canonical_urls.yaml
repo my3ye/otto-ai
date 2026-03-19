@@ -1,0 +1,128 @@
+# MY3YE Ecosystem — Canonical URL Registry
+# ─────────────────────────────────────────
+# SINGLE SOURCE OF TRUTH for all project domains and URLs.
+# Every agent, content piece, and system that references a project URL
+# MUST read from this file or the /universe/canonical-urls API endpoint.
+# Never hardcode URLs elsewhere. Never generate from memory alone.
+#
+# Version history tracked in changelog section below.
+# Bump `version` and add changelog entry on every URL change.
+
+schema_version: 1
+registry_version: "1.0.0"
+last_updated: "2026-03-19"
+maintained_by: "Otto (mev.otto.lk)"
+
+# ── Project URLs ──────────────────────────────────────────────────────────────
+# Required fields per entry:
+#   id:          matches Universe registry project ID
+#   name:        display name
+#   canonical:   the ONE true domain (no trailing slash, no protocol)
+#   status:      live | beta | coming_soon | concept
+#   note:        optional clarification
+
+projects:
+  - id: my3ye
+    name: "MY3YE"
+    canonical: "my3ye.xyz"
+    url: "https://my3ye.xyz"
+    status: live
+    note: "Overarching ecosystem hub. Inception articles published 2026-03-05."
+
+  - id: otto
+    name: "Otto / Ottolabs"
+    canonical: "otto.lk"
+    url: "https://otto.lk"
+    status: live
+    note: "Main Otto/Ottolabs presence. OMS at mev.otto.lk."
+
+  - id: 505-systems
+    name: "SOS Systems"
+    canonical: "505.systems"
+    url: "https://505.systems"
+    status: beta
+    note: "Name is SOS Systems. Domain is 505.systems — intentional."
+
+  - id: oneon
+    name: "ONEON"
+    canonical: "oneon.ink"
+    url: "https://oneon.ink"
+    status: beta
+
+  - id: tusita
+    name: "Tusita"
+    canonical: "tusita.xyz"
+    url: "https://tusita.xyz"
+    status: beta
+
+  - id: koink
+    name: "KOINK.FUN"
+    canonical: "koink.fun"
+    url: "https://koink.fun"
+    status: beta
+
+  - id: panik
+    name: "Panik App"
+    canonical: "panik.app"
+    url: "https://panik.app"
+    status: beta
+
+  - id: shakrah
+    name: "Shakrah"
+    canonical: "shakrah.xyz"
+    url: "https://shakrah.xyz"
+    status: beta
+
+  - id: otto-music
+    name: "Otto Music"
+    canonical: "ottomusic.xyz"
+    url: "https://ottomusic.xyz"
+    status: coming_soon
+
+  - id: pipi
+    name: "PiPi"
+    canonical: "pipi.ink"
+    url: "https://pipi.ink"
+    status: coming_soon
+    note: "PiPi mascot. Confirmed by Mev 2026-03-19."
+
+  - id: assistive-tech
+    name: "WebAssist"
+    canonical: "webassist.ink"
+    url: "https://webassist.ink"
+    status: live
+    note: "First revenue product. P1 priority."
+
+  - id: ottolabs
+    name: "Ottolabs"
+    canonical: "otto.lk"
+    url: "https://otto.lk"
+    status: live
+    note: "Shares domain with Otto. Physical means of production."
+
+# ── Internal System URLs ──────────────────────────────────────────────────────
+
+internal:
+  - id: oms
+    name: "Otto Management System"
+    canonical: "mev.otto.lk"
+    url: "https://mev.otto.lk"
+    note: "OMS — full visibility and control UI. Private."
+
+  - id: memory-api
+    name: "Memory API"
+    url: "http://localhost:8100"
+    note: "Otto's internal memory API. Not public."
+
+# ── Changelog ─────────────────────────────────────────────────────────────────
+# Format: version | date | change
+
+changelog:
+  - version: "1.0.0"
+    date: "2026-03-19"
+    changes:
+      - "Initial canonical URL registry created"
+      - "Sourced from Mev-confirmed URL list (2026-03-19)"
+      - "PiPi → pipi.ink confirmed by Mev"
+      - "SOS Systems → 505.systems (name/domain distinction documented)"
+      - "WebAssist → webassist.ink confirmed live"
