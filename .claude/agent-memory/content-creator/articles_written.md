@@ -9,7 +9,7 @@ type: project
 **Article 1: "The Eye That Sees What Must Be Built"**
 - Content DB ID: af414a05-6559-4036-924c-f8ccf8d1a0d6
 - File: /mnt/media/projects/my3ye-web/content/blog/the-eye-that-sees-what-must-be-built.mdx
-- Angle: Full civilization stack overview — all 14 projects as "fourteen currents in one river," grounded in the law that contribution compounds and extraction collapses. The single ecosystem introduction piece.
+- Angle: Full civilization stack overview — projects across many verticals as "currents in one river," grounded in the law that contribution compounds and extraction collapses. The single ecosystem introduction piece.
 - Story beat: All four (Law + Mission + Frame + Dream)
 - Status: draft
 - DO NOT repeat: the full "fourteen currents" list frame, the collapse-of-civilizations opening beat, the "lake vs river" problem diagnosis as the article opener
@@ -41,7 +41,7 @@ type: project
 **Document 1: "What We Are Building"**
 - Content DB ID: 474227ce-b0a1-41b8-a712-6e421a74e414
 - File: DB only (founding vision document, not a blog article)
-- Angle: Full ecosystem founding vision — problem (extractive lake systems), river law, all 14 projects in compact descriptor form, bigger picture destination. Covers all projects but none in depth. Founder-level, 870 words.
+- Angle: Full ecosystem founding vision — problem (extractive lake systems), river law, projects across many verticals in compact descriptor form, bigger picture destination. Covers all projects but none in depth. Founder-level, 870 words.
 - Story beat: All four beats
 - Status: draft
 - DO NOT repeat: lake-as-extractive-design framing as the document opener, compact bolded project descriptors in founding-doc format, "$0 raised" + "contribution graph is only currency" as the economics summary, "one ladder / arrive from anywhere" for SOS, "$199 AR Glasses" Ottolabs product pricing, "The meme is the door. The protocol is the floor." for Koink

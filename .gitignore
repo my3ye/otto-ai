@@ -22,3 +22,6 @@ node_modules/
 memory/svc_components.npz
 *.npz
 projects/alpha/research_state.json
+
+# Task progress files (ephemeral, task-specific)
+.otto-progress-*.md

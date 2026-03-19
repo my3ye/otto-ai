@@ -21,10 +21,10 @@ type: project
 **Covered:**
 - Landing page hero + protocol descriptions (rewritten 2026-03-19, 5 commits to Vercel)
 - Landing page copy — full four-section copy (Hero / Vision / Ecosystem / CTA) with all brand lines used verbatim (2026-03-19, DB: b6a0daef-6f82-45fc-b066-b3a78cc53d3f). Three CTA commitment levels: Follow / Manifesto / Pink Paper.
-- "The Eye That Sees What Must Be Built" — full ecosystem intro, all 14 projects, all four story beats (2026-03-19, DB: af414a05)
+- "The Eye That Sees What Must Be Built" — full ecosystem intro, projects across many verticals, all four story beats (2026-03-19, DB: af414a05)
 
 **Open angles:**
-- The mechanism: how DPC contribution weighting works across all 14 projects simultaneously
+- The mechanism: how DPC contribution weighting works across the full ecosystem simultaneously
 - The origin: founder narrative / why MY3YE came to exist
 - The economics: universal tokenomics deep dive — $0 raised, 60/30/10 split, what that signals
 
