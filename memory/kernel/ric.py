@@ -545,6 +545,40 @@ async def _hook_drift_measure(interrupt, **_):
         await measure_drift(agent_id=agent_id)
 
 
+async def _hook_thought_vault_capture(pool, channel, content, interrupt, **_):
+    """Auto-capture voice notes and long thought-dumps into Thought Vault.
+
+    Criteria:
+      - [Voice] prefix (transcribed voice note from Deepgram)
+      - OR message length > 300 chars (substantial thought dump)
+    """
+    is_voice = content.startswith("[Voice]") or content.startswith("[voice]")
+    is_long = len(content) > 300
+
+    if not (is_voice or is_long):
+        return
+
+    source_message_id = str(interrupt.get("id", "")) or None
+
+    try:
+        await pool.execute(
+            """INSERT INTO thought_vault
+                   (source, source_message_id, raw_content, importance)
+               VALUES ($1, $2, $3, $4)
+               ON CONFLICT (source_message_id) DO NOTHING""",
+            channel,
+            source_message_id,
+            content,
+            7 if is_voice else 5,
+        )
+        log.info(
+            f"Phase 5: thought-vault captured {'voice' if is_voice else 'long-text'} "
+            f"({len(content)} chars) from {channel}"
+        )
+    except Exception as e:
+        log.warning(f"Phase 5: thought-vault capture failed: {e}")
+
+
 def setup_post_process_hooks():
     """Register all Phase 5 post-processing hooks. Called once at API startup."""
     from . import hooks
@@ -563,6 +597,7 @@ def setup_post_process_hooks():
     hooks.register("message.post.late", _hook_directive_extract)
     hooks.register("message.post.late", _hook_reactive_dispatch)
     hooks.register("message.post.late", _hook_drift_measure)
+    hooks.register("message.post.late", _hook_thought_vault_capture)
 
     log.info(f"Phase 5 hooks registered: {hooks.list_hooks()}")
 
