@@ -156,6 +156,52 @@ type: project
 - The modalities: what traditions are included and why pluralism is the design choice
 - The Otto Band integration: granular view of biometric data ownership mechanics
 
+## POLKADOT ECOSYSTEM ENTRY (2026-03-20)
+
+**Forum Post: "Polkadot Forum Introduction — MY3YE Ecosystem"**
+- Content DB ID: b2e8d1fb-5fe8-4892-b662-f62a2fb49b3b
+- Platform: forum.polkadot.network (Ecosystem category)
+- Angle: Ecosystem intro for Polkadot community — ONEON/505 Systems/Koink/PiPi, W3F grant intent, Gitcoin GG24, culture gap observation
+- [MEV_ACTION] Must create forum account + post
+
+**Grant: W3F Level 1 — ONEON People Chain Identity ($10K)**
+- Content DB ID: e5744ea3-bb99-4e7e-b1da-0b298165124b
+- Angle: pallet-oneon-identity extending People Chain with portable contribution history; 2 milestones (core pallet + XCM); Apache 2.0
+- [MEV_ACTION] Fork github.com/w3f/Grants-Program, submit as applications/ONEON-identity.md
+
+**Grant: W3F Level 1 — 505 Systems DPC Governance Pallet ($10K)**
+- Content DB ID: 5564986f-9ccf-4540-ad56-91a968173fb1
+- Angle: pallet-dpc extending OpenGov with contribution-weighted second dimension; WeightBlend configurable; integrates with ONEON pallet or standalone
+- [MEV_ACTION] Fork github.com/w3f/Grants-Program, submit as applications/505-systems-dpc.md simultaneously
+
+**Gitcoin GG24 Registration Content (3 projects)**
+- Content DB ID: dc5afcb1-f028-472f-a480-17a66883bd7c
+- Covers: ONEON ($50K goal), SOS Systems ($75K goal), Otto AI ($100K goal)
+- Pre-round strategy: 200+ donors per project; quadratic matching = breadth beats depth
+- [MEV_ACTION] Register all 3 at builder.gitcoin.co
+
+**BD One-Pager: "MY3YE × Polkadot Partnership Pitch"**
+- Content DB ID: a0ea86ca-81ee-4afa-b43e-6d4f747911b5
+- Angle: Three-layer pitch (Infrastructure/Community/Culture), 6 projects mapped to Polkadot gaps, $20K W3F ask
+- [MEV_ACTION] Send to ecosystem@polkadot.network + sebastian@web3.foundation after forum post live
+
+**Article: "The Network That Has No Face"**
+- Content DB ID: bc1746f7-223a-4835-8156-52e4d3593390
+- Project: PIPI
+- Angle: Polkadot culture gap thesis — infrastructure without a face. PiPi as Polkadot mascot. 5 PI meanings, stutter-as-signal, Koink Hub dApp, multi-chain by design.
+- Story beat: The Frame
+- Dominant metaphor: signal / verification / echo (no river)
+- DO NOT repeat: flatline developer growth as culture-gap evidence, stutter-as-verification framing, "five meanings" systematic list
+
+**Roadmap: Polkadot Ecosystem Entry Milestones**
+- Content DB ID: 326fa519-ec3c-4cd4-b15d-67498edd1b13
+- Type: roadmap (4 phases, 9 MEV actions checklist)
+
+**Angles NOT yet written for Polkadot:**
+- Deep dive: how DPC weight actually changes OpenGov vote outcomes (technical essay)
+- The community builder: persona story — someone arriving via SOS → earning governance weight on Polkadot
+- PiPi Solana launch article (meme velocity first, Polkadot as base later)
+
 ## PIPI
 
 **Article 1: "PiPi: The First Meme" (v1 — pre PI framework)**
