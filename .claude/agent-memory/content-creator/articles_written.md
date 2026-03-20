@@ -156,6 +156,52 @@ type: project
 - The modalities: what traditions are included and why pluralism is the design choice
 - The Otto Band integration: granular view of biometric data ownership mechanics
 
+## PIPI
+
+**Article 1: "PiPi: The First Meme" (v1 — pre PI framework)**
+- Content DB ID: 088392e0-dc7f-4e75-8e59-59353e780882
+- Status: draft (superseded by v2)
+- Angle: Mythology arc (mud→cross→protocol), Pepe heritage, mission overview
+
+**Article 2: "The Three Lives of PiPi"**
+- Content DB ID: 5986f798-d9a6-4920-a425-eaf5bf43d5b6
+- Status: draft
+- Angle: Three-act myth structure (mud/cross/protocol) in full narrative form
+
+**Article 3: "PI Is Not One Thing" (NEW — 2026-03-20)**
+- Content DB ID: 624b917f-4882-4376-9db3-65349892a0ef
+- File: DB only
+- Angle: Multi-meaning PI framework — π (infinite), PI (investigator), PI (public interest), PIP (seed/forex unit), PIPI (echo/reef community). The stutter as narrative device. The definitive symbol map.
+- Story beat: The Frame
+- Status: draft
+- DO NOT repeat: the 5 PI meanings in a single post (layering rule); the shellfish/reef metaphor as the PIPI explanation; "the stutter is the PI working the case" framing
+
+**Article 4: "PiPi: The First Meme (v2 — PI Framework)" (NEW — 2026-03-20, reviewed Step 2)**
+- Content DB ID: 24bfbc63-2026-41a7-8537-d3df0d2edc23
+- File: DB only (replaces 088392e0)
+- Angle: Refined intro article — mythology arc with PI framework woven in. Opens with name-as-compression. Covers all 5 PI meanings in integrated narrative form. Investigator framing of stutter as central device.
+- Story beat: The Frame + The Mission
+- Status: draft
+- Review fix: Removed lotus metaphor closing → replaced with pig mythology closer ("PiPi did not ask permission. He rose from the mud because that is what he does.")
+
+**Social Plan: "PiPi Social Plan — Multi-Meaning PI Narrative Update" (NEW — 2026-03-20)**
+- Content DB ID: 611df7d8-b236-44d0-badb-2aa7875ab9bd
+- Type: plan
+- Contains: 5 new posts (PI intro, PI investigator, PIP seed, PIPI echo, public interest), existing post edit suggestions, narrative arc alignment guide, voice notes
+
+**New Social Posts (NEW — 2026-03-20, reviewed + fixed Step 2):**
+- f895a522 — "PI Is Not One Thing (intro post)" — FIXED: 4→5 meanings, added PI=public interest line, $KOIN→$KOINK
+- 6e6d2681 — "The PI Works the Case" — FIXED: $KOIN→$KOINK
+- 802af2a3 — "A Pip Is a Seed" — FIXED: removed forbidden word "moon" → "not promising destinations"
+- bd2ba83b — "PIPI Is the Echo"
+- 85e75c67 — "Everything PiPi Builds Is Public Interest"
+
+**Angles NOT yet written for PIPI:**
+- Solana launch narrative (meme first → Polkadot later)
+- PiPi × Polkadot BD pitch article (Foundation pitch companion piece)
+- The stutter as technical concept (signal theory meets character lore)
+- $KOINK Standard deep dive from PiPi's perspective
+
 ## OTTOLABS
 
 **Article 1 (REWRITE of inception): "The Workshop Is the Revolution"**
