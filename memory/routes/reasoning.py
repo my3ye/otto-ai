@@ -190,6 +190,26 @@ async def extract_lessons(
         is_duplicate = any(
             _text_overlap(principle_lower, ex) > 0.6 for ex in existing_texts
         )
+        # Extra dedup for template-generated principles: signature match
+        # Prevents bloat where each entry creates a near-identical principle
+        # with different condition prefixes that fool Jaccard similarity
+        if not is_duplicate and outcome == "partial":
+            partial_sig = "prediction was partially right but missed"
+            is_duplicate = any(partial_sig in ex for ex in existing_texts)
+        if not is_duplicate and outcome == "miss":
+            miss_sig = "led to miss (actual:"
+            is_duplicate = any(miss_sig in ex for ex in existing_texts)
+        # Also check if ANY existing reasoning_chain principle exists —
+        # after consolidation, the consolidated principle won't match templates
+        if not is_duplicate and len(existing_texts) >= 1:
+            # If there's already a reasoning_chain principle about predictions,
+            # skip creating more template-based ones
+            prediction_keywords = ["predict", "expectation", "beware"]
+            has_prediction_principle = any(
+                any(kw in ex for kw in prediction_keywords) for ex in existing_texts
+            )
+            if has_prediction_principle and "beware" in principle_lower:
+                is_duplicate = True
 
         new_principle_id = None
         if not is_duplicate:

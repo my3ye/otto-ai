@@ -1,17 +1,18 @@
 # Reflection Agent Memory
 
-## System Baselines (updated 2026-03-19 cycle 338)
-- Memory: Evolve healthy (1211 decay, 5 facts, 0 dupes this cycle). GLOVE: 0/15 mismatches (clean, 29+ consecutive cycles).
+## System Baselines (updated 2026-03-20 cycle 344)
+- Memory: Evolve healthy (1285 decay, 5 facts, 0 dupes). GLOVE: 0/15 mismatches (clean, 36+ consecutive cycles).
 - Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Docker: postgres, neo4j, graphiti.
-- Disk: ~40% boot. RAM: ~5.7GB/16GB.
-- Procedures: 15. Top 3 ACTIVELY USED: reactive_analysis_dispatch trust 0.99 (133 uses), research_and_implement_cycle trust 0.90 (201 uses), create_and_launch_task trust 0.98 (44 uses).
-- Queue: 5 unreviewed. 0 pending. 1 running. 583 completed, 45 failed.
-- RL2F accuracy: 60% (30/50) FLAT. Trajectory: 56%→62%→64%→62%→60%→60%. AutoEvolve gen-1 KEPT, gen-2 trigger met (RL2F<70%) but deferred (rate limited).
-- Workflows: 10 instances completed. Templates: feature-dev v3 (0.82), content-publishing v1 (0.76), social-content v2 (0.68), research-pipeline v1 (no fitness). 1 running (landing page copy).
-- Agent performance (last 30 tasks): All 10 agent types at 100% success.
+- Disk: 41% boot. RAM: 5.9GB/16GB.
+- Procedures: 15. Top 3: create_and_launch_task trust 0.97 (81 uses), reactive_analysis_dispatch trust 0.94 (151 uses), research_and_implement_cycle trust 0.94 (240 uses).
+- Queue: 6 unreviewed. 0 pending. 3 running. 619 completed, 46 failed, 5 cancelled.
+- RL2F accuracy: 54% (27/50) STABLE. Heartbeat reported 35% (misread) — corrected to 54% via API.
+- Workflows: 15+ instances completed. 4 currently running. Templates: feature-dev v3 (0.82), content-publishing v2 (0.76), social-content v2 (0.68), research-pipeline v2 (0.76).
+- Principles: 34 total (20 normative, 1 reasoning_chain, 9 task_execution). Fixed recurring bloat: patched miss-template dedup in reasoning.py (cycle 344).
 
 ## Known Gaps (persistent)
-- **RL2F accuracy: 60% (30/50) FLAT** — trajectory: 56% (cycle 205) → 62% (cycle 323) → 64% (cycle 326) → 62% (cycle 334) → 60% (cycles 335-338). Gen-1 KEPT. API trend field says "improving" but raw count unchanged — don't trust trend when count is static. Orchestrator compliance gap: reported 45% when actual was 60% (principle #9 exists but not followed). AutoEvolve gen-2 trigger met but rate-limited.
+- **RL2F accuracy: 54% (27/50) STABLE** — Heartbeat misreported as 35% (cycle 344), corrected via API. **Principle bloat RECURRING**: extract-lessons creates per-miss principles that duplicate the consolidated one. FIXED cycle 344: added miss-template signature check + consolidated-principle keyword detection to dedup logic in reasoning.py. Now 1 reasoning_chain principle (was 4, consolidated to 1 twice). AutoEvolve gen-2 deferred. Social-content workflow fitness stagnant at 0.68.
+- **Researcher agent memory bloat**: 454 lines in MEMORY.md — largest by far. Flag for cleanup when capacity allows.
 - **Zombie task gap (FIXED cycle 323)**: task_runner.sh had `set -euo pipefail` with NO trap handler. Any unguarded command failure killed the script before the completion callback, creating zombies. 7 total process-died failures. FIX: added `trap cleanup_on_exit EXIT` handler that marks tasks as failed via API on unexpected exit. Secondary fix needed: add `|| true` guards to pre-flight git commands. Stale-task reaper still recommended as defense-in-depth.
 - **LLM fallback chain**: Kimi→OpenAI→Claude CLI. Working since cycle 93. Claude CLI fallback untested but non-critical.
 - **Agent swarm**: Only `coder` and `researcher` have memory. Tasks don't use agent_type classification. Low priority.
