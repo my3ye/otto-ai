@@ -17,24 +17,51 @@ class ApprovalBody(BaseModel):
 
 
 @router.get("/queue")
-async def get_queue(status: str = "pending", limit: int = 50):
-    """Get outreach messages in queue, filtered by status."""
+async def get_queue(
+    status: str = "pending",
+    limit: int = 50,
+    offset: int = 0,
+    lead_type: str = "",
+    search: str = "",
+):
+    """Get outreach messages in queue, filtered by status, lead_type, and search."""
     valid = ("pending", "approved", "rejected", "sent", "failed")
     if status not in valid:
         raise HTTPException(status_code=400, detail=f"status must be one of: {valid}")
 
     pool = await get_pool()
-    rows = await pool.fetch("""
+
+    # Build dynamic WHERE clause
+    conditions = ["status = $1"]
+    params: list = [status]
+
+    if lead_type:
+        params.append(lead_type)
+        conditions.append(f"lead_type = ${len(params)}")
+
+    if search:
+        params.append(f"%{search}%")
+        conditions.append(f"(business_name ILIKE ${len(params)} OR city ILIKE ${len(params)} OR message_body ILIKE ${len(params)})")
+
+    where = " AND ".join(conditions)
+
+    # Count total matching rows
+    total = await pool.fetchval(f"SELECT COUNT(*) FROM outreach_queue WHERE {where}", *params)
+
+    # Fetch page
+    params_page = params + [limit, offset]
+    rows = await pool.fetch(f"""
         SELECT id, business_name, city, phone, website, lead_type, lead_score,
                channel, message_body, status, created_at, approved_at, sent_at
         FROM outreach_queue
-        WHERE status = $1
+        WHERE {where}
         ORDER BY lead_score DESC, created_at DESC
-        LIMIT $2
-    """, status, limit)
+        LIMIT ${len(params_page) - 1} OFFSET ${len(params_page)}
+    """, *params_page)
 
     return {
         "status": status,
+        "total": total,
         "count": len(rows),
         "messages": [dict(r) for r in rows],
     }
