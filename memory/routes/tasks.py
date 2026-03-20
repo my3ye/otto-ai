@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import signal
 import subprocess
 import logging
 from datetime import datetime, timezone
@@ -1363,6 +1364,59 @@ async def cancel_task(task_id: UUID):
     if not row:
         raise HTTPException(404, "Task not found or not in pending status")
     return TaskOut(**dict(row))
+
+
+@router.post("/{task_id}/stop", response_model=TaskOut)
+async def stop_task(task_id: UUID):
+    """Stop a running task by killing its process."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "SELECT id, status, pid, title FROM tasks WHERE id = $1", task_id,
+    )
+    if not row:
+        raise HTTPException(404, "Task not found")
+
+    status = row["status"]
+    pid = row["pid"]
+
+    # If pending, just cancel it
+    if status == "pending":
+        r = await pool.fetchrow(
+            f"""UPDATE tasks SET status = 'cancelled'
+                WHERE id = $1 RETURNING {TASK_COLUMNS}""",
+            task_id,
+        )
+        log.info(f"Task {task_id} ({row['title']}) cancelled (was pending)")
+        return TaskOut(**dict(r))
+
+    if status != "running":
+        raise HTTPException(409, f"Task is '{status}', not running or pending")
+
+    # Kill the process group (task_runner uses start_new_session=True)
+    killed = False
+    if pid:
+        try:
+            os.killpg(pid, signal.SIGTERM)
+            killed = True
+            log.info(f"Sent SIGTERM to process group {pid} for task {task_id}")
+        except ProcessLookupError:
+            log.info(f"Process {pid} already dead for task {task_id}")
+            killed = True
+        except PermissionError:
+            log.warning(f"Permission denied killing PID {pid} for task {task_id}")
+        except Exception as e:
+            log.warning(f"Failed to kill PID {pid} for task {task_id}: {e}")
+
+    r = await pool.fetchrow(
+        f"""UPDATE tasks SET status = 'failed', pid = NULL,
+                completed_at = now(),
+                error = 'Stopped by admin',
+                exit_code = -15
+            WHERE id = $1 RETURNING {TASK_COLUMNS}""",
+        task_id,
+    )
+    log.info(f"Task {task_id} ({row['title']}) stopped (killed={killed})")
+    return TaskOut(**dict(r))
 
 
 # ── QA Layer ───────────────────────────────────────────────────────

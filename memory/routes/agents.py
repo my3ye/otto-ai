@@ -352,3 +352,60 @@ async def dismiss_proposal(proposal_id: UUID):
     if result == "DELETE 0":
         raise HTTPException(status_code=404, detail="Proposal not found or already applied")
     return {"status": "dismissed", "proposal_id": str(proposal_id)}
+
+
+# ── Agent Activity Log ────────────────────────────────────────────────────────
+
+@router.get("/activity")
+async def get_agent_activity(
+    agent_id: Optional[str] = None,
+    event_type: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+):
+    """Paginated agent activity log for OMS display."""
+    pool = await get_pool()
+
+    conditions = []
+    args: list = []
+    idx = 1
+
+    if agent_id:
+        conditions.append(f"agent_id = ${idx}")
+        args.append(agent_id)
+        idx += 1
+    if event_type:
+        conditions.append(f"event_type = ${idx}")
+        args.append(event_type)
+        idx += 1
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+    total_row = await pool.fetchrow(
+        f"SELECT COUNT(*) AS n FROM agent_activity_log {where}", *args
+    )
+    total = total_row["n"] if total_row else 0
+
+    rows = await pool.fetch(
+        f"""
+        SELECT id, agent_id, event_type, details, created_at
+        FROM agent_activity_log
+        {where}
+        ORDER BY created_at DESC
+        LIMIT ${idx} OFFSET ${idx + 1}
+        """,
+        *args, limit, offset,
+    )
+
+    entries = [
+        {
+            "id": str(r["id"]),
+            "agent_id": r["agent_id"],
+            "event_type": r["event_type"],
+            "details": json.loads(r["details"]) if isinstance(r["details"], str) else (r["details"] or {}),
+            "created_at": r["created_at"].isoformat(),
+        }
+        for r in rows
+    ]
+
+    return {"total": total, "entries": entries}
