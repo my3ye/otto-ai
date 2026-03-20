@@ -160,7 +160,8 @@ async def _handle_admin_message(interrupt: dict) -> dict:
     # Phase 3 — PROCESS: build prompt + call LLM with multi-turn history
     from ..kernel.provider import provider_chat
 
-    system_prompt = _build_system_prompt(context_text, channel)
+    is_voice = content.startswith("[Voice]") or content.startswith("[voice]")
+    system_prompt = _build_system_prompt(context_text, channel, is_voice=is_voice)
 
     # Build proper multi-turn messages from recent conversation history
     # This gives the LLM actual user/assistant turns instead of flat text
@@ -228,7 +229,7 @@ async def _handle_admin_message(interrupt: dict) -> dict:
     }
 
 
-def _build_system_prompt(context_text: str, channel: str) -> str:
+def _build_system_prompt(context_text: str, channel: str, is_voice: bool = False) -> str:
     """Build system prompt for conversational messages."""
     channel_voice = {
         "whatsapp": (
@@ -252,10 +253,22 @@ def _build_system_prompt(context_text: str, channel: str) -> str:
 
     voice = channel_voice.get(channel, channel_voice["web"])
 
+    voice_note_guidance = ""
+    if is_voice:
+        voice_note_guidance = (
+            "\n\nVOICE TRANSCRIPT: This message was transcribed from a voice note via Deepgram. "
+            "It may contain transcription errors — homophones, garbled project names, run-on words, "
+            "or mistranscribed terms (e.g. 'webtree' → 'worktree', 'auto UI' → 'otto-ui', "
+            "'shadzy' → 'shadcn', 'stahp' → 'stop'). "
+            "Infer Mev's INTENT rather than reading the text literally. "
+            "If a term is unclear, apply context from your memory to resolve it. "
+            "Do not ask for clarification on obvious transcription noise — just interpret and respond."
+        )
+
     return (
         f"You are Otto, a persistent AI entity. You're talking to Mev (your Admin).\n\n"
         f"=== CONTEXT ===\n{context_text}\n=== END CONTEXT ===\n\n"
-        f"Channel guidelines: {voice}\n\n"
+        f"Channel guidelines: {voice}{voice_note_guidance}\n\n"
         f"Be direct, warm, concise. Address Mev by name when natural."
     )
 
@@ -287,7 +300,8 @@ async def _handle_admin_message_stream(interrupt: dict):
     # Phase 3 — PROCESS (streaming)
     from ..kernel.provider import provider_chat_stream
 
-    system_prompt = _build_system_prompt(context_text, channel)
+    is_voice = content.startswith("[Voice]") or content.startswith("[voice]")
+    system_prompt = _build_system_prompt(context_text, channel, is_voice=is_voice)
 
     # Inject document content if present
     user_content = content
@@ -742,6 +756,72 @@ async def _gather_task_context(title: str, prompt: str) -> str:
     return "\n\n=== GATHERED CONTEXT ===\n\n" + "\n\n".join(parts) + "\n\n=== END CONTEXT ==="
 
 
+async def _handle_stop_command(pool, channel: str) -> None:
+    """Stop the most recently launched running task(s).
+
+    Finds running tasks (most recent first), calls /tasks/{id}/stop logic
+    inline, and notifies Mev.
+    """
+    import os, signal
+
+    rows = await pool.fetch(
+        """SELECT id, title, pid FROM tasks
+           WHERE status = 'running'
+           ORDER BY started_at DESC NULLS LAST""",
+    )
+
+    if not rows:
+        log.info("Stop command received but no running tasks found")
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                "/home/web3relic/otto/tools/whatsapp_send.sh",
+                "No running tasks to stop.",
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            await asyncio.wait_for(proc.communicate(), timeout=10)
+        except Exception:
+            pass
+        return
+
+    # Stop the most recently started task
+    task = rows[0]
+    task_id, title, pid = task["id"], task["title"], task["pid"]
+
+    killed = False
+    if pid:
+        try:
+            os.killpg(pid, signal.SIGTERM)
+            killed = True
+            log.info(f"Stop command: sent SIGTERM to pgid {pid} for task {task_id}")
+        except ProcessLookupError:
+            killed = True
+            log.info(f"Stop command: process {pid} already dead for task {task_id}")
+        except Exception as e:
+            log.warning(f"Stop command: failed to kill PID {pid}: {e}")
+
+    await pool.execute(
+        """UPDATE tasks SET status = 'failed', pid = NULL,
+               completed_at = now(), error = 'Stopped by admin', exit_code = -15
+           WHERE id = $1""",
+        task_id,
+    )
+    log.info(f"Stop command: task {task_id} ({title}) stopped (killed={killed})")
+
+    try:
+        notify = f"Stopped: {title}"
+        if len(rows) > 1:
+            notify += f"\n({len(rows) - 1} other task(s) still running)"
+        proc = await asyncio.create_subprocess_exec(
+            "/home/web3relic/otto/tools/whatsapp_send.sh", notify,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await asyncio.wait_for(proc.communicate(), timeout=10)
+    except Exception:
+        pass
+
+
 async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> None:
     """Reactive Dispatch: detect action in admin messages and auto-create tasks.
 
@@ -749,7 +829,12 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
     Classifies whether Mev's message requires Otto to take action, then
     creates a task (and optionally launches it for urgent requests).
     """
-    from ..gateway.classifiers import classify_for_dispatch
+    from ..gateway.classifiers import classify_for_dispatch, classify_for_stop
+
+    # ── Stop detection: kill running tasks if Mev says stop ──
+    if await classify_for_stop(content):
+        await _handle_stop_command(pool, channel)
+        return
 
     dispatch = await classify_for_dispatch(content, reply)
     if not dispatch:

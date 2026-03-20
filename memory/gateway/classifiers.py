@@ -250,6 +250,10 @@ Use "social-content-pipeline" for: creating social media posts, X/Twitter conten
 Use "research-pipeline" for: deep research investigations, market research, competitive analysis, technical investigation requiring synthesis + validation + storage. Variables: {topic, scope, requirements, research_depth}. research_depth: "surface" (web only), "standard" (web + memory), "deep" (all sources + papers).
 Use null (no workflow) for: simple fixes, quick lookups, small config changes, one-off tasks.
 
+NOTE: Messages prefixed with [Voice] are Deepgram transcriptions of voice notes. They may contain
+transcription errors, homophones, or garbled project names. Apply intent inference — understand
+WHAT Mev is asking, not just the literal words. (e.g. 'auto UI' → 'otto-ui', 'webtree' → 'worktree').
+
 Return ONLY valid JSON (no markdown, no code fences):
 {"action_needed": true/false, "task_title": "<imperative title, max 80 chars>", "task_prompt": "<detailed task prompt, 100-400 chars>", "urgency": "normal|high|critical", "priority": <5-9>, "agent_type": "<one of the types above>", "workflow_template": "<template name or null>", "workflow_variables": {<variables or null>}}
 
@@ -293,6 +297,40 @@ async def classify_for_dispatch(user_message: str, otto_reply: str) -> dict | No
     return None
 
 
+async def classify_for_stop(user_message: str) -> bool:
+    """Detect if Mev wants to stop/kill/cancel a running task.
+
+    Uses simple keyword matching — no LLM call needed. Returns True if the
+    message looks like a stop command.
+
+    Handles voice transcription variants: [Voice] prefix is stripped before
+    matching, and common transcription errors (stahp, cancle, kil) are included.
+    """
+    # Strip [Voice] prefix — transcription artifacts don't affect intent
+    raw = user_message.strip()
+    if raw.startswith("[Voice]") or raw.startswith("[voice]"):
+        raw = raw[len("[Voice]"):].strip()
+    msg = raw.lower()
+
+    stop_phrases = [
+        # Standard phrases
+        "stop that task", "stop the task", "stop it",
+        "kill that task", "kill the task", "kill it",
+        "cancel that task", "cancel the task", "cancel it",
+        "abort that task", "abort the task", "abort it",
+        "stop that", "kill that", "cancel that", "abort that",
+        "stop what you're doing", "stop what you are doing",
+        "halt that", "halt the task",
+        # Voice transcription variants
+        "stahp", "stap that", "stap the task",
+        "cancle", "cancle that", "cancle the task",
+        "kil that", "kil the task",
+        "please stop", "please cancel", "please kill",
+        "just stop", "just cancel",
+    ]
+    return any(phrase in msg for phrase in stop_phrases)
+
+
 _LESSON_SYSTEM = """You analyze conversations between Mev (admin) and Otto (AI agent) to extract LESSONS that Otto must remember permanently.
 
 EXTRACT A LESSON when Mev:
@@ -314,6 +352,9 @@ CRITICAL RULES for the lesson content:
 - Include the WHY — not just what to do, but why it matters.
 - Preserve exact values (account names, emails, paths, credentials).
 - Keep it concise but complete — this will be stored as a permanent memory.
+
+NOTE: Messages prefixed with [Voice] are Deepgram voice transcriptions with possible transcription
+errors. Use intent inference — extract the lesson based on what Mev meant, not the literal words.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {"has_lesson": true/false, "lesson": "<the operational lesson to remember>", "category": "procedure|decision|directive|credential|convention"}
@@ -370,6 +411,9 @@ PRIORITY GUIDE:
 - 8-9: Strategic direction ("we're pivoting to...", "the plan going forward is...")
 - 6-7: Operational orders ("always do X", "from now on...", "never do Y")
 - 5-6: Priority changes ("focus more on X", "deprioritize Y")
+
+NOTE: Messages prefixed with [Voice] are Deepgram voice transcriptions with possible transcription
+errors. Use intent inference — extract the directive based on what Mev meant, not the literal words.
 
 Return ONLY valid JSON (no markdown, no code fences):
 {"has_directive": true/false, "directive": "<the directive text>", "priority": <5-10>, "category": "mission|strategic|operational|priority_change"}
