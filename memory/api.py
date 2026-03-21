@@ -34,9 +34,11 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    # allow_credentials=True is intentionally omitted: browsers reject credentialed
+    # requests when allow_origins is a wildcard ("*"). If you need cookies/auth headers
+    # from a web app, replace allow_origins with an explicit list of your origins.
 )
 
 # Register routes

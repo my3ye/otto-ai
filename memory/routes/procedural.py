@@ -1,3 +1,4 @@
+import json
 from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException
 from ..db import get_pool
@@ -14,7 +15,6 @@ async def create_procedure(req: ProcedureCreate):
     High-trust procedures are surfaced preferentially when agents plan similar tasks.
     """
     pool = await get_pool()
-    import json
     steps_json = json.dumps(req.steps)
 
     row = await pool.fetchrow(

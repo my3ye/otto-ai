@@ -72,6 +72,11 @@ services:
     ports:
       - "127.0.0.1:8100:8100"
     mem_limit: 512m
+    # task_runner.sh lives at the repo root, outside the ./memory build context.
+    # Mount it so POST /tasks/{id}/run can spawn the agent subprocess.
+    # Remove this volume if you are running task_runner.sh on the host instead.
+    volumes:
+      - ./task_runner.sh:/app/task_runner.sh:ro
     environment:
       - POSTGRES_USER=${POSTGRES_USER}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}

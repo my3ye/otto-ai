@@ -76,6 +76,21 @@ curl -X POST http://localhost:8100/semantic/search \
 - Try the [examples](../examples/)
 - Check the [EasyA hackathon tracks](hackathon-tracks.md) if you're here for the hackathon
 
+## Performance note: vector search
+
+The semantic memory table uses an IVFFlat index for fast approximate nearest-neighbour search. IVFFlat builds its internal cluster list at index-creation time, but the clusters become accurate only after `ANALYZE` has run on the table. On a fresh install the index is empty, so Postgres will fall back to a sequential scan until you load some memories.
+
+After you've added your first batch of memories (or before running benchmarks), run:
+
+```bash
+docker exec -it <postgres-container> psql -U $POSTGRES_USER -d $POSTGRES_DB \
+  -c "ANALYZE semantic_memories;"
+```
+
+This is a one-time step per data load. Normal inserts re-use the existing clusters without needing another `ANALYZE`.
+
+---
+
 ## Troubleshooting
 
 **Services not starting:**

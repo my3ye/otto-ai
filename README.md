@@ -33,8 +33,8 @@ curl -X POST http://localhost:8100/tasks \
     "budget_usd": 1.0
   }'
 
-# Launch it
-curl -X POST http://localhost:8100/tasks/{id}/run
+# Launch it (replace $TASK_ID with the id returned above)
+curl -X POST http://localhost:8100/tasks/$TASK_ID/run
 ```
 
 ---

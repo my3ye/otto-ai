@@ -98,21 +98,34 @@ async def run_task(task_id: str):
             detail=f"Task is '{row['status']}', not pending. Only pending tasks can be launched.",
         )
 
-    # Mark as running
+    # Resolve runner path — task_runner.sh lives outside the Docker build context (context: ./memory),
+    # so it is NOT present in the Docker image. Check before marking the task running to avoid
+    # creating a zombie task (status=running with no process behind it).
+    runner_script = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "../../task_runner.sh")
+    )
+    if not os.path.exists(runner_script):
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                "task_runner.sh not found. When running in Docker the runner must be "
+                "mounted into the container or run on the host. "
+                f"Expected path: {runner_script}"
+            ),
+        )
+
+    # Mark as running only after we know the runner exists
     await pool.execute(
         "UPDATE tasks SET status = 'running', started_at = NOW() WHERE id = $1",
         task_id,
     )
 
-    # Spawn the task runner as a detached subprocess
-    runner_script = os.path.join(os.path.dirname(__file__), "../../task_runner.sh")
-    if os.path.exists(runner_script):
-        subprocess.Popen(
-            ["bash", os.path.abspath(runner_script), task_id],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            start_new_session=True,
-        )
+    subprocess.Popen(
+        ["bash", runner_script, task_id],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
 
     return {"status": "launched", "task_id": task_id, "title": row["title"]}
 

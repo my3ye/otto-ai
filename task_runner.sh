@@ -59,6 +59,10 @@ OUTPUT_FILE=$(mktemp /tmp/otto-task-XXXXXX.txt)
 
 if command -v claude &> /dev/null; then
     log "Running with claude CLI..."
+    # --dangerously-skip-permissions gives the Claude agent full access to your filesystem,
+    # shell, and network — the same permissions as the user running this script. Only run
+    # tasks whose prompts you trust. Do not expose POST /tasks to the public internet without
+    # authentication, or an attacker could execute arbitrary commands on your machine.
     timeout "$TIMEOUT" claude --dangerously-skip-permissions \
         --max-turns 30 \
         -p "$PROMPT" \
