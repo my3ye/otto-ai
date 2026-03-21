@@ -1,153 +1,132 @@
-# EasyA Partnership Pitch Brief
-## MY3YE Ecosystem × EasyA
-**Document type:** Partnership pitch brief (v2 — review feedback applied 2026-03-21)
+# EasyA Ecosystem Entry Brief
+## MY3YE × EasyA
+**Document type:** Ecosystem entry pitch brief (v3 — sponsor language removed, project angle 2026-03-21)
 **Prepared by:** Otto
 **Date:** 2026-03-21
 **Contact:** hello@easya.io — Phil Kwok & Dom Kwok
-**Target event:** Consensus Miami 2026
-**Content DB ID:** `5c08c2a8-940a-4abf-a869-e2ee89c038e7`
+**Our position:** Project seeking ecosystem membership, not sponsor seeking track placement
 
 ---
 
 ## Who EasyA Is
 
-EasyA is the dominant Web3 developer education and hackathon platform. Founded by Phil and Dom Kwok (Cambridge + Wharton), now operating at genuine scale:
+EasyA is the dominant Web3 developer education and hackathon platform. Founded by Phil and Dom Kwok, operating at genuine scale:
 
 - **1.1M users** across 300+ university partnerships — Harvard, MIT, Stanford, Oxford, Cambridge
-- **30+ hackathons** organized, including the largest blockchain hackathon in North American history (Consensus Toronto 2025, 1,000+ vetted developers)
-- **$3B+ in combined valuation** across alumni startups (per EasyA) — Cognition AI (Devin), a16z-backed, Founders Fund, YC cohorts
-- **Business model:** 100% free to users. Protocols pay for custom learning tracks, hackathon sponsorship, and developer pipeline access.
+- **30+ hackathons** organized, including the largest blockchain hackathon in North American history
+- **$10B+ EasyA ecosystem** — their stated number for combined portfolio/alumni valuation
+- **EasyA Kickstart** — live on Solana: a launch platform where projects can raise and receive community backing within their ecosystem
+- **Business model:** Protocols and projects pay for custom learning tracks, hackathon sponsorship, and developer pipeline access. Projects with strong narratives and developer potential get ecosystem support and exposure.
 
-**The Polkadot University benchmark:** EasyA built a full named program for Polkadot — 130,000+ developers trained, 111 startups incubated, multi-year partnership with dedicated in-app challenge series (#180DaysOfPolkadot), hackathon tracks at every major event, and a grant fast-track for top graduates. This is the gold standard partnership and the model we are pitching toward.
-
----
-
-## Why This Alignment Works
-
-### The trend is moving toward us
-
-At Consensus Hong Kong (February 2026), AI-powered agents swept every track. The consensus among observers and organizers was that the AI application layer dominated — not infrastructure, not L2s, not DeFi. The next generation of developers is not asking "how do I deploy an NFT" — they are asking "how do I build an AI agent that does something real."
-
-MY3YE is the only ecosystem being built as a complete civilization stack with AI-native infrastructure at its core. Not a single chain trying to attract AI. A system designed from the ground up for intelligent, autonomous operation.
-
-### Our developer narrative is teachable
-
-EasyA's model requires clear, buildable things developers can learn from scratch. We have three:
-
-1. **Otto AI** — Build autonomous AI agents on decentralized infrastructure. Deploy agents that think, remember, and act without calling home to OpenAI or Anthropic. This is the category AI developers are actively searching for.
-
-2. **ONEON** — Build sovereign identity applications. ONEON is the people chain — the network layer that routes influence, reputation, and contribution through a protocol that cannot be captured. Developers can build real-world applications on top of provable identity.
-
-3. **SOS Systems** — Build for impact. SOS Systems is the governance and coordination layer — DAO tooling, resource distribution, and community infrastructure. Every EasyA hackathon includes non-technical tracks for social impact. SOS Systems gives those tracks a real protocol to build on.
-
-### The audience fit is exact
-
-EasyA's audience: university students, early-career developers, career-switchers entering Web3 for the first time.
-
-MY3YE's audience for on-ramp: people who were handed nothing and want to build their way into the future.
-
-These are the same person. They are not HODLers. They are builders who need a protocol that takes contribution seriously — not speculation.
+**What ecosystem membership means for us:** Being recognized and featured by EasyA — as a project their developer community can build on, learn from, and get behind. Not buying airtime. Earning presence.
 
 ---
 
-## What You Can Build Today
+## The Honest Position
 
-**Before sending outreach, this section must be real.** The following describes the current state of MY3YE's developer infrastructure and what needs to exist before the pitch goes out.
+We are not a protocol with a treasury. We are not arriving at EasyA with a sponsorship budget.
 
-**Live now:**
-- Otto AI agent infrastructure is running in production, powering WebAssist (webassist.ink) — autonomous agent routing, task queue, memory API, multi-agent coordination
-- Memory API (port 8100) — functional endpoints for semantic search, episodic memory, knowledge graph, and task execution
-- All system code lives in the MY3YE GitHub org
+We are a builder project in active development. We have real infrastructure running in production. We have a mission that aligns exactly with what EasyA is building toward. We do not have $15,000 for a hackathon prize track right now.
 
-**Required before outreach (pre-conditions for pitch viability):**
-- Public GitHub repo with a `getting-started.md` — even a bare API walkthrough is sufficient
-- One working code example: "Deploy an Otto AI agent in 10 lines"
-- A public developer landing page or docs URL to include in the outreach email
+That is the honest position. And it is a stronger position than pretending otherwise.
 
-**Recommendation:** Do not send this pitch until a developer-facing entry point exists. It does not need to be a full SDK. A clean README and one working example is the minimum bar EasyA's team will require before they can say yes.
-
-**Estimated time to create this:** 2–3 days of focused work.
+EasyA's founders are builders. They built EasyA from Cambridge, not from a foundation grant. They recognize other builders. The pitch is not "here is what we can buy." The pitch is "here is what we are building, and here is why your ecosystem and ours belong together."
 
 ---
 
-## Proposed Collaboration
+## Why This Alignment Is Real
 
-### Tier 1 — Hackathon Track at Consensus Miami 2026
+### The mission match
 
-A dedicated MY3YE track at Consensus Miami 2026. The track focuses on Otto AI — build autonomous AI agents using MY3YE's open infrastructure.
+EasyA's stated goal: onboard 1 billion people to Web3.
 
-**Track format:**
-- Challenge prompt: "Build an AI agent that serves someone who was handed nothing"
-- Judged by MY3YE team + invited AI researchers (names TBD — outreach in progress)
-- Prize structure: **Cash prizes + ecosystem grants for top 3 projects** (see budget section below)
-- Winning projects receive follow-on opportunity to join the MY3YE ecosystem as real contributors
+The current billion is not the next billion. The next billion comes from places without stable currencies, without banking infrastructure, without the $500 hardware and $100/month internet plan the first wave required. They come with a phone and a reason.
 
-This framing is deliberately mission-aligned with EasyA's social impact narrative — their most successful tracks have a "build for the real world" mandate.
+World Bank data puts the global unbanked adult population at approximately 1.4 billion (2022). Most of them are not waiting for DeFi yields. They need a ramp — education, identity, and infrastructure they can enter from zero.
 
-### Tier 2 — MY3YE University on EasyA (6-12 months)
+MY3YE is building that ramp. SOS Systems is an education and onboarding ladder designed from the ground up for underserved communities, displaced populations, and anyone who was handed nothing but wants to build their way forward. Web3-native from the first step.
 
-A named, persistent educational program on the EasyA platform:
+This is EasyA's stated mission. It is ours too. The overlap is not marketing copy. It is architecture.
 
-- **Module 1 — Otto AI:** How to build autonomous AI agents. From zero to deploying a working agent that uses MY3YE's memory and reasoning systems.
-- **Module 2 — ONEON Identity:** How to build sovereign identity applications. Real-world use cases: verifiable credentials, contribution scoring, community governance.
-- **Module 3 — Build for Impact:** SOS Systems protocol fundamentals — DAO tooling, resource distribution, how to build systems that serve people who cannot afford to wait.
-- **Named campaign:** **#BuildWithOtto** — mirrors Polkadot's #180DaysOfPolkadot structure directly. Social momentum, leaderboards, cash prizes for milestone completions.
+### The developer narrative is teachable
 
-### Tier 3 — University Campus Program
+EasyA's model requires clear, buildable protocols developers can learn from scratch. MY3YE has three:
 
-A co-hosted hackathon at one of EasyA's university partners (Harvard, Oxford, or Cambridge preferred). Format: 100-300 developers. MY3YE as primary sponsor. Focus: AI agents for social good.
+**Otto AI** — Build autonomous AI agents on decentralized infrastructure. Deploy agents that think, remember, and act without a centralized API call. The category AI developers are actively searching for after every model provider demonstrated they can revoke access.
 
----
+**ONEON** — Build sovereign identity applications. ONEON is the people chain — the protocol layer for reputation, contribution scoring, and community governance. Real-world buildable applications, not whitepaper concepts.
 
-## What We Bring
+**SOS Systems** — Build for impact. DAO tooling, resource distribution, coordination infrastructure for communities that cannot afford to wait for consensus. Every EasyA hackathon includes social impact tracks. SOS Systems gives those tracks a real protocol.
 
-**A protocol with a real builder narrative.** Not another L1 promising speed. A complete system with genuine mission coherence — the kind of story EasyA's team can stand behind.
+### The timing
 
-**Prize and grant budget — Tier 1 Consensus Miami:**
-Budget to confirm with Mev before outreach. Recommended range: $15,000–$25,000 for the hackathon track (cash prizes + grants). This is the B2B anchor number EasyA will ask for in the first response. Lead with it — do not wait for them to ask.
-
-- 1st place: $8,000 cash + ecosystem grant
-- 2nd place: $4,000 cash + ecosystem grant
-- 3rd place: $2,000 cash
-- Track sponsorship fee to EasyA: $5,000–$10,000 (estimated, confirm with EasyA)
-
-**The AI-native angle EasyA is actively searching for.** After HK 2026, every protocol is trying to bolt "AI" onto their positioning. MY3YE has it built in from the architecture level up.
-
-**An underdog story.** "For the ones who were handed nothing — we built this for us." EasyA's founders are mission-driven. This framing resonates with who they are and who their audience is.
-
-**Where we are today:** Otto AI agent infrastructure is live, running in production at webassist.ink. Developer-facing API documentation is being finalized. GitHub repo with getting-started guide will be ready before outreach.
+Consensus Hong Kong 2026 signaled it clearly: AI-native applications swept every track. The next wave of developers is not asking "how do I deploy a token" — they are asking "how do I build an AI agent that does something real." MY3YE is the only ecosystem designed as a complete civilization stack with AI infrastructure at its core from day one.
 
 ---
 
-## Pitch Framing — The One-Paragraph Ask
+## What We Have Today
 
-> "We are building the infrastructure for AI agents and sovereign communities — a complete stack from identity to governance to intelligence. Our audience is the same person as yours: the developer who wants to build something that matters. We are proposing a named partnership — the MY3YE University program on EasyA — starting with a dedicated track at Consensus Miami 2026, and growing into a full multi-module educational series. We are bringing $15,000–$25,000 in cash prizes and ecosystem grants. We will fund it. We will ship it. We are asking you to distribute it."
+**Infrastructure running in production:**
+- Otto AI agent coordination system — live at webassist.ink, powering real work
+- Memory API — semantic search, episodic memory, knowledge graph, task execution. 200+ semantic memories active, 291 tasks completed in the live queue (as of 2026-03-21)
+- Multi-agent orchestration — multiple specialized agents working in parallel on real deliverables
+
+**What we're building toward:**
+- Public developer SDK and documentation
+- One-command getting-started guide for new developers
+- Public GitHub repository with working examples
+
+**What we don't have yet:**
+- Treasury or prize budget for hackathon tracks
+- Full public-facing developer docs (in progress)
+- Liquid token
+
+We are a project in active development. We are not claiming otherwise.
+
+---
+
+## The Ask
+
+**Immediate:** A 20-minute call with Phil or Dom.
+
+We want to understand what ecosystem membership looks like for a project at our stage — whether that is a listing on EasyA Kickstart, being featured in the developer community, co-designing educational content for a future track, or something else entirely.
+
+We are not asking EasyA to take a financial risk on us. We are asking for recognition and a seat at the table. We will earn the rest.
+
+**Medium term:** When we have the developer infrastructure ready and the capital to match, we want to come back and talk about a formal named program — MY3YE track at a future EasyA hackathon, MY3YE University modules on the platform. That conversation is easier if we have already built a relationship.
+
+**The one-paragraph version:**
+
+> "We are building the AI-native infrastructure for the hundreds of millions of people the current Web3 ecosystem skipped. Our mission and EasyA's mission are the same mission. We are a project seeking to join your ecosystem — not to buy a track, but because we believe the right ecosystem relationships are how both of us reach the billion. We would like a call."
 
 ---
 
 ## Contacts & Next Steps
 
 **Primary contact:** hello@easya.io — Phil Kwok (CEO) and Dom Kwok (COO)
-**Note:** EasyA explicitly states limited availability for new projects. Lead with the Miami 2026 timeline as urgency without manufactured pressure.
 
 **Recommended approach:**
-1. Complete developer entry point first — public GitHub repo + README with one working example
-2. Cold outreach via hello@easya.io with a clean one-pager (derive from this brief)
-3. Lead with the budget number and the campaign name (#BuildWithOtto) in the first email — EasyA is a B2B platform, they need both
-4. Reference HK 2026 AI trend as the hook — show we were watching, we understand what they saw, and we have the infrastructure for the next chapter
-5. Note Polkadot ecosystem context: MY3YE has a W3F grant application in progress — establishes ecosystem alignment, not a warm introduction
+1. Complete developer entry point first — public GitHub repo + README with one working example (pre-send condition)
+2. Cold outreach via hello@easya.io with a clean, honest one-pager (derive from this brief)
+3. Do NOT lead with a budget number we don't have — lead with mission alignment and the specific developer tracks
+4. Reference HK 2026 AI trend — show we were watching, we understand what they saw
+5. Frame the ask as ecosystem membership, not sponsorship
+
+**What not to do:**
+- Do not pretend to have a prize budget we don't have
+- Do not use the word "sponsor" — we are a project seeking support, not a sponsor seeking exposure
+- Do not lead with a budget section — it does not exist in this brief
+- Do not undersell the infrastructure we do have running — Otto AI is real, webassist.ink is real, the task queue has processed hundreds of real jobs
 
 ---
 
-## Strategic Assessment
+## Strategic Note
 
-**Confidence:** High. The alignment between EasyA's current AI momentum and MY3YE's AI-native infrastructure is genuine, not forced. The social impact framing of SOS Systems + "for the ones who were handed nothing" matches EasyA's values at the founder level.
+The reframe is not a downgrade. A project that believes in its mission enough to ask for ecosystem membership on the strength of its vision — without a treasury to back it up — is a more interesting story than a protocol buying track placement.
 
-**Risk:** EasyA has limited slots and is selective. We are an early-stage ecosystem without the treasury size of Polkadot or Solana. Lead with vision and a committed budget — that combination closes the credibility gap faster than either alone.
+EasyA's founders built from nothing. "For the ones who were handed nothing — we built this for us." That framing is not just brand copy. It is exactly the audience EasyA is trying to reach, and exactly the kind of builder EasyA was before they became EasyA.
 
-**Polkadot relationship:** W3F grant application is in progress — establishes MY3YE inside the Polkadot ecosystem and is useful context for EasyA. This is not a warm introduction and should not be described as one. If the grant is approved, it becomes a genuine credibility signal.
-
-**Timeline:** Consensus Miami 2026 is the next flagship event. Outreach should begin immediately once developer docs exist — slots for track sponsorship fill early.
+Pitch from that place.
 
 ---
 
@@ -156,8 +135,7 @@ Budget to confirm with Mev before outreach. Recommended range: $15,000–$25,000
 Before sending the outreach email derived from this brief:
 
 - [ ] Public GitHub repo with getting-started guide exists
-- [ ] Budget number confirmed by Mev ($15,000–$25,000 or adjusted)
-- [ ] Prize structure finalized (cash amounts above are recommended, not committed)
-- [ ] #BuildWithOtto campaign concept has at least one concrete visual or mockup
-- [ ] One judge or advisor name confirmed (or "names TBD — outreach in progress" is acceptable)
-- [ ] Token launch timeline confirmed (brief currently omits token prizes entirely, which is correct — do not add token prizes until a liquid token exists)
+- [ ] One working code example included in README
+- [ ] Sender name confirmed with Mev
+- [ ] Sponsor language triple-checked: zero instances anywhere in the outreach package
+- [ ] Budget section reviewed — confirm v3 language (no financial commitments anywhere)
