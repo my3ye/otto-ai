@@ -35,12 +35,12 @@ Note: MY3YE has a W3F grant application in progress, establishing presence in th
 
 Timeline is real — Consensus Miami 2026 slots fill early. Happy to jump on a call this week.
 
-— [MEV_NAME / MY3YE]
+— Abra Otto Mev @ottomev
 hello@my3ye.xyz | my3ye.xyz
 
 ---
 **Pre-send blockers still open:**
 - [ ] Replace [PUBLIC_GITHUB_URL] with real URL
-- [ ] Replace [MEV_NAME / MY3YE] with preferred sender name
+- [x] Sender name confirmed: Abra Otto Mev @ottomev
 - [ ] Budget number confirmed ($15K-$25K or adjusted)
 - [ ] Subject line A/B option: "The AI developer track EasyA is missing at Consensus Miami"

@@ -5,7 +5,7 @@
 
 ## 1. Key Findings
 
-**Overall status: READY TO SEND — pending 2 Mev actions.**
+**Overall status: READY TO SEND — pending 1 Mev action (public GitHub repo).**
 
 ⚠️ **REFRAME APPLIED (2026-03-21, Step 2):** Pitch framing changed from sponsor to project. All sponsor language, budget commitments, and prize structures have been removed. See pitch-brief-v2.md (now contains v3 content) and outreach-email-v2.md.
 
@@ -21,9 +21,11 @@
 | SOS Systems mission alignment | Semantic memory documented | ✅ done |
 | Contact identified | hello@easya.io — Phil & Dom Kwok | ✅ confirmed |
 
-### Blocked (2/10) — Mev action required
+### Blocked (1/10) — Mev action required
 1. **CRITICAL: No public otto-ai GitHub repo** — ottomev org has `pallet-dpc` and `pallet-oneon-identity` (public) but no `otto-ai`/`otto-core` repo. Outreach email has `[PUBLIC_GITHUB_URL]` placeholder. getting-started-readme.md drafted locally and ready to push. **Hard blocker — nothing ships without this.**
-2. **Sender name** — `[MEV_NAME / MY3YE]` placeholder in outreach email. Mev decides how to sign.
+
+### Resolved (2026-03-22)
+2. ✅ **Sender name** — Confirmed as **Abra Otto Mev @ottomev**. Applied to outreach-email-v2.md and outreach-email.md.
 
 ---
 

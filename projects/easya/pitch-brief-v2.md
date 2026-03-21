@@ -136,6 +136,6 @@ Before sending the outreach email derived from this brief:
 
 - [ ] Public GitHub repo with getting-started guide exists
 - [ ] One working code example included in README
-- [ ] Sender name confirmed with Mev
+- [x] Sender name confirmed: Abra Otto Mev @ottomev
 - [ ] Sponsor language triple-checked: zero instances anywhere in the outreach package
 - [ ] Budget section reviewed — confirm v3 language (no financial commitments anywhere)

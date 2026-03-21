@@ -21,7 +21,7 @@ What we're asking: 20 minutes on a call. We want to understand how projects join
 
 Developer entry point: [[NEEDS_MEV_INPUT: public GitHub repo URL — must be created and populated before sending]]
 
-— [[NEEDS_MEV_INPUT: preferred sender name (Mev's name or MY3YE team name)]]
+— Abra Otto Mev @ottomev
 hello@my3ye.xyz | my3ye.xyz
 
 ---
@@ -45,5 +45,5 @@ hello@my3ye.xyz | my3ye.xyz
 
 **Pre-send blockers:**
 - [ ] Replace [PUBLIC_GITHUB_URL] with real public GitHub URL
-- [ ] Replace [MEV_NAME / MY3YE] with preferred sender name
+- [x] Sender name confirmed: Abra Otto Mev @ottomev
 - [ ] Confirm zero sponsor language across all materials (this file, pitch-brief-v2.md)
