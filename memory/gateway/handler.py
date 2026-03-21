@@ -44,21 +44,26 @@ def is_admin(msg: GatewayMessage) -> bool:
 async def handle_message(msg: GatewayMessage) -> GatewayResponse:
     """Core agent loop — process any incoming message regardless of channel.
 
+    Athena line → athena_handler (ALWAYS — before admin check)
     Admin messages → kernel (RIC full context loop)
     Contact messages → contact_handler (per-contact conversation system)
     Unknown → ignored
 
     Returns GatewayResponse with Otto's reply.
     """
+    # Athena line routes to Athena handler — ALWAYS, before admin check.
+    # Security requirement: even Mev testing Athena's number gets Athena responses,
+    # not Otto's kernel. Athena handler uses provider_chat (pure LLM, no tools,
+    # no filesystem access).
+    if msg.channel == "whatsapp" and msg.metadata.get("account") == "athena":
+        from .athena_handler import handle_athena_message
+        return await handle_athena_message(msg)
+
     if is_admin(msg):
         return await _handle_via_kernel(msg)
 
     # Route non-admin WhatsApp messages
     if msg.channel == "whatsapp":
-        # Athena line (WebAssist prospect/client line) — full funnel qualification
-        if msg.metadata.get("account") == "athena":
-            from .athena_handler import handle_athena_message
-            return await handle_athena_message(msg)
         # Default: contact conversation system
         from .contact_handler import handle_contact_message
         return await handle_contact_message(msg)
