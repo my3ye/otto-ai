@@ -1,17 +1,24 @@
 """Athena OMS API — prospect management and conversation visibility."""
 
 import logging
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 from ..db import get_pool
+from ..gateway.athena_handler import VALID_STAGES
 
 log = logging.getLogger("otto.routes.athena")
 router = APIRouter(prefix="/athena", tags=["athena"])
 
 
+class StageUpdateBody(BaseModel):
+    stage: str
+    notes: str | None = None
+
+
 @router.get("/prospects")
 async def list_prospects(
     stage: str | None = None,
-    limit: int = 50,
+    limit: int = Query(50, le=500),
     offset: int = 0,
 ):
     """List all Athena prospects, optionally filtered by stage."""
@@ -51,7 +58,7 @@ async def get_prospect(prospect_id: str):
 
 
 @router.get("/prospects/{prospect_id}/conversations")
-async def get_prospect_conversations(prospect_id: str, limit: int = 50):
+async def get_prospect_conversations(prospect_id: str, limit: int = Query(50, le=500)):
     """Get conversation history for a prospect."""
     pool = await get_pool()
     rows = await pool.fetch(

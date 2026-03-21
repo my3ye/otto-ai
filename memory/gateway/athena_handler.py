@@ -427,8 +427,8 @@ async def _maybe_fire_qualified_event(prospect_id: str, prospect: dict):
         )
 
         await pool.execute(
-            """INSERT INTO episodic_events (agent_id, event_type, description, importance, metadata)
-               VALUES ('athena', 'prospect_qualified', $1, 0.9, $2)""",
+            """INSERT INTO episodic_events (event_type, content, importance, metadata)
+               VALUES ('prospect_qualified', $1, 9, $2)""",
             description,
             json.dumps({
                 "prospect_id": prospect_id,
