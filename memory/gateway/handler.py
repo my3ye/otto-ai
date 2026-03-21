@@ -53,8 +53,13 @@ async def handle_message(msg: GatewayMessage) -> GatewayResponse:
     if is_admin(msg):
         return await _handle_via_kernel(msg)
 
-    # Route non-admin WhatsApp messages to contact conversation system
+    # Route non-admin WhatsApp messages
     if msg.channel == "whatsapp":
+        # Athena line (WebAssist prospect/client line) — full funnel qualification
+        if msg.metadata.get("account") == "athena":
+            from .athena_handler import handle_athena_message
+            return await handle_athena_message(msg)
+        # Default: contact conversation system
         from .contact_handler import handle_contact_message
         return await handle_contact_message(msg)
 
