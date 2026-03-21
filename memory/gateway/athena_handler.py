@@ -182,21 +182,26 @@ async def get_or_create_prospect(jid: str, name: str | None) -> dict:
             )
         return dict(row)
 
-    # Try to find matching outreach entry by phone
+    # Try to find matching outreach entry by phone (exclude rejected/failed entries)
     outreach_row = None
     for variant in phone_variants(phone):
         outreach_row = await pool.fetchrow(
-            "SELECT * FROM outreach_queue WHERE phone = $1 ORDER BY created_at DESC LIMIT 1",
+            """SELECT * FROM outreach_queue
+               WHERE phone = $1 AND status NOT IN ('rejected', 'failed')
+               ORDER BY created_at DESC LIMIT 1""",
             variant
         )
         if outreach_row:
             break
 
-    # Create new prospect
+    # Create new prospect — ON CONFLICT handles rapid duplicate first messages from same JID
     row = await pool.fetchrow(
         """INSERT INTO athena_prospects
            (jid, phone, name, stage, outreach_id, business_name, lead_type, city, website)
            VALUES ($1, $2, $3, 'new', $4, $5, $6, $7, $8)
+           ON CONFLICT (jid) DO UPDATE
+               SET name = COALESCE(EXCLUDED.name, athena_prospects.name),
+                   updated_at = NOW()
            RETURNING *""",
         jid,
         phone,
@@ -372,6 +377,7 @@ async def _async_evaluate_stage(
             messages=[{"role": "user", "content": prompt}],
             max_tokens=100,
             temperature=0.0,
+            system_instruction="You are a JSON-only classifier. Respond with valid JSON and nothing else.",
         )
         if not result:
             return
@@ -391,11 +397,11 @@ async def _async_evaluate_stage(
             # Fire high-importance event when prospect becomes qualified
             if new_stage == "qualified":
                 pool = await get_pool()
-                prospect = await pool.fetchrow(
+                prospect_row = await pool.fetchrow(
                     "SELECT * FROM athena_prospects WHERE id = $1", prospect_id
                 )
-                if prospect:
-                    await _maybe_fire_qualified_event(str(prospect["id"]), dict(prospect))
+                if prospect_row:
+                    await _maybe_fire_qualified_event(prospect_id, dict(prospect_row))
         elif notes:
             await update_prospect_stage(prospect_id, current_stage, notes)
 
@@ -404,15 +410,12 @@ async def _async_evaluate_stage(
 
 
 async def _maybe_fire_qualified_event(prospect_id: str, prospect: dict):
-    """Log a high-importance episodic event when a prospect reaches 'qualified'."""
+    """Log a high-importance episodic event when a prospect reaches 'qualified'.
+
+    Called only after stage has been confirmed as 'qualified' — no re-fetch needed.
+    """
     try:
         pool = await get_pool()
-        # Check current stage
-        current = await pool.fetchval(
-            "SELECT stage FROM athena_prospects WHERE id = $1", prospect_id
-        )
-        if current != "qualified":
-            return
 
         business = prospect.get("business_name") or "unknown business"
         name = prospect.get("name") or "unknown"
