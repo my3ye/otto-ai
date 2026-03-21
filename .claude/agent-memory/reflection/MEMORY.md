@@ -1,23 +1,24 @@
 # Reflection Agent Memory
 
-## System Baselines (updated 2026-03-20 cycle 344)
-- Memory: Evolve healthy (1285 decay, 5 facts, 0 dupes). GLOVE: 0/15 mismatches (clean, 36+ consecutive cycles).
+## System Baselines (updated 2026-03-21 cycle 361)
+- Memory: Evolve healthy (1461 decay, 3 facts, 0 dupes). GLOVE: 0/15 mismatches (clean).
 - Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Docker: postgres, neo4j, graphiti.
-- Disk: 41% boot. RAM: 5.9GB/16GB.
-- Procedures: 15. Top 3: create_and_launch_task trust 0.97 (81 uses), reactive_analysis_dispatch trust 0.94 (151 uses), research_and_implement_cycle trust 0.94 (240 uses).
-- Queue: 6 unreviewed. 0 pending. 3 running. 619 completed, 46 failed, 5 cancelled.
-- RL2F accuracy: 54% (27/50) STABLE. Heartbeat reported 35% (misread) — corrected to 54% via API.
-- Workflows: 15+ instances completed. 4 currently running. Templates: feature-dev v3 (0.82), content-publishing v2 (0.76), social-content v2 (0.68), research-pipeline v2 (0.76).
-- Principles: 34 total (20 normative, 1 reasoning_chain, 9 task_execution). Fixed recurring bloat: patched miss-template dedup in reasoning.py (cycle 344).
+- Disk: 41% boot. RAM: 5.0GB/16GB.
+- Queue: 6 unreviewed (EasyA workflow steps). 0 pending. 1 running (EasyA pitch Step 3).
+- RL2F accuracy: 50% (25/50) — trend DECLINING (58→56→54→52→50%). Idle Mev-behavior predictions continue generating partials. Recovery: 1-2 days active work needed. AutoEvolve trigger met (RL2F<70%).
+- Workflows: 20+ completed. 1 running (EasyA pitch brief). EasyA research completed fitness=0.72. Templates: feature-dev v3 (0.82), content-publishing v2 (0.76), social-content v2 (0.68), research-pipeline v2 (0.76).
+- Agents: 100% success rate across all agent types (last 30 tasks).
+- Procedures: 15 total, top 4 above 0.95 trust. reactive_analysis_dispatch at 1.00 (167/174).
+- **Wink noise FIXED (cycle 346)**: wink_critical at importance 5 (borderline). Noise minimal.
 
 ## Known Gaps (persistent)
-- **RL2F accuracy: 54% (27/50) STABLE** — Heartbeat misreported as 35% (cycle 344), corrected via API. **Principle bloat RECURRING**: extract-lessons creates per-miss principles that duplicate the consolidated one. FIXED cycle 344: added miss-template signature check + consolidated-principle keyword detection to dedup logic in reasoning.py. Now 1 reasoning_chain principle (was 4, consolidated to 1 twice). AutoEvolve gen-2 deferred. Social-content workflow fitness stagnant at 0.68.
-- **Researcher agent memory bloat**: 454 lines in MEMORY.md — largest by far. Flag for cleanup when capacity allows.
+- **RL2F accuracy: 50% (25/50) DECLINING** — Continued decline (58→56→54→52→50%). Idle Mev-behavior predictions generate partials that slide matches out of window. Self-patch 0630e10b active but idle periods still generate partial-prone predictions. Recovery requires 1-2 days of active work (flush partials from window). AutoEvolve trigger met (RL2F<70%) — start experiment when rate limit clears. Social-content workflow fitness stagnant at 0.68.
+- **Researcher agent memory bloat: FIXED (cycle 347)** — Task b5b5ba2b cleaned 454->199 lines (56% reduction). QA approved, committed c45d6d88.
 - **Zombie task gap (FIXED cycle 323)**: task_runner.sh had `set -euo pipefail` with NO trap handler. Any unguarded command failure killed the script before the completion callback, creating zombies. 7 total process-died failures. FIX: added `trap cleanup_on_exit EXIT` handler that marks tasks as failed via API on unexpected exit. Secondary fix needed: add `|| true` guards to pre-flight git commands. Stale-task reaper still recommended as defense-in-depth.
 - **LLM fallback chain**: Kimi→OpenAI→Claude CLI. Working since cycle 93. Claude CLI fallback untested but non-critical.
 - **Agent swarm**: Only `coder` and `researcher` have memory. Tasks don't use agent_type classification. Low priority.
 - **Eval baseline**: No eval runs exist. Deferred until active work cycle.
-- **Wink monitor false positives**: Stall threshold fires on healthy I/O-heavy tasks. Non-critical noise.
+- **Wink monitor false positives (FIXED cycle 346)**: Lowered importance in task_monitor.sh: stall alert 6→3, stall critical 8→5, tool failures 7→5, reasoning loops 7→5. Routine stalls now below MARS sweep threshold. Previous state: 53% of high-importance events were wink noise.
 
 ## Recurring Patterns
 - System enters idle holds when awaiting Mev. This is correct behavior per budget discipline directive.
