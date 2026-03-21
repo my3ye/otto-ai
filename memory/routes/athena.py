@@ -106,12 +106,11 @@ async def get_athena_stats():
 
 
 @router.patch("/prospects/{prospect_id}/stage")
-async def update_prospect_stage(prospect_id: str, body: dict):
+async def update_prospect_stage(prospect_id: str, body: StageUpdateBody):
     """Manually update a prospect's stage (Mev override)."""
-    new_stage = body.get("stage")
-    valid_stages = {"new", "qualifying", "qualified", "disqualified", "proposal_sent", "closed_won", "closed_lost"}
-    if new_stage not in valid_stages:
-        raise HTTPException(status_code=400, detail=f"Invalid stage. Valid: {valid_stages}")
+    new_stage = body.stage
+    if new_stage not in VALID_STAGES:
+        raise HTTPException(status_code=400, detail=f"Invalid stage. Valid: {sorted(VALID_STAGES)}")
 
     pool = await get_pool()
     result = await pool.execute(
