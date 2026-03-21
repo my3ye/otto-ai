@@ -13,6 +13,7 @@ Stage machine:
   new → qualifying → qualified | disqualified → proposal_sent → closed_won | closed_lost
 """
 
+import asyncio
 import logging
 import json
 import re
@@ -332,20 +333,15 @@ async def handle_athena_message(msg: GatewayMessage) -> GatewayResponse:
 
     # Async stage evaluation (non-blocking)
     try:
-        import asyncio
-        asyncio.create_task(
+        task = asyncio.create_task(
             _async_evaluate_stage(prospect_id, stage, msg.content, reply)
+        )
+        task.add_done_callback(
+            lambda t: log.error(f"Athena stage eval task raised: {t.exception()}")
+            if not t.cancelled() and t.exception() else None
         )
     except Exception:
         pass
-
-    # Fire episodic event if newly qualified
-    if stage == "qualifying":
-        try:
-            import asyncio
-            asyncio.create_task(_maybe_fire_qualified_event(prospect_id, prospect))
-        except Exception:
-            pass
 
     return GatewayResponse(
         content=reply,
