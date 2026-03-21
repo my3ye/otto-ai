@@ -55,7 +55,7 @@ async def get_queue(
                channel, message_body, status, created_at, approved_at, sent_at
         FROM outreach_queue
         WHERE {where}
-        ORDER BY lead_score DESC, created_at DESC
+        ORDER BY (message_body = 'Web Assist service inquiry') ASC, lead_score DESC NULLS LAST, created_at DESC
         LIMIT ${len(params_page) - 1} OFFSET ${len(params_page)}
     """, *params_page)
 
