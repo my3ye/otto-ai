@@ -19,9 +19,9 @@ What we have: Otto AI agent infrastructure running in production — memory API 
 
 What we're asking: 20 minutes on a call. We want to understand how projects join the EasyA ecosystem, what that relationship looks like at our stage, and whether you see what we see in this alignment.
 
-Developer entry point: [PUBLIC_GITHUB_URL]
+Developer entry point: [[NEEDS_MEV_INPUT: public GitHub repo URL — must be created and populated before sending]]
 
-— [MEV_NAME / MY3YE]
+— [[NEEDS_MEV_INPUT: preferred sender name (Mev's name or MY3YE team name)]]
 hello@my3ye.xyz | my3ye.xyz
 
 ---
