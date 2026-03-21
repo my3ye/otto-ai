@@ -257,3 +257,20 @@ type: project
 - Story beat: The Mission
 - Status: draft
 - DO NOT repeat: AWS dependency as the opening paradox, "digital performance on an analog stage" line, robotics-tier-funds-next-tier sequence, "intelligence without matter is theory" as the kicker before close
+
+## EasyA / Hackathon Content
+
+**Article 1: "What Survives the Weekend"**
+- Content DB ID: 34cdb76c-2f9e-4d31-b301-f7338ef1517a
+- File: /mnt/media/projects/my3ye-web/content/blog/what-survives-the-weekend.mdx
+- Angle: Hackathon graveyard problem — demos that die when the event ends. MY3YE builds persistent infrastructure: Otto AI memory, contribution encoding, no permission from a platform. The substrate failure frame (not a builder failure). Invites EasyA developers to build real nodes, not disposable demos.
+- Story beat: The Mission
+- Dominant metaphor: persistence / substrate / survival (river appears once as a closer callback)
+- Status: draft
+- DO NOT repeat: "graveyard" frame for hackathon archives, "failure of the substrate" as the pivot line, "building a node not a demo" as the reframe, brand lines used verbatim as closer (What you give grows... + We are not asking you to believe...)
+
+**Pitch Brief: "EasyA Partnership Pitch Brief — MY3YE Ecosystem" (v2)**
+- Content DB ID: 5c08c2a8-940a-4abf-a869-e2ee89c038e7
+- Type: plan/pitch (not a blog article)
+- Angle: B2B partnership pitch — MY3YE × EasyA at Consensus Miami 2026. Hackathon track + MY3YE University on EasyA. $15-25K prize budget. Pre-send checklist: public GitHub docs required first.
+- Status: draft (implemented in codebase, MEV_ACTION items remain)
