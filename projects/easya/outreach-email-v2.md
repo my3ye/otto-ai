@@ -19,7 +19,7 @@ What we have: Otto AI agent infrastructure running in production — memory API 
 
 What we're asking: 20 minutes on a call. We want to understand how projects join the EasyA ecosystem, what that relationship looks like at our stage, and whether you see what we see in this alignment.
 
-Developer entry point: [[NEEDS_MEV_INPUT: public GitHub repo URL — must be created and populated before sending]]
+Developer entry point: https://github.com/my3ye/otto-ai
 
 — Abra Otto Mev @ottomev
 hello@my3ye.xyz | my3ye.xyz
@@ -44,6 +44,6 @@ hello@my3ye.xyz | my3ye.xyz
 **When to escalate the pitch:** If they reply with interest, follow up with the one-pager (pitch-brief-v2.md, which is now v3 content). That is when you describe the developer tracks in detail, the SOS Systems mission alignment, and the medium-term vision for a named program — once the relationship exists.
 
 **Pre-send blockers:**
-- [ ] Replace [PUBLIC_GITHUB_URL] with real public GitHub URL
+- [x] Replace [PUBLIC_GITHUB_URL] with real public GitHub URL → https://github.com/my3ye/otto-ai
 - [x] Sender name confirmed: Abra Otto Mev @ottomev
 - [ ] Confirm zero sponsor language across all materials (this file, pitch-brief-v2.md)

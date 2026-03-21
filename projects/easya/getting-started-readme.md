@@ -116,5 +116,4 @@ When you build on Otto AI, contribution is tracked. The work outlives the hackat
 *Questions: hello@my3ye.xyz*
 
 ---
-**DRAFT NOTE:** This README needs a real GitHub repo URL before going public.
-Replace `https://github.com/my3ye/otto-ai` with actual repo once Mev creates/makes public.
+*Repo live at: https://github.com/my3ye/otto-ai*
