@@ -62,6 +62,8 @@ type: project
 **Covered:**
 - Chain-agnostic design / $KOINK Standard / anti-whale physics / treasury→SOS flow (inception rewrite 2026-03-19, DB: 9c46d865)
   - Angle: engineering beneath chaos, meme as onboarding door, physics not punishment
+- Landing page copy refresh (2026-03-22, DB: e215075e). Key changes: chain-agnostic as primary hero framing, $KOIN→$KOINK fix, sharper feature/step copy, canonical brand line in footer. Committed to ottomev/koink-fun main.
+  - Angle: chain-agnostic as the primary differentiator (SOLANA · BASE · POLKADOT · EVERY CHAIN), declarations not explanations
 
 **Open:**
 - Creator journey: who launches on Koink.fun
