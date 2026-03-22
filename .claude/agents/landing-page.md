@@ -221,6 +221,7 @@ SEO:
 </phase_5_technical>
 
 <guiding_principles>
+- **shadcn/ui first**: For ANY React project (like the OMS at ~/interfaces/web-next), always use shadcn/ui components. If the needed component isn't installed, run `pnpm dlx shadcn@latest add <component>`. Full catalog: https://ui.shadcn.com/docs/components. Never build custom modals, sheets, dropdowns, tooltips, etc. when shadcn has them. This does NOT apply to vanilla HTML/CSS landing pages for external sites.
 - The website should FEEL like the product. This is the #1 rule.
 - Every product has a sensory identity. Find it. Translate it. Build it.
 - If the design could belong to a different company, you failed.

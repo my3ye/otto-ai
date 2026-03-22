@@ -28,7 +28,8 @@ TASK_COLUMNS = """id, title, prompt, context, priority, status, model, cli, agen
     qa_status, qa_output, qa_reviewer, commit_hash, owner,
     parent_id, task_type, position, requires_decomposition, decomposed,
     children_total, children_completed,
-    upvotes, dependency_score, chain_id, chain_hash, chain_anchored_at"""
+    upvotes, dependency_score, chain_id, chain_hash, chain_anchored_at,
+    plan_id, depends_on"""
 
 # Per-CLI concurrency limits: 3 claude, 1 gemini, 1 kimi (total max 5)
 CLI_CONCURRENCY = {"claude": 3, "gemini": 1, "kimi": 1}
@@ -803,6 +804,10 @@ async def complete_task(task_id: UUID, req: TaskComplete):
     # ── Workflows: Advance workflow if this task belongs to one ────
     from .workflows import check_workflow_advance
     asyncio.create_task(check_workflow_advance(pool, task_id, status))
+
+    # ── Plans: Advance DAG if this task belongs to a plan ────────
+    from .task_plans import on_plan_task_complete
+    asyncio.create_task(on_plan_task_complete(pool, task_id, status))
 
     return TaskOut(**dict(row))
 

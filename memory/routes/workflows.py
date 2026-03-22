@@ -529,6 +529,10 @@ async def _advance_workflow(pool, instance_id: UUID):
 
             # Auto-eval (async, non-blocking)
             asyncio.create_task(_auto_eval_workflow(pool, instance_id))
+
+            # Plans: notify plan coordinator task if this workflow belongs to one
+            from .task_plans import check_plan_workflow_complete
+            asyncio.create_task(check_plan_workflow_complete(pool, instance_id, "completed"))
             return
 
         step = steps[current]
@@ -761,6 +765,9 @@ async def handle_step_completion(pool, instance_id: UUID, task_id: UUID, task_st
                     instance_id, task["error"] or "Step failed", json.dumps(step_outputs),
                 )
                 log.info(f"Workflow {instance_id}: failed at step {current}")
+                # Plans: notify plan coordinator
+                from .task_plans import check_plan_workflow_complete
+                asyncio.create_task(check_plan_workflow_complete(pool, instance_id, "failed"))
 
             else:  # pause (default)
                 await pool.execute(

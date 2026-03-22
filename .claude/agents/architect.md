@@ -62,6 +62,7 @@ Check your agent memory for:
 
 ## Rules
 
+- **shadcn/ui first**: When designing React frontends, always specify shadcn/ui components in your designs. If a component exists in shadcn, use it — don't design custom equivalents. Install with `pnpm dlx shadcn@latest add <component>` if not present. Full catalog: https://ui.shadcn.com/docs/components.
 - Always present tradeoffs, not just your preferred option
 - Consider operational complexity — who maintains this at 3am?
 - If the design is complex, break it into phases

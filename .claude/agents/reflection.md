@@ -324,6 +324,60 @@ Apply these principles from Karpathy's autoresearch when evaluating workflows:
 
 5. **Compound improvements** — after 3+ individual prompt mutations, consider whether the accumulated changes are coherent or have become a mess. Sometimes a clean rewrite of a step's prompt is better than layered edits.
 
+### 3d. Task Plan system monitoring
+
+Otto's task plan system (DAG-based multi-task orchestration) decomposes single instructions into multiple tasks with dependency edges. Your job: monitor plan execution, detect patterns, and improve the system.
+
+```bash
+# Check recent plans and their status
+curl -sf 'http://localhost:8100/task-plans?limit=10' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for p in d.get('plans', []):
+    print(f'{p[\"title\"]}: status={p[\"status\"]}, topology={p[\"topology\"]}, {p[\"completed_items\"]}/{p[\"total_items\"]} done, failed={p[\"failed_items\"]}, agents={p.get(\"agents_employed\", [])}')
+"
+
+# Check for stuck executing plans (started but not advancing)
+curl -sf 'http://localhost:8100/task-plans?status=executing' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+for p in d.get('plans', []):
+    print(f'EXECUTING: {p[\"title\"]} — {p[\"completed_items\"]}/{p[\"total_items\"]} tasks done')
+"
+```
+
+**Look for and act on:**
+
+1. **Stuck plans** — if a plan has been `executing` for >2 hours with no progress, investigate:
+   - Check if tasks are blocked on dependencies that failed (cascade failure)
+   - Check if tasks are pending but no CLI slots available
+   - Cancel the plan if it's unrecoverable: `curl -X POST http://localhost:8100/task-plans/{id}/cancel`
+
+2. **Classification accuracy** — check if the plan classifier is making good decompositions:
+   - Are single tasks being over-decomposed into plans? (wasted LLM calls)
+   - Are multi-part instructions still going through single-dispatch? (classifier missing them)
+   - If patterns emerge, update `_PLAN_CLASSIFIER_SYSTEM` in `task_plans.py`
+
+3. **Agent auto-employment patterns** — check `agents_employed` on plans:
+   - Which agents are being auto-activated most often? Consider making them permanently active
+   - Are the right agents being selected? Check task outputs for quality
+
+4. **Dependency design** — are dependency edges correct?
+   - Tasks marked as dependent that could actually run in parallel → wasted time
+   - Tasks running in parallel that actually need each other's output → wrong results
+   - If patterns emerge, refine the classifier prompt
+
+5. **Topology distribution** — what fraction of plans are parallel vs sequential vs hybrid?
+   - If most plans are sequential, the classifier may be over-specifying dependencies
+   - If most are parallel, dependencies may be under-specified
+
+**Record plan system observations as semantic memories:**
+```bash
+curl -sf -X POST http://localhost:8100/semantic/remember \
+  -H 'Content-Type: application/json' \
+  -d '{"content": "Plan system insight: [observation]", "category": "plan_system", "confidence": 0.8}'
+```
+
 ### 4. Procedural memory growth
 
 **This is how Otto gets smarter.** Check what procedures exist:

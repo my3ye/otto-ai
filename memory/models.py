@@ -310,6 +310,9 @@ class TaskCreate(BaseModel):
     position: int = 0                                    # sibling ordering (0-indexed)
     requires_decomposition: bool = False                 # must be broken down before execution
     decomposed: bool = False                             # has been broken into children
+    # Plan fields (migration 066)
+    plan_id: UUID | None = None                          # FK to task_plans
+    depends_on: list[UUID] = Field(default_factory=list) # task IDs that must complete first
 
 
 class TaskOut(BaseModel):
@@ -359,6 +362,9 @@ class TaskOut(BaseModel):
     chain_id: str | None = None
     chain_hash: str | None = None
     chain_anchored_at: datetime | None = None
+    # Plan fields (migration 066)
+    plan_id: UUID | None = None
+    depends_on: list[UUID] = Field(default_factory=list)
 
 
 class TaskComplete(BaseModel):

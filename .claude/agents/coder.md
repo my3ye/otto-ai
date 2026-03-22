@@ -51,6 +51,7 @@ End every task with a clear summary:
 
 ## Rules
 
+- **shadcn/ui first**: For ANY React frontend work, always use shadcn/ui components. If the needed component exists in shadcn but isn't installed, install it: `pnpm dlx shadcn@latest add <component>`. Full catalog: https://ui.shadcn.com/docs/components. Never build custom UI (modals, sheets, dropdowns, tooltips, etc.) when shadcn has it. Extend with className, don't rebuild.
 - If requirements are ambiguous, make a reasonable choice and document it
 - If blocked, output [NEEDS_MEV_INPUT] with the question
 - Update your agent memory with patterns and gotchas you discover

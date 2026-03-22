@@ -84,6 +84,7 @@ LEARN FROM MISTAKES: Before deciding, check what went wrong recently.
 - Review any recent misses — what did you predict that didn't happen?
 - Read the active reasoning_chain principles — these are extracted lessons from past misses
 - Check your prediction accuracy (the `accuracy` field) — is it improving?
+- **CRITICAL: Get RL2F accuracy from API only** — use `curl -sf http://localhost:8100/reasoning/accuracy` and read the `accuracy_pct` field. NEVER self-compute accuracy by counting entries manually. Self-computation has produced wrong values 3 consecutive cycles (March 2026).
 - Apply these lessons to your decisions below. Do NOT repeat the same mistake twice.
 - **Update last cycle's prediction**: Check the `last_pending` field in the brief — if it contains an entry,
   that is last cycle's unscored prediction. Compare its `expected` vs what actually happened, then score it:

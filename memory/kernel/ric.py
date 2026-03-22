@@ -836,6 +836,57 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
         await _handle_stop_command(pool, channel)
         return
 
+    # ── Plan detection: multi-task DAG from a single instruction ──
+    try:
+        from ..routes.task_plans import classify_for_plan, create_plan, PlanItemSpec
+        plan_spec = await classify_for_plan(content, reply)
+        if plan_spec and plan_spec.get("tasks"):
+            items = [
+                PlanItemSpec(
+                    temp_id=t.get("temp_id", f"t{i}"),
+                    title=t["title"],
+                    prompt=t["prompt"],
+                    agent_type=t.get("agent_type"),
+                    depends_on=t.get("depends_on", []),
+                    workflow_template=t.get("workflow_template"),
+                    workflow_variables=t.get("workflow_variables", {}),
+                    priority=t.get("priority", 5),
+                    working_directory=t.get("working_directory", "/home/web3relic/otto"),
+                )
+                for i, t in enumerate(plan_spec["tasks"])
+            ]
+            plan_id = await create_plan(
+                pool,
+                title=plan_spec.get("plan_title", "Plan"),
+                instruction=content[:2000],
+                items=items,
+                created_by="reactive_dispatch",
+                trigger_message=content[:500],
+            )
+            # Notify Mev
+            topology = plan_spec.get("topology", "hybrid")
+            try:
+                msg = (
+                    f"Plan started: {plan_spec.get('plan_title', 'Plan')}\n"
+                    f"{len(items)} tasks ({topology})"
+                )
+                agents = list({t.get("agent_type") for t in plan_spec["tasks"] if t.get("agent_type")})
+                if agents:
+                    msg += f"\nAgents: {', '.join(agents)}"
+                proc = await asyncio.create_subprocess_exec(
+                    "/home/web3relic/otto/tools/whatsapp_send.sh", msg,
+                    stdout=asyncio.subprocess.DEVNULL,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
+                await asyncio.wait_for(proc.communicate(), timeout=10)
+            except Exception:
+                pass
+            log.info(f"Reactive dispatch created plan {plan_id} with {len(items)} tasks")
+            return
+    except Exception as e:
+        log.warning(f"Plan classifier failed (falling back to single dispatch): {e}")
+
+    # ── Single-task dispatch (legacy path) ──
     dispatch = await classify_for_dispatch(content, reply)
     if not dispatch:
         return

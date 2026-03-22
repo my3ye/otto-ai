@@ -65,7 +65,7 @@ This document synthesizes lessons from 12+ major movements directly applicable t
 
 **Critical failure mode avoided:** They did not try to level society or redistribute wealth. They did not impose an ideology. They built a container — a framework — within which diverse values could coexist.
 
-**Lesson for MY3YE:** MY3YE is a declaration, not a decree. The ecosystem is a container — 14 projects serving diverse needs under a shared moral frame. SOS Systems' DAO governance is the written constitution: the structural safeguard that prevents any single person (including Mev) from becoming a tyrant. We need to build that institutional layer before we need it.
+**Lesson for MY3YE:** MY3YE is a declaration, not a decree. The ecosystem is a container — multiple projects across many verticals serving diverse needs under a shared moral frame. SOS Systems' DAO governance is the written constitution: the structural safeguard that prevents any single person (including Mev) from becoming a tyrant. We need to build that institutional layer before we need it.
 
 ---
 
@@ -271,7 +271,7 @@ We are a pre-tipping-point movement with a working prototype (WebAssist), a mora
 
 | Danger | Early Warning Signs | Defense |
 |---|---|---|
-| **Utopian overreach** | Trying to launch all 14 projects simultaneously | Sequence ruthlessly. WebAssist first. Prove the model. |
+| **Utopian overreach** | Trying to launch all projects simultaneously | Sequence ruthlessly. WebAssist first. Prove the model. |
 | **Power vacuum** | Succeeding without governance structure | Build SOS DAO before we need it |
 | **Decision paralysis** | "We should all decide together" as default | Clear decision rights: Mev decides, Otto executes, community proposes |
 | **Purity spiral** | Rejecting contributors for imperfect alignment | Open contribution, values in code not gatekeeping |

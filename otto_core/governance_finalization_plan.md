@@ -170,7 +170,7 @@ Documents are sequenced so that each ratified layer informs the next:
 - Phase 3 (Months 12–24): Full ecosystem products live (Music, Travel, Market, Properties)
 - Phase 4 (Months 24–48): Physical infrastructure (factories, farms, Tusita first community)
 - Phase 5 (Months 48+): Sovereign infrastructure (devices, satellite comms, energy grid)
-- Dependency chains across all 14 projects
+- Dependency chains across all ecosystem projects
 - Capital requirement per phase with source (revenue, grants, token launch)
 - Key risks and mitigation per phase
 

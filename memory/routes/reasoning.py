@@ -208,7 +208,8 @@ async def extract_lessons(
             has_prediction_principle = any(
                 any(kw in ex for kw in prediction_keywords) for ex in existing_texts
             )
-            if has_prediction_principle and "beware" in principle_lower:
+            new_is_prediction = any(kw in principle_lower for kw in prediction_keywords)
+            if has_prediction_principle and new_is_prediction:
                 is_duplicate = True
 
         new_principle_id = None

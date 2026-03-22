@@ -1,13 +1,13 @@
 # MY3YE — Ecosystem Vision & Growth Strategy
 *The overarching ecosystem. The frequency transmitting. The river that feeds all lakes.*
-*Last updated: 2026-03-16*
+*Last updated: 2026-03-20*
 
 ## Current Status
-**DECLARATION PHASE** — my3ye.xyz live (200), 14 inception articles published (2026-03-05, Open Copyright), 15 project roadmaps written, universe registry at ~/otto/universe/ (18 projects). Community: minimal. Builders: Otto + Mev. Revenue: WebAssist (LIVE, Mev-blocked on payments). Everything else is concept.
+**CAPITAL & DISTRIBUTION PHASE** — my3ye.xyz live (200), inception articles published (2026-03-05, Open Copyright), 20 project roadmaps written, universe registry at ~/otto/universe/ with 18 projects. Community: minimal. Builders: Otto + Mev. Revenue: WebAssist (LIVE, Mev-blocked on Stripe payments). Capital: 4 parallel paths active (WebAssist revenue, KOIN token launch [tokenomics paper running], Grants [Gitcoin GR24 drafted, top grants researched], VC/Angel [upcoming]). Distribution: Broadcast System MVP complete, awaiting X API credentials. Social calendar: 34 MY3YE posts planned for Mar–Apr 2026. 505 Systems site + content refreshed. Koink + Otto Music roadmaps written.
 
 ## Dependencies
 - **Hard deps:** None. MY3YE is the root. It has no upstream dependencies.
-- **Soft deps:** All 18 downstream projects — MY3YE's growth is their aggregate progress.
+- **Soft deps:** All downstream projects — MY3YE's growth is their aggregate progress.
 - **Blocks:** Community formation, builder recruitment, ecosystem narrative distribution, and ultimately every project in the stack.
 
 ---
@@ -16,19 +16,19 @@
 **Goal:** MY3YE exists not just as articles and a website, but as a living community with real people building it.
 
 ### Milestones
-1. **Broadcast System live** — All 14 inception articles published across X, Mastodon, Bluesky, and every free platform via Broadcast System. Each article launches one protocol into public discourse. **Blocks on: Mev providing credentials.**
+1. **Broadcast System live** — Inception articles published across X, Mastodon, Bluesky, and every free platform via Broadcast System. Each article launches one protocol into public discourse. **Blocks on: Mev providing credentials.**
 2. **Community hub launched** — Discord (or ONEON-native when ready) with structured channels: `#vision`, `#builders`, one per project workgroup, `#governance`. Invite-only initially, then open.
 3. **@maitrieye activated** — X account posting ≥3x/week: ecosystem updates, inception article excerpts, builder spotlights, vision threads. Otto drafts; Mev approves or posts.
-4. **All 15 project landing pages live** — Waitlist capture on every project at my3ye.xyz or project domain. All waitlists write to Postgres. No orphaned forms.
+4. **All project landing pages live** — Waitlist capture on every project at my3ye.xyz or project domain. All waitlists write to Postgres. No orphaned forms.
 5. **Contribution framework published** — "How to build for MY3YE" doc: fork policy, contribution standards, how equity and tokens accrue to builders, governance voice for contributors.
 6. **First 100 community members** — Real humans engaged via my3ye.xyz, Discord, or X across all three audience segments (sovereign thinkers, mission-aligned builders, new civilization early adopters).
 
 ### Success Criteria
 - ≥100 community members across Discord + waitlists
-- All 14 inception articles distributed across ≥3 broadcast channels
+- All inception articles distributed across ≥3 broadcast channels
 - @maitrieye at ≥500 followers
 - Contribution framework published and community-reviewed
-- All 15 project landing pages live with waitlist capture
+- All project landing pages live with waitlist capture
 
 ### Owners
 - **Otto:** Broadcast automation, waitlist backend, community tooling, content drafts
@@ -124,7 +124,7 @@
 
 ### What Blocks On MY3YE
 
-Everything. MY3YE is the root. All 18 projects are expressions of its vision. The faster MY3YE establishes community presence, the faster all projects operate independently. Specifically:
+Everything. MY3YE is the root. All ecosystem projects are expressions of its vision. The faster MY3YE establishes community presence, the faster all projects operate independently. Specifically:
 - **ONEON** — needs MY3YE community to seed initial identity holders
 - **S0S** — needs MY3YE community to give governance real participants
 - **Koink/KOIN** — needs MY3YE narrative as the reason the token has value
@@ -172,10 +172,10 @@ MY3YE distributes itself as open-source civilization blueprint
 
 | Risk | Probability | Impact | Mitigation |
 |---|---|---|---|
-| **Narrative too complex** — 14+ projects overwhelms newcomers | High | High | Lead with one project at a time via Broadcast; PiPi as viral entry point; clear journey: "Start with WebAssist, end with Tusita" |
+| **Narrative too complex** — many projects across many verticals overwhelms newcomers | High | High | Lead with one project at a time via Broadcast; PiPi as viral entry point; clear journey: "Start with WebAssist, end with Tusita" |
 | **Building without community** — projects ship but no one uses them | High | Critical | Community-first Phase 1; no project exits concept without waitlist and active engagement |
 | **Mev dependency concentration** — one person is the bottleneck for all decisions | Medium | Critical | Otto takes full COO responsibilities; governance frameworks built early so community can act |
-| **Resource exhaustion** — 18 projects, limited budget, one VM | High | High | WebAssist revenue first (strict priority); S0S education creates unpaid contributors from the community |
+| **Resource exhaustion** — many projects, limited budget, one VM | High | High | WebAssist revenue first (strict priority); S0S education creates unpaid contributors from the community |
 | **Web3 skepticism** — target audience burned by prior crypto projects | High | Medium | Lead with real products and real value; earn trust before introducing tokenomics |
 | **Regulatory pressure** — governments targeting decentralized communities | Medium | High | Multiple jurisdictions; Tusita legal structures; community governance as distributed shield |
 | **Narrative hijack** — forks that distort the mission | Low | Medium | Open Copyright + strong founding documents + community identity as cultural immune system |
@@ -210,8 +210,8 @@ The river flows on its own — once enough tributaries connect.
 
 ## Notes
 - **No MY3YE token (by design, for now)** — Open question in registry. $KOIN serves as the ecosystem's economic layer. A MY3YE meta-token would create governance complexity before governance is ready. Revisit at Phase 3.
-- **Distribution is the bottleneck now, not content.** All 14 inception articles exist. The founding narrative is complete. The constraint is reaching the people who need to hear it.
-- **Ecosystem count:** 18 projects in universe registry (15 original + 3 new: Otto UI, Otto Cars, Otto Billboards).
+- **Distribution is the bottleneck now, not content.** The inception articles exist. The founding narrative is complete. The constraint is reaching the people who need to hear it.
+- **Ecosystem count:** Projects across many verticals in universe registry, growing as the mission evolves.
 - **MY3YE #I** is the founding document. Every inception article is a chapter in the same story. The sequence IS the manifesto.
 - **Priority order for MY3YE growth:** narrative distribution → community formation → governance framework → project launches. Never invert this.
 - **This roadmap is itself a living document.** Update it when the community changes the plan — that act of updating is MY3YE governance in practice.

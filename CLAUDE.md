@@ -156,6 +156,42 @@ Use for: external contacts, formal communications, documents, OTP auth. Auto-ref
 | WhatsApp | :3001 | WhatsApp interface (systemd: whatsapp) |
 | Email (Zoho) | SMTP :465 / IMAP :993 | admin@otto.lk via smtppro/imappro.zoho.com |
 
+## Task Plans (DAG Orchestration)
+
+**For complex instructions with multiple tasks**, use task plans instead of creating tasks one at a time. A plan decomposes one instruction into N tasks with dependency edges and executes them as a DAG.
+
+### How It Works
+1. Instruction arrives (WhatsApp, API, heartbeat)
+2. Plan classifier decomposes into tasks with dependencies
+3. Agent auto-employment activates agents from `agency-agents/` if needed
+4. DAG executor runs tasks with no dependencies first (parallel)
+5. As tasks complete, their output flows to dependent tasks automatically
+6. Plan finalizes when all tasks complete/fail
+
+### Key API Endpoints
+
+| Endpoint | Method | Purpose |
+|---|---|---|
+| `/task-plans` | GET | List plans (filter by status) |
+| `/task-plans` | POST | Create a plan: `{title, instruction, items: [{temp_id, title, prompt, agent_type, depends_on, workflow_template}]}` |
+| `/task-plans/{id}` | GET | Plan detail with DAG structure and all tasks |
+| `/task-plans/{id}/cancel` | POST | Cancel plan + all pending tasks |
+| `/task-plans/dashboard/status` | GET | Plan execution summary |
+
+### Topology Types
+- **parallel** — all tasks independent, run simultaneously
+- **sequential** — linear chain: A → B → C
+- **hybrid** — mixed: parallel branches with dependency edges
+
+### Plan items can use workflows
+Set `workflow_template` on a plan item and it becomes a workflow-backed coordinator task. The workflow runs its steps, and when it completes, the plan DAG advances.
+
+### Agent Auto-Employment
+If a plan needs an agent that isn't active, the system searches `/mnt/media/projects/agency-agents/` (139 available agents) and copies the matching agent file to `otto/.claude/agents/` automatically.
+
+### Integration with Reactive Dispatch
+When Mev sends a multi-task instruction on WhatsApp, the plan classifier runs first. If it detects multiple tasks, a plan is created automatically. Single-task instructions fall through to the existing single-dispatch path.
+
 ## Workflow Engine
 
 Multi-agent pipelines that chain specialist agents through sequential steps. **Prefer workflows over single tasks for multi-step work.**

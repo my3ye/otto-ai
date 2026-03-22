@@ -62,8 +62,10 @@ type: project
 **Covered:**
 - Chain-agnostic design / $KOINK Standard / anti-whale physics / treasury→SOS flow (inception rewrite 2026-03-19, DB: 9c46d865)
   - Angle: engineering beneath chaos, meme as onboarding door, physics not punishment
-- Landing page copy refresh (2026-03-22, DB: e215075e). Key changes: chain-agnostic as primary hero framing, $KOIN→$KOINK fix, sharper feature/step copy, canonical brand line in footer. Committed to ottomev/koink-fun main.
-  - Angle: chain-agnostic as the primary differentiator (SOLANA · BASE · POLKADOT · EVERY CHAIN), declarations not explanations
+- Landing page copy v2 (2026-03-22, DB: e215075e). Key changes: chain-agnostic as primary hero framing, $KOIN→$KOINK fix, sharper feature/step copy, canonical brand line in footer. Committed to ottomev/koink-fun main.
+  - Angle: chain-agnostic as the primary differentiator, declarations not explanations
+- Landing page copy v3 (2026-03-22, commit 4a576de). Review feedback applied: quantum→VRF-seeded, dead CTAs→real links, every-chain qualified, disclaimer visible, GitHub link, social links, Conviction Multiplier (was Diamond Hands), MY3YE context one-liner.
+  - NOTE: The "quantum" language was a credibility failure with builders — always use the actual mechanism name (VRF, commit-reveal, etc.) in technical claims. Never decorate with "quantum" as a buzzword.
 
 **Open:**
 - Creator journey: who launches on Koink.fun

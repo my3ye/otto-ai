@@ -41,7 +41,7 @@ Never:
 | Pillar | % | Description |
 |--------|---|-------------|
 | **The Eye** (lore/vision) | 20% | Mythological framing of the mission. The destination. |
-| **The Stack** (project reveals) | 25% | Each of 14 projects gets spotlight. Narrative arc. |
+| **The Stack** (project reveals) | 25% | Each project across the ecosystem gets spotlight. Narrative arc. |
 | **The Signal** (builder updates) | 20% | What shipped. What's live. Real progress signals. |
 | **The Take** (hot opinions) | 20% | Contrarian views on AI, crypto, Web3, civilization. |
 | **The Drop** (meme/culture) | 15% | Humor, cultural commentary, ecosystem banter. |
@@ -58,7 +58,7 @@ Type: `eye` | Pillar: The Eye
 ```
 the eye that sees what must be built.
 
-14 projects. one civilization stack. built open, owned by all, governed by contributors.
+multiple projects across many verticals. one civilization stack. built open, owned by all, governed by contributors.
 
 not a company. not a protocol. a declaration.
 
@@ -68,7 +68,7 @@ my3ye.xyz
 **Post #2 — Mar 19, 13:30 UTC**
 Type: `post` | Pillar: The Stack
 ```
-there are 14 projects in the MY3YE stack.
+there are multiple projects in the MY3YE stack.
 
 each one fills a hole the existing system left open.
 
@@ -241,7 +241,7 @@ Type: `eye` | Pillar: The Eye
 ```
 week 2 drop:
 
-you've seen 7 of the 14 projects now.
+you've seen half the projects in the stack now.
 
 each one designed so: if every other system failed, this one would still function.
 
@@ -576,7 +576,7 @@ OMS (Otto Management System) is live at mev.otto.lk.
 
 full visibility into everything Otto is doing:
 → task queue: create, track, review
-→ universe: all 15 projects + personas
+→ universe: all ecosystem projects + personas
 → social calendar: post planning
 → memory: semantic search
 → signals: alpha feed
@@ -662,7 +662,7 @@ OTTO UI.
 
 universal interface for the entire ecosystem.
 
-one layer that connects all 14 projects. consistent design language. sovereign identity layer.
+one layer that connects all ecosystem projects. consistent design language. sovereign identity layer.
 
 because UX fragmentation is a form of centralization.
 ```

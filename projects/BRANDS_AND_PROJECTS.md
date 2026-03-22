@@ -7,7 +7,7 @@
 
 **MY3YE** is the overarching vision — not a company, but a declaration of intent. A parallel civilization built on contribution, not extraction. Sovereignty, not control. Abundance by design.
 
-The ecosystem has **18 projects** across 5 categories, plus **Assistive Technologies** as the revenue engine.
+The ecosystem spans **multiple projects across many verticals**, plus **Assistive Technologies** as the revenue engine.
 
 **Tagline:** "The frequency is transmitting."
 **Copyright:** Open Copyright — All Rights Reserved to All
