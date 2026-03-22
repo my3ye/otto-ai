@@ -6,6 +6,15 @@ type: project
 
 ## MY3YE Ecosystem
 
+**Paragraph Inception Article: "The Frequency Is Transmitting"**
+- Content DB ID: fd3b2dcb-65f9-45c1-807b-3865c6fd2d96
+- File: /mnt/media/projects/my3ye-web/content/blog/the-frequency-is-transmitting.mdx
+- Angle: Discovery/arrival frame — "you found the signal." Opens mid-scene (builder writing protocol, architect sketching dome). What MY3YE is (declaration of intent encoded into systems), name etymology (My Third Eye / Maitreye). What is live now (WebAssist, Otto AI, Koink.fun, ONEON, SOS, Tusita). Why built this way (physics of contribution). Who it was built for (the ones handed nothing). Paragraph Article 1 in the progressive reveal series.
+- Story beat: The Mission + The Dream
+- Dominant metaphor: signal / transmission / frequency (not river — river closes once as callback)
+- Status: draft (DB) + MDX written
+- DO NOT repeat: the mid-scene opening of multiple builders in motion simultaneously, "you are reading this because the signal reached you" as the credential frame, "not a whitepaper for a future state / these are things that exist" as the section opener, the triple name-reading (My Third Eye / My Eye / Maitreye) as the etymology move
+
 **Article 1: "The Eye That Sees What Must Be Built"**
 - Content DB ID: af414a05-6559-4036-924c-f8ccf8d1a0d6
 - File: /mnt/media/projects/my3ye-web/content/blog/the-eye-that-sees-what-must-be-built.mdx
