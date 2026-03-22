@@ -106,15 +106,140 @@ Phase 4 — The Invitation    (Apr 3–5): Who it's for. How to join. The river 
 
 ---
 
-## Step 1 Deliverable
+## Finalized Thread Text — Post #2 "The Frequency Is Transmitting"
 
-Step 1 (content-creator agent) writes the **full text** of:
-1. **Post #1** — "The Eye Opens" single post
-2. **Post #2** — "The Frequency Is Transmitting" 9-tweet inception thread (this is the primary deliverable — everything else is secondary)
-3. **Post #5** — "We Came to Write the Law Into the Machine" 4-tweet thread
-4. **Post #14** — "The Invitation" 3-tweet closing thread
+*(DB IDs: e3e64d90 through 6c747d64 + reply 7a75a3df. All status=draft, scheduled 2026-03-24T03:30:00+00:00)*
 
-All other posts are single declarative lines and can be extracted directly from brand lines above.
+**Tweet 1/9 — The Signal** `e3e64d90`
+```
+1/
+
+the signal reached you.
+
+that is the only credential that matters here.
+
+somewhere right now, developers are writing governance protocols. architects are designing domes. builders are shipping the first products. these are not plans. they are underway.
+
+this is MY3YE.
+```
+
+**Tweet 2/9 — Declaration** `ad64a85d`
+```
+2/
+
+MY3YE is not a startup. not a foundation. not an ICO.
+
+a declaration of intent — encoded into systems.
+
+the eye that sees what must be built.
+```
+
+**Tweet 3/9 — The Stack** `966c093c`
+```
+3/
+
+we built a civilization stack.
+
+protocols across intelligence (Otto AI), communications (ONEON), physical space (Tusita), governance, culture, and economics. not a product family. a parallel civilization.
+
+each one governed by the community that uses it.
+```
+
+**Tweet 4/9 — Live Now (1)** `aa762d9c`
+```
+4/
+
+this is not a whitepaper for a future state. these are things that exist.
+
+WebAssist is live — AI-powered client acquisition for independent businesses. first revenue stream.
+
+Otto AI is operational. persistent memory. autonomous execution. zero capital raised.
+```
+
+**Tweet 5/9 — Building Alongside It** `29057958`
+```
+5/
+
+and what we are building alongside it:
+
+Koink.fun — meme tokenomics where accumulation must be earned.
+ONEON — sovereign comms. your identity, not the platform's.
+SOS Systems — governance by impact.
+Tusita — somewhere to actually live.
+```
+
+**Tweet 6/9 — The Law** `41e6488b` *(unchanged — do not alter)*
+```
+6/
+
+the whole thing runs on one law:
+
+what you give grows your capacity to give.
+what you hoard shrinks your capacity to hold.
+
+the machine enforces it the way gravity enforces falling.
+
+this is not punishment. this is physics.
+```
+
+**Tweet 7/9 — Why Different** `5b1b6ce6` *(unchanged — do not alter)*
+```
+7/
+
+every system that extracts from you was built on one assumption: that you need it more than it needs you.
+
+that assumption has always been wrong. we are building the proof.
+
+we came to write the law into the machine — so the machine needs no priest.
+```
+
+**Tweet 8/9 — Who It's For** `b434ae25` *(unchanged — do not alter)*
+```
+8/
+
+the builder the internet forgot. the organizer who gets deplatformed. the developer the platforms extracted from.
+
+these are not edge cases. they are the majority of the world.
+
+for the ones who were handed nothing — we built this for us.
+```
+
+**Tweet 9/9 — CTA / Close** `6c747d64`
+```
+9/
+
+this is one thread among many. the full article on Paragraph is in the reply.
+
+we are not asking you to believe. we are not asking you to follow. we are asking you to build.
+
+the river moves. move with it.
+```
+
+**Reply (post immediately after tweet 9)** `7a75a3df`
+```
+full article on Paragraph: [add URL before posting]
+
+my3ye.xyz
+```
+> **Gate:** Do not schedule until Paragraph URL is confirmed. Add URL to reply only — never in tweet body.
+
+---
+
+## Revision Log (Step 3)
+
+Applied Step 2 audience review feedback (task b84f9454). All 3 critical issues resolved, both warnings applied, 2 of 3 suggestions applied.
+
+| Tweet | Change | Reason |
+|-------|--------|--------|
+| 1/9 | "sketching domes" → "designing domes"; "not planned" → "not plans" | Critical #3: "sketching" contradicted "underway" — a skeptic catches this in 2 seconds |
+| 2/9 | Removed third-eye explanation paragraph | Warning #4: explanation broke momentum at worst position (tweet 2); brand line is self-evident |
+| 3/9 | Named 3 protocols: Otto AI, ONEON, Tusita | Suggestion #7: zero named protocols made stack feel unreal; one anchor per category |
+| 4/9 | "small businesses" → "independent businesses" | Warning #6: "small businesses" deflated the civilizational frame unnecessarily |
+| 5/9 | Added bridge "and what we are building alongside it:" | Critical #1: tweet 4 frame ("these are things that exist") implied tweet 5 items also exist — false-live risk on launch day |
+| 9/9 | Removed `my3ye.xyz` from body; moved river line to close after CTA | Critical #2: URL in body violates content rules + X algorithm penalty; Suggestion #8: "we are asking you to build" lands harder as final line |
+| +Reply | Created reply post 7a75a3df with Paragraph URL + my3ye.xyz | Critical #2: links moved out of tweet body to first reply |
+
+Tweets 6, 7, 8 unchanged — reviewer noted these as the strongest tweets in the thread.
 
 ---
 
