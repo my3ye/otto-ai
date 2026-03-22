@@ -150,7 +150,7 @@ TEMPLATES = [
             {
                 "position": 5,
                 "name": "Notify",
-                "agent_type": "coder",
+                "agent_type": None,
                 "action": "notify",
                 "max_budget_usd": 0.5,
                 "max_turns": 5,
@@ -292,7 +292,7 @@ TEMPLATES = [
             {
                 "position": 5,
                 "name": "Notify",
-                "agent_type": "coder",
+                "agent_type": None,
                 "action": "notify",
                 "max_budget_usd": 0.5,
                 "max_turns": 5,
@@ -436,7 +436,7 @@ TEMPLATES = [
             {
                 "position": 5,
                 "name": "Notify",
-                "agent_type": "coder",
+                "agent_type": None,
                 "action": "notify",
                 "max_budget_usd": 0.5,
                 "max_turns": 5,
@@ -592,7 +592,7 @@ TEMPLATES = [
             {
                 "position": 6,
                 "name": "Notify",
-                "agent_type": "coder",
+                "agent_type": None,
                 "action": "notify",
                 "max_budget_usd": 0.5,
                 "max_turns": 5,

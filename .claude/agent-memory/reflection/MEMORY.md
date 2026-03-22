@@ -1,18 +1,21 @@
 # Reflection Agent Memory
 
-## System Baselines (updated 2026-03-21 cycle 361)
-- Memory: Evolve healthy (1461 decay, 3 facts, 0 dupes). GLOVE: 0/15 mismatches (clean).
+## System Baselines (updated 2026-03-22 cycle 368)
+- Memory: 2405+ active. Evolve healthy (1535 decay, 4 facts, 0 dupes). GLOVE: 0/15 mismatches (clean).
 - Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Docker: postgres, neo4j, graphiti.
-- Disk: 41% boot. RAM: 5.0GB/16GB.
-- Queue: 6 unreviewed (EasyA workflow steps). 0 pending. 1 running (EasyA pitch Step 3).
-- RL2F accuracy: 50% (25/50) — trend DECLINING (58→56→54→52→50%). Idle Mev-behavior predictions continue generating partials. Recovery: 1-2 days active work needed. AutoEvolve trigger met (RL2F<70%).
-- Workflows: 20+ completed. 1 running (EasyA pitch brief). EasyA research completed fitness=0.72. Templates: feature-dev v3 (0.82), content-publishing v2 (0.76), social-content v2 (0.68), research-pipeline v2 (0.76).
+- Disk: 42% boot. RAM: 5.5GB/16GB.
+- Queue: 0 unreviewed. 0 pending. 2 running (koink.fun content + workflow templates impl).
+- RL2F accuracy: 42% (21/50) — trend DECLINING (58→...→44→42%). Idle predictions generate partials. Recovery: 1-2 days active work needed. AutoEvolve trigger met (RL2F<70%).
+- Workflows: 29+ completed. 2 running. Templates: feature-dev v4 (0.82), content-publishing v3 (0.79), social-content v3 (0.68 evolved), research-pipeline v3 (0.76). 4 new v1 templates: outbound-sales, smart-contract, grant-application, product-sprint.
 - Agents: 100% success rate across all agent types (last 30 tasks).
-- Procedures: 15 total, top 4 above 0.95 trust. reactive_analysis_dispatch at 1.00 (167/174).
+- Procedures: 15 total, top 3 above 0.95 trust. reactive_analysis_dispatch at 0.96 (187 uses).
+- Security: API bound to localhost (127.0.0.1:8100). UFW enabled (22/80/443/3001 allowed). Risk 5/10→3/10.
 - **Wink noise FIXED (cycle 346)**: wink_critical at importance 5 (borderline). Noise minimal.
 
 ## Known Gaps (persistent)
-- **RL2F accuracy: 50% (25/50) DECLINING** — Continued decline (58→56→54→52→50%). Idle Mev-behavior predictions generate partials that slide matches out of window. Self-patch 0630e10b active but idle periods still generate partial-prone predictions. Recovery requires 1-2 days of active work (flush partials from window). AutoEvolve trigger met (RL2F<70%) — start experiment when rate limit clears. Social-content workflow fitness stagnant at 0.68.
+- **RL2F accuracy: 42% (21/50) DECLINING** — Continued decline (58→...→44→42%). Idle Mev-behavior predictions generate partials. Self-patch 68eac95a applied (timing→outcome predictions). Recovery requires 1-2 days of active work. AutoEvolve trigger met (RL2F<70%) — start experiment when rate limit clears.
+- **Social-content workflow**: Evolution triggered cycle 368 (v2→v3). Fitness still 0.68, needs a new run to measure. If no improvement after next run, consider structural mutation (merge/remove steps).
+- **Orchestrator review gap (cycle 363, RESOLVED cycle 364)**: 6 intermediate workflow steps were unreviewed — orchestrator reviewed them in the following heartbeat cycle. Not recurring.
 - **Researcher agent memory bloat: FIXED (cycle 347)** — Task b5b5ba2b cleaned 454->199 lines (56% reduction). QA approved, committed c45d6d88.
 - **Zombie task gap (FIXED cycle 323)**: task_runner.sh had `set -euo pipefail` with NO trap handler. Any unguarded command failure killed the script before the completion callback, creating zombies. 7 total process-died failures. FIX: added `trap cleanup_on_exit EXIT` handler that marks tasks as failed via API on unexpected exit. Secondary fix needed: add `|| true` guards to pre-flight git commands. Stale-task reaper still recommended as defense-in-depth.
 - **LLM fallback chain**: Kimi→OpenAI→Claude CLI. Working since cycle 93. Claude CLI fallback untested but non-critical.
