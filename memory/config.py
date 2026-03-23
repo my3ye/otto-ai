@@ -104,6 +104,15 @@ class Settings(BaseSettings):
     # ── Koink Standard integration ────────────────────────────────────
     koink_enabled: bool = False        # Master feature flag — enable after Phase 1 wallet setup
 
+    # ── ONEON Identity Network ─────────────────────────────────────────
+    oneon_enabled: bool = False        # Master feature flag — Phase 0 available now
+
+    # ── Tusita Community Locations ─────────────────────────────────────
+    tusita_enabled: bool = False       # Master feature flag — Phase 0 available now
+
+    # ── SOS Systems ────────────────────────────────────────────────────
+    sos_enabled: bool = False          # Master feature flag — Phase 0 available now
+
     # ── Secrets Vault ─────────────────────────────────────────────────
     # Fernet master key — ONLY secret that must stay in .env.
     # Generate with: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"

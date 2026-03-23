@@ -16,7 +16,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from .db import get_pool, close_pool
-from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist, articles, contacts, services, live_systems, autoevolve, orders, trading, conclusions, social_calendar, backup, security, email, education, omnisearch, critiques, content, workflows, investors, bankr, crypto, secrets, thought_vault, athena, task_plans, koink  # noqa
+from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist, articles, contacts, services, live_systems, autoevolve, orders, trading, conclusions, social_calendar, backup, security, email, education, omnisearch, critiques, content, workflows, investors, bankr, crypto, secrets, thought_vault, athena, task_plans, koink, oneon, tusita, sos  # noqa
 from .routes.kernel_routes import router as kernel_router
 from .gateway.routes import router as gateway_router
 from .routes.maintenance import run_maintenance_job
@@ -182,6 +182,9 @@ app.include_router(thought_vault.router)
 app.include_router(athena.router)
 app.include_router(task_plans.router)
 app.include_router(koink.router)
+app.include_router(oneon.router)
+app.include_router(tusita.router)
+app.include_router(sos.router)
 
 
 @app.get("/hello", response_class=HTMLResponse)
