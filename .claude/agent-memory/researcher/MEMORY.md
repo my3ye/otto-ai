@@ -193,7 +193,12 @@ Goal: limit real persons to max 3 wallets
 
 ### Implementation patterns
 - World ID nullifier pooled cap: same person's wallets share one cap bucket (strongest anti-whale)
-- Wallet age gate (<30 days = reject): easiest single filter
-- `require(nullifierInvested[nullifierHash] + amount <= MAX_PER_PERSON)` — caps by person not wallet
-- `require(msg.sender == tx.origin)` — blocks contract-based batch attacks (still valid on Solana post-EIP-7702)
-- Wallet scoring signals by importance: age > tx count > deposit address clustering > cross-chain > gas lifetime > ENS > POAP
+- Wallet age gate (<30 days = reject): easiest single filter. Scoring: age > tx count > clustering > cross-chain > ENS > POAP
+
+## OMNIFLOW Research (2026-03-23) — arXiv 2603.15797
+
+DB Note ID: d6f032cc | Memory IDs: ed747a84 (PG-CoT), faa39d49 (frozen LLM), 6f2d63b6 (SSA)
+
+- **PG-CoT experiment**: Pilot 1 mission-alignment checkpoint at REFLECT→DECIDE in heartbeat.md (15-30 lines). Analyze MARS critic pass overlap first. Run 5 cycles. Domain gap physics→agent governance = real; treat as experiment, not proven improvement.
+- **Frozen LLM**: Corroborates (not validates) Otto no-training direction. No action.
+- **SSA telemetry**: Raw metrics → structured text → LLM. P6 future work for S-MMU. Validation score: 6/10.
