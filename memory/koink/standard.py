@@ -125,11 +125,12 @@ def validate_koink_params(params: dict) -> tuple[bool, list[str]]:
     if initial is not None and floor is not None and floor > initial:
         errors.append(f"sell_tax_floor_bps ({floor}) cannot exceed sell_tax_initial_bps ({initial})")
 
-    # Required fields for a full launch record
+    # Required fields for a full launch record (strip to catch whitespace-only strings)
     required = ["name", "symbol", "chain"]
     for field in required:
-        if not params.get(field):
-            errors.append(f"Required field missing: {field}")
+        val = params.get(field)
+        if not val or (isinstance(val, str) and not val.strip()):
+            errors.append(f"Required field missing or blank: {field}")
 
     return (len(errors) == 0, errors)
 
@@ -191,7 +192,7 @@ def calculate_sell_tax_for_holder(
     progress = min(hold_days / dhm_days, 1.0)
 
     tax_range = sell_tax_initial_bps - sell_tax_floor_bps
-    current_tax = sell_tax_initial_bps - int(progress * tax_range)
+    current_tax = sell_tax_initial_bps - round(progress * tax_range)
     return max(current_tax, sell_tax_floor_bps)
 
 

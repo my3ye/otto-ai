@@ -40,10 +40,15 @@ async def upsert_dhm_position(
     if hold_start_at is None:
         hold_start_at = datetime.now(timezone.utc)
 
+    try:
+        token_uuid = UUID(token_id)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Invalid token_id format: {token_id}")
+
     # Fetch token's DHM params to calculate multiplier
     token_row = await pool.fetchrow("""
         SELECT dhm_months, dhm_max_multiplier FROM koink_tokens WHERE id = $1
-    """, UUID(token_id))
+    """, token_uuid)
 
     if not token_row:
         raise ValueError(f"koink_token not found: {token_id}")
@@ -65,8 +70,10 @@ async def upsert_dhm_position(
             multiplier = EXCLUDED.multiplier,
             synthetic = EXCLUDED.synthetic,
             last_snapshot = NOW()
+            -- Note: hold_start_at is intentionally NOT updated on conflict;
+            --       original acquisition date is preserved by design.
         RETURNING *
-    """, UUID(token_id), holder_address.lower(), balance, hold_start_at, multiplier, synthetic)
+    """, token_uuid, holder_address.lower(), balance, hold_start_at, multiplier, synthetic)
 
     return dict(row)
 
@@ -76,6 +83,10 @@ async def get_dhm_positions(
     limit: int = 100,
 ) -> list[dict]:
     """Get DHM positions for a token, ranked by multiplier (desc)."""
+    try:
+        token_uuid = UUID(token_id)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Invalid token_id format: {token_id}")
     pool = await get_pool()
     rows = await pool.fetch("""
         SELECT p.*,
@@ -84,7 +95,7 @@ async def get_dhm_positions(
         WHERE p.token_id = $1
         ORDER BY p.multiplier DESC, p.balance DESC
         LIMIT $2
-    """, UUID(token_id), limit)
+    """, token_uuid, limit)
     return [dict(r) for r in rows]
 
 
@@ -96,18 +107,22 @@ async def snapshot_dhm_positions(token_id: str) -> dict:
     Returns:
         Summary of positions updated.
     """
+    try:
+        token_uuid = UUID(token_id)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Invalid token_id format: {token_id}")
     pool = await get_pool()
 
     token_row = await pool.fetchrow("""
         SELECT dhm_months, dhm_max_multiplier FROM koink_tokens WHERE id = $1
-    """, UUID(token_id))
+    """, token_uuid)
 
     if not token_row:
         raise ValueError(f"koink_token not found: {token_id}")
 
     positions = await pool.fetch("""
         SELECT id, hold_start_at FROM koink_dhm_positions WHERE token_id = $1
-    """, UUID(token_id))
+    """, token_uuid)
 
     updated = 0
     for pos in positions:
@@ -130,6 +145,10 @@ async def snapshot_dhm_positions(token_id: str) -> dict:
 
 async def get_holder_stats(token_id: str, holder_address: str) -> Optional[dict]:
     """Get a single holder's DHM stats including current sell tax."""
+    try:
+        token_uuid = UUID(token_id)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Invalid token_id format: {token_id}")
     pool = await get_pool()
 
     row = await pool.fetchrow("""
@@ -141,7 +160,7 @@ async def get_holder_stats(token_id: str, holder_address: str) -> Optional[dict]
         FROM koink_dhm_positions p
         JOIN koink_tokens kt ON kt.id = p.token_id
         WHERE p.token_id = $1 AND p.holder_address = $2
-    """, UUID(token_id), holder_address.lower())
+    """, token_uuid, holder_address.lower())
 
     if not row:
         return None

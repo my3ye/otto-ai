@@ -17,6 +17,7 @@ Routes:
 
 import logging
 from typing import Literal, Optional
+from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -75,7 +76,7 @@ class KoinkLaunchRequest(BaseModel):
 
 
 class TreasuryEventRequest(BaseModel):
-    token_id: str
+    token_id: UUID
     event_type: Literal["distribution", "allocation", "withdrawal"]
     amount: float
     recipient: Optional[str] = None
@@ -84,7 +85,7 @@ class TreasuryEventRequest(BaseModel):
 
 
 class DHMSnapshotRequest(BaseModel):
-    token_id: str
+    token_id: UUID
 
 
 # ─── Endpoints ────────────────────────────────────────────────────────────────
@@ -101,7 +102,7 @@ async def get_koink_status():
             "evm": "Chainlink VRF v2.5",
             "solana": "Switchboard VRF",
         },
-        "phase_1_blocker": "OWS deploy wallet registration required (Mev action)",
+        "phase_1_blocker": "Deploy wallet registration required before Phase 1 activation.",
         "features": {
             "create_token_record": True,
             "dhm_tracking": True,
@@ -162,10 +163,10 @@ async def list_koink_launches(
 
 
 @router.get("/launches/{token_id}")
-async def get_koink_launch(token_id: str):
+async def get_koink_launch(token_id: UUID):
     """Fetch a single Koink token with full KOINK Standard params."""
     _require_enabled()
-    token = await get_koink_token(token_id)
+    token = await get_koink_token(str(token_id))
     if not token:
         raise HTTPException(status_code=404, detail=f"Koink token not found: {token_id}")
     return token
@@ -173,18 +174,18 @@ async def get_koink_launch(token_id: str):
 
 @router.get("/dhm/{token_id}")
 async def get_dhm_positions_route(
-    token_id: str,
+    token_id: UUID,
     limit: int = Query(100, ge=1, le=500),
 ):
     """DHM positions for a token — holder rankings and current multipliers."""
     _require_enabled()
     # Verify token exists
-    token = await get_koink_token(token_id)
+    token = await get_koink_token(str(token_id))
     if not token:
         raise HTTPException(status_code=404, detail=f"Koink token not found: {token_id}")
-    positions = await get_dhm_positions(token_id=token_id, limit=limit)
+    positions = await get_dhm_positions(token_id=str(token_id), limit=limit)
     return {
-        "token_id": token_id,
+        "token_id": str(token_id),
         "token_name": token.get("name"),
         "token_symbol": token.get("symbol"),
         "dhm_months": token.get("dhm_months"),
@@ -203,11 +204,12 @@ async def snapshot_dhm(req: DHMSnapshotRequest):
     parameters are updated, or on a scheduled basis.
     """
     _require_enabled()
-    token = await get_koink_token(req.token_id)
+    token_id_str = str(req.token_id)
+    token = await get_koink_token(token_id_str)
     if not token:
         raise HTTPException(status_code=404, detail=f"Koink token not found: {req.token_id}")
     try:
-        result = await snapshot_dhm_positions(req.token_id)
+        result = await snapshot_dhm_positions(token_id_str)
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -215,14 +217,15 @@ async def snapshot_dhm(req: DHMSnapshotRequest):
 
 @router.get("/treasury/{token_id}")
 async def get_treasury(
-    token_id: str,
+    token_id: UUID,
     limit: int = Query(50, ge=1, le=200),
 ):
     """Treasury balance and recent events for a Koink token."""
     _require_enabled()
+    token_id_str = str(token_id)
     try:
-        balance = await get_treasury_balance(token_id)
-        events = await get_treasury_events(token_id=token_id, limit=limit)
+        balance = await get_treasury_balance(token_id_str)
+        events = await get_treasury_events(token_id=token_id_str, limit=limit)
         return {**balance, "recent_events": events}
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -237,7 +240,7 @@ async def record_treasury_event_route(req: TreasuryEventRequest):
     _require_enabled()
     try:
         event = await record_treasury_event(
-            token_id=req.token_id,
+            token_id=str(req.token_id),
             event_type=req.event_type,
             amount=req.amount,
             recipient=req.recipient,

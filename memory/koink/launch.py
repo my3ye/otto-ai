@@ -113,13 +113,17 @@ async def create_koink_token(
 
 async def get_koink_token(token_id: str) -> Optional[dict]:
     """Fetch a single koink_token by ID."""
+    try:
+        token_uuid = UUID(token_id)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Invalid token_id format: {token_id}")
     pool = await get_pool()
     row = await pool.fetchrow("""
         SELECT kt.*, tl.status as launch_status
         FROM koink_tokens kt
         LEFT JOIN token_launches tl ON tl.id = kt.launch_id
         WHERE kt.id = $1
-    """, UUID(token_id))
+    """, token_uuid)
     return dict(row) if row else None
 
 

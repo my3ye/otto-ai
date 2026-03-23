@@ -4,6 +4,7 @@ Tracks treasury distributions, allocations, and withdrawals off-chain.
 In Phase 0: manual entry only. Phase 1+: synced from KoinkTreasury.sol events.
 """
 
+import json
 import logging
 from typing import Optional
 from uuid import UUID
@@ -45,17 +46,20 @@ async def record_treasury_event(
     pool = await get_pool()
 
     # Verify token exists
-    exists = await pool.fetchval("SELECT 1 FROM koink_tokens WHERE id = $1", UUID(token_id))
+    try:
+        token_uuid = UUID(token_id)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Invalid token_id format: {token_id}")
+    exists = await pool.fetchval("SELECT 1 FROM koink_tokens WHERE id = $1", token_uuid)
     if not exists:
         raise ValueError(f"koink_token not found: {token_id}")
 
-    import json
     row = await pool.fetchrow("""
         INSERT INTO koink_treasury_events
             (token_id, event_type, amount, recipient, tx_hash, metadata)
         VALUES ($1, $2, $3, $4, $5, $6)
         RETURNING *
-    """, UUID(token_id), event_type, amount,
+    """, token_uuid, event_type, amount,
         recipient.lower() if recipient else None,
         tx_hash,
         json.dumps(metadata) if metadata else None)
@@ -72,20 +76,25 @@ async def get_treasury_events(
     """Fetch treasury events for a token."""
     pool = await get_pool()
 
+    try:
+        token_uuid = UUID(token_id)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Invalid token_id format: {token_id}")
+
     if event_type:
         rows = await pool.fetch("""
             SELECT * FROM koink_treasury_events
             WHERE token_id = $1 AND event_type = $2
             ORDER BY created_at DESC
             LIMIT $3
-        """, UUID(token_id), event_type, limit)
+        """, token_uuid, event_type, limit)
     else:
         rows = await pool.fetch("""
             SELECT * FROM koink_treasury_events
             WHERE token_id = $1
             ORDER BY created_at DESC
             LIMIT $2
-        """, UUID(token_id), limit)
+        """, token_uuid, limit)
 
     return [dict(r) for r in rows]
 
@@ -105,8 +114,13 @@ async def get_treasury_balance(token_id: str) -> dict:
     """
     pool = await get_pool()
 
+    try:
+        token_uuid = UUID(token_id)
+    except (ValueError, AttributeError):
+        raise ValueError(f"Invalid token_id format: {token_id}")
+
     # Verify token exists
-    exists = await pool.fetchval("SELECT 1 FROM koink_tokens WHERE id = $1", UUID(token_id))
+    exists = await pool.fetchval("SELECT 1 FROM koink_tokens WHERE id = $1", token_uuid)
     if not exists:
         raise ValueError(f"koink_token not found: {token_id}")
 
@@ -117,14 +131,14 @@ async def get_treasury_balance(token_id: str) -> dict:
             MAX(created_at) AS last_event_at
         FROM koink_treasury_events
         WHERE token_id = $1
-    """, UUID(token_id))
+    """, token_uuid)
 
     counts = await pool.fetch("""
         SELECT event_type, COUNT(*) AS cnt
         FROM koink_treasury_events
         WHERE token_id = $1
         GROUP BY event_type
-    """, UUID(token_id))
+    """, token_uuid)
 
     total_inflow = float(stats["total_inflow"])
     total_outflow = float(stats["total_outflow"])
