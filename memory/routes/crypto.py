@@ -114,10 +114,22 @@ class CloseSignalRequest(BaseModel):
 class LaunchRequest(BaseModel):
     name: str
     symbol: str
-    chain: Literal["base", "solana"]
+    chain: Literal["base", "solana", "eth", "arbitrum", "optimism"]
     supply: Optional[float] = None
     creator_fee_pct: Optional[float] = None
     description: Optional[str] = None
+    # ── $KOINK Standard fields (all optional — backward-compatible) ────
+    # If koink_standard=True, these are validated against KOINK spec limits.
+    koink_standard: bool = False
+    anti_whale_cap_pct: Optional[float] = None        # max % of supply per wallet
+    sell_tax_initial_bps: Optional[int] = None        # initial sell tax (500 = 5%)
+    sell_tax_floor_bps: Optional[int] = None          # floor sell tax for diamond hands
+    treasury_pct: Optional[float] = None              # % of each tx to treasury
+    dhm_enabled: Optional[bool] = None                # enable Diamond Hands Multiplier
+    dhm_max_multiplier: Optional[float] = None        # max governance weight
+    dhm_months: Optional[int] = None                  # months to reach max multiplier
+    vrf_type: Optional[str] = None                    # chainlink | switchboard | none
+    vrf_seed: Optional[str] = None                    # set after VRF fulfillment
 
 
 # ─── Endpoints ──────────────────────────────────────────────────────────────

@@ -101,6 +101,9 @@ class Settings(BaseSettings):
     cdp_api_key_name: str = ""                 # CDP AgentKit key name (Phase 2 execution)
     cdp_api_key_private_key: str = ""          # CDP AgentKit private key (Phase 2 execution)
 
+    # ── Koink Standard integration ────────────────────────────────────
+    koink_enabled: bool = False        # Master feature flag — enable after Phase 1 wallet setup
+
     # ── Secrets Vault ─────────────────────────────────────────────────
     # Fernet master key — ONLY secret that must stay in .env.
     # Generate with: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"

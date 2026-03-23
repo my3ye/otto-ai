@@ -14,21 +14,23 @@ from ..llm import llm_chat, extract_json
 log = logging.getLogger("otto.crypto.nlparser")
 
 # Supported chains and actions
-SUPPORTED_CHAINS = {"base", "eth", "polygon", "solana", "hyperliquid", "bsc", "avalanche"}
+SUPPORTED_CHAINS = {"base", "eth", "polygon", "solana", "hyperliquid", "bsc", "avalanche",
+                    "arbitrum", "optimism"}
 SUPPORTED_ACTIONS = {"swap", "buy", "sell", "bridge", "limit_buy", "limit_sell", "stop_loss",
-                     "dca", "take_profit", "launch", "portfolio", "price", "signal"}
+                     "dca", "take_profit", "launch", "koink_launch", "portfolio", "price", "signal"}
 
 
 @dataclass
 class TradeIntent:
     """Structured representation of a parsed trade command."""
-    action: str                          # swap | buy | sell | bridge | limit_buy | stop_loss | dca | ...
+    action: str                          # swap | buy | sell | bridge | limit_buy | stop_loss | dca | koink_launch | ...
     token_in: Optional[str] = None       # token to spend (e.g. "USDC")
     token_out: Optional[str] = None      # token to receive (e.g. "ETH")
     amount_usd: Optional[float] = None   # USD value of the trade
     amount_token: Optional[float] = None # raw token amount (alternative to USD)
     chain: str = "base"                  # target chain
-    conditions: Optional[dict] = None   # for conditional orders: {trigger_price, trigger_type, ...}
+    conditions: Optional[dict] = None    # for conditional orders: {trigger_price, trigger_type, ...}
+    koink_params: Optional[dict] = None  # for koink_launch: {name, symbol, anti_whale_cap_pct, ...}
     raw_text: str = ""                   # original NL input
     confidence: float = 1.0             # parser confidence (0.0-1.0)
     missing_fields: list = None         # fields that were unclear/missing
@@ -71,17 +73,26 @@ _PARSE_SYSTEM = """You are a crypto trade intent parser. Extract structured trad
 
 Return ONLY valid JSON with these fields:
 {
-  "action": "buy|sell|swap|bridge|limit_buy|limit_sell|stop_loss|dca|take_profit|price|portfolio|signal",
+  "action": "buy|sell|swap|bridge|limit_buy|limit_sell|stop_loss|dca|take_profit|price|portfolio|signal|koink_launch",
   "token_in": "symbol of token to spend (null if buying with USD/stablecoin)",
   "token_out": "symbol of token to receive",
   "amount_usd": float USD amount or null,
   "amount_token": float token amount or null,
-  "chain": "base|eth|polygon|solana|hyperliquid|bsc|avalanche (default: base)",
+  "chain": "base|eth|polygon|solana|hyperliquid|bsc|avalanche|arbitrum|optimism (default: base)",
   "conditions": {
     "trigger_price": float or null,
     "trigger_type": "above|below or null",
     "dca_interval_hours": int or null,
     "dca_runs": int or null
+  },
+  "koink_params": {
+    "name": "token name or null",
+    "symbol": "token symbol or null",
+    "anti_whale_cap_pct": float or null,
+    "sell_tax_initial_bps": int or null,
+    "treasury_pct": float or null,
+    "dhm_months": int or null,
+    "total_supply": float or null
   },
   "confidence": float 0.0-1.0,
   "missing_fields": ["list of unclear or missing required fields"],
@@ -96,7 +107,11 @@ Rules:
 - "DCA $100 into ETH weekly" → action=dca, token_out=ETH, amount_usd=100, conditions={dca_interval_hours:168}
 - "what's the price of SOL?" → action=price, token_out=SOL, is_query=true
 - "show my portfolio" → action=portfolio, is_query=true
+- "launch a KOINK token called PiPi on Base" → action=koink_launch, chain=base, koink_params={name:"PiPi", symbol:"PIPI"}
+- "create a $KOINK Standard meme coin FROG on Arbitrum with 2% anti-whale" → action=koink_launch, chain=arbitrum, koink_params={name:"FROG", symbol:"FROG", anti_whale_cap_pct:2.0}
+- "deploy KOINK token DOGE2 on Solana, 12-month diamond hands, 20% treasury" → action=koink_launch, chain=solana, koink_params={name:"DOGE2", symbol:"DOGE2", dhm_months:12, treasury_pct:20.0}
 - If chain not mentioned, default to "base"
+- For koink_launch: populate koink_params with any mentioned parameters; missing required fields go in missing_fields
 - Use null for unknown/missing fields — never guess amounts
 """
 
@@ -133,6 +148,7 @@ async def parse(text: str) -> TradeIntent:
             amount_token=_to_float(data.get("amount_token")),
             chain=data.get("chain", "base"),
             conditions=data.get("conditions") or {},
+            koink_params=data.get("koink_params") or None,
             raw_text=text,
             confidence=_to_float(data.get("confidence"), default=0.5),
             missing_fields=data.get("missing_fields") or [],
