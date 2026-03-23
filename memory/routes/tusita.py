@@ -53,6 +53,17 @@ def _require_enabled():
         )
 
 
+def _require_admin():
+    """Placeholder admin auth guard. Phase 1: wire in real token/session check.
+    Currently raises 501 to make the absence of auth explicit rather than silent.
+    Replace with a proper dependency (e.g. OAuth2 bearer) before enabling Tusita.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail="Admin endpoints require auth. Phase 1: implement _require_admin() before enabling Tusita.",
+    )
+
+
 # ─── Request Models ────────────────────────────────────────────────────────────
 
 class CreateLocationRequest(BaseModel):
@@ -175,6 +186,7 @@ async def get_location_route(location_id: UUID):
 @router.put("/locations/{location_id}/status")
 async def update_location_status_route(location_id: UUID, req: UpdateStatusRequest):
     """Update a location's operational status."""
+    _require_admin()
     _require_enabled()
     try:
         updated = await update_location_status(str(location_id), req.status)
@@ -187,7 +199,8 @@ async def update_location_status_route(location_id: UUID, req: UpdateStatusReque
 
 @router.post("/locations/{location_id}/revenue")
 async def record_revenue_route(location_id: UUID, req: RecordRevenueRequest):
-    """Record revenue for a location (adds to year-to-date total)."""
+    """Record revenue for a location (adds to cumulative total)."""
+    _require_admin()
     _require_enabled()
     if req.amount <= 0:
         raise HTTPException(status_code=400, detail="Amount must be positive")

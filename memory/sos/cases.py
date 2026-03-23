@@ -60,6 +60,7 @@ async def list_cases(
     case_type: Optional[str] = None,
     urgency: Optional[str] = None,
     limit: int = 50,
+    offset: int = 0,
 ) -> list[dict]:
     """List SOS cases with optional filters."""
     pool = await get_pool()
@@ -68,16 +69,17 @@ async def list_cases(
 
     if status:
         args.append(status)
-        conditions.append(f"status = ${len(args)}")
+        conditions.append(f"c.status = ${len(args)}")
     if case_type:
         args.append(case_type)
-        conditions.append(f"case_type = ${len(args)}")
+        conditions.append(f"c.case_type = ${len(args)}")
     if urgency:
         args.append(urgency)
-        conditions.append(f"urgency = ${len(args)}")
+        conditions.append(f"c.urgency = ${len(args)}")
 
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     args.append(limit)
+    args.append(offset)
 
     rows = await pool.fetch(f"""
         SELECT c.*,
@@ -88,9 +90,10 @@ async def list_cases(
         LEFT JOIN sos_learners a ON a.id = c.assigned_to
         {where}
         ORDER BY
-            CASE urgency WHEN 'critical' THEN 1 WHEN 'urgent' THEN 2 ELSE 3 END ASC,
+            CASE c.urgency WHEN 'critical' THEN 1 WHEN 'urgent' THEN 2 ELSE 3 END ASC,
             c.created_at DESC
-        LIMIT ${len(args)}
+        LIMIT ${len(args) - 1}
+        OFFSET ${len(args)}
     """, *args)
     return [dict(r) for r in rows]
 

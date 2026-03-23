@@ -28,7 +28,7 @@ CREATE INDEX IF NOT EXISTS idx_oneon_identities_wallet    ON oneon_identities(wa
 -- 2. Governance proposals table
 CREATE TABLE IF NOT EXISTS oneon_governance_proposals (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    proposer_id     UUID NOT NULL REFERENCES oneon_identities(id) ON DELETE SET NULL,
+    proposer_id     UUID NOT NULL REFERENCES oneon_identities(id) ON DELETE RESTRICT,
     title           TEXT NOT NULL,
     body            TEXT NOT NULL,
     proposal_type   TEXT NOT NULL DEFAULT 'general',               -- general | upgrade | parameter | emergency
@@ -55,7 +55,7 @@ CREATE INDEX IF NOT EXISTS idx_oneon_governance_created   ON oneon_governance_pr
 CREATE TABLE IF NOT EXISTS oneon_governance_votes (
     id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     proposal_id     UUID NOT NULL REFERENCES oneon_governance_proposals(id) ON DELETE CASCADE,
-    voter_id        UUID NOT NULL REFERENCES oneon_identities(id) ON DELETE SET NULL,
+    voter_id        UUID NOT NULL REFERENCES oneon_identities(id) ON DELETE RESTRICT,
     vote            TEXT NOT NULL,    -- for | against | abstain
     weight          INTEGER NOT NULL DEFAULT 1,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),

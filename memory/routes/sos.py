@@ -21,7 +21,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..config import settings
 from ..sos import (
@@ -74,8 +74,8 @@ class AwardContributionRequest(BaseModel):
 
 
 class CreateCaseRequest(BaseModel):
-    requester_name: str
-    description: str
+    requester_name: str = Field(..., max_length=200)
+    description: str = Field(..., max_length=5000)
     case_type: str = "general"
     urgency: str = "standard"
     requester_email: Optional[str] = None
@@ -223,10 +223,11 @@ async def list_cases_route(
     case_type: Optional[str] = Query(None),
     urgency: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
 ):
     """List SOS cases sorted by urgency (critical first)."""
     _require_enabled()
-    return await list_cases(status=status, case_type=case_type, urgency=urgency, limit=limit)
+    return await list_cases(status=status, case_type=case_type, urgency=urgency, limit=limit, offset=offset)
 
 
 @router.get("/cases/{case_id}")

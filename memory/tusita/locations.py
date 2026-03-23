@@ -123,11 +123,11 @@ async def update_location_status(
 
 
 async def record_revenue(location_id: str, amount: float) -> Optional[dict]:
-    """Add to location's year-to-date revenue."""
+    """Add to location's cumulative revenue total."""
     pool = await get_pool()
     row = await pool.fetchrow("""
         UPDATE tusita_locations
-        SET revenue_ytd = revenue_ytd + $2, updated_at = NOW()
+        SET revenue_total = revenue_total + $2, updated_at = NOW()
         WHERE id = $1
         RETURNING *
     """, UUID(location_id), amount)
@@ -139,7 +139,7 @@ async def get_location_stats() -> dict:
     pool = await get_pool()
     rows = await pool.fetch("""
         SELECT status, COUNT(*) as count, SUM(capacity) as total_capacity,
-               SUM(revenue_ytd) as total_revenue
+               SUM(revenue_total) as total_revenue
         FROM tusita_locations
         GROUP BY status
     """)
@@ -148,7 +148,7 @@ async def get_location_stats() -> dict:
             r["status"]: {
                 "count": r["count"],
                 "capacity": r["total_capacity"] or 0,
-                "revenue_ytd": float(r["total_revenue"] or 0),
+                "revenue_total": float(r["total_revenue"] or 0),
             }
             for r in rows
         }

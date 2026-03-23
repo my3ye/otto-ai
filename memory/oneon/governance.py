@@ -55,6 +55,7 @@ async def list_proposals(
     status: Optional[str] = None,
     proposal_type: Optional[str] = None,
     limit: int = 50,
+    offset: int = 0,
 ) -> list[dict]:
     """List proposals with optional filters."""
     pool = await get_pool()
@@ -63,13 +64,14 @@ async def list_proposals(
 
     if status:
         args.append(status)
-        conditions.append(f"status = ${len(args)}")
+        conditions.append(f"p.status = ${len(args)}")
     if proposal_type:
         args.append(proposal_type)
-        conditions.append(f"proposal_type = ${len(args)}")
+        conditions.append(f"p.proposal_type = ${len(args)}")
 
     where = f"WHERE {' AND '.join(conditions)}" if conditions else ""
     args.append(limit)
+    args.append(offset)
 
     rows = await pool.fetch(f"""
         SELECT p.*, i.handle as proposer_handle
@@ -77,7 +79,8 @@ async def list_proposals(
         LEFT JOIN oneon_identities i ON i.id = p.proposer_id
         {where}
         ORDER BY p.created_at DESC
-        LIMIT ${len(args)}
+        LIMIT ${len(args) - 1}
+        OFFSET ${len(args)}
     """, *args)
     return [dict(r) for r in rows]
 
@@ -90,7 +93,6 @@ async def update_proposal_status(
     if status not in VALID_STATUSES:
         raise ValueError(f"Invalid status: {status}")
     pool = await get_pool()
-    executed_at = "NOW()" if status == "executed" else "NULL"
     row = await pool.fetchrow(f"""
         UPDATE oneon_governance_proposals
         SET status = $2,

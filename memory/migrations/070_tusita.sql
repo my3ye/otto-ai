@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS tusita_locations (
     coordinates      JSONB DEFAULT '{}',           -- {lat, lng}
     dome_type        TEXT DEFAULT 'community',     -- community | meditation | worship | visitor_center
     capacity         INTEGER NOT NULL DEFAULT 0,   -- total bed/guest capacity
-    revenue_ytd      NUMERIC NOT NULL DEFAULT 0,   -- year-to-date revenue (USD)
+    revenue_total    NUMERIC NOT NULL DEFAULT 0,   -- cumulative revenue (USD)
     status           TEXT NOT NULL DEFAULT 'planned',  -- planned | construction | operational | closed
     metadata         JSONB DEFAULT '{}',
     created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW(),

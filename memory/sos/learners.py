@@ -24,9 +24,13 @@ TIER_XP_THRESHOLDS = {
 
 
 def get_tier_for_xp(xp: int) -> str:
-    """Return the tier name that corresponds to a given XP total."""
+    """Return the tier name that corresponds to a given XP total.
+
+    Iterates thresholds in ascending XP order so adding new tiers in any
+    dict order won't silently produce wrong results.
+    """
     tier = "seed"
-    for t, threshold in TIER_XP_THRESHOLDS.items():
+    for t, threshold in sorted(TIER_XP_THRESHOLDS.items(), key=lambda kv: kv[1]):
         if xp >= threshold:
             tier = t
     return tier

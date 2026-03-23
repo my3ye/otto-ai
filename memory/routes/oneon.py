@@ -24,7 +24,7 @@ from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ..config import settings
 from ..oneon import (
@@ -57,6 +57,17 @@ def _require_enabled():
         )
 
 
+def _require_admin():
+    """Placeholder admin auth guard. Phase 1: wire in real token/session check.
+    Currently raises 501 to make the absence of auth explicit rather than silent.
+    Replace with a proper dependency (e.g. OAuth2 bearer) before enabling ONEON.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail="Admin endpoints require auth. Phase 1: implement _require_admin() before enabling ONEON.",
+    )
+
+
 # ─── Request Models ────────────────────────────────────────────────────────────
 
 class RegisterIdentityRequest(BaseModel):
@@ -75,8 +86,8 @@ class UpgradeTierRequest(BaseModel):
 
 class CreateProposalRequest(BaseModel):
     proposer_id: UUID
-    title: str
-    body: str
+    title: str = Field(..., max_length=200)
+    body: str = Field(..., max_length=10000)
     proposal_type: str = "general"
     quorum_required: int = 10
     voting_ends_at: Optional[datetime] = None
@@ -86,7 +97,7 @@ class CreateProposalRequest(BaseModel):
 class CastVoteRequest(BaseModel):
     voter_id: UUID
     vote: str    # for | against | abstain
-    weight: int = 1
+    weight: int = Field(default=1, ge=1, le=100)
 
 
 class UpdateStatusRequest(BaseModel):
@@ -225,10 +236,11 @@ async def list_proposals_route(
     status: Optional[str] = Query(None),
     proposal_type: Optional[str] = Query(None),
     limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
 ):
     """List governance proposals with optional filters."""
     _require_enabled()
-    return await list_proposals(status=status, proposal_type=proposal_type, limit=limit)
+    return await list_proposals(status=status, proposal_type=proposal_type, limit=limit, offset=offset)
 
 
 @router.get("/governance/proposals/{proposal_id}")
@@ -261,6 +273,7 @@ async def cast_vote_route(proposal_id: UUID, req: CastVoteRequest):
 @router.put("/governance/proposals/{proposal_id}/status")
 async def update_proposal_status_route(proposal_id: UUID, req: UpdateStatusRequest):
     """Update a proposal's status (admin endpoint)."""
+    _require_admin()
     _require_enabled()
     try:
         updated = await update_proposal_status(str(proposal_id), req.status)
