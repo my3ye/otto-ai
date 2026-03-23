@@ -302,6 +302,15 @@ class SMMU:
             self.l1_slice_ids = loaded_ids
             log.info(f"S-MMU loaded {len(loaded_ids)} slices ({loaded_tokens} tokens)")
 
+            # If all slices were filtered by the similarity threshold, fall back to legacy
+            # context so L1 always has relevant memories beyond always-resident content.
+            if not loaded_ids:
+                log.warning(
+                    f"S-MMU: all {len(rows)} slices filtered by threshold {SIMILARITY_THRESHOLD} "
+                    f"— falling back to legacy context"
+                )
+                await self._load_legacy_context(pool, message, "whatsapp", _add, remaining_tokens)
+
         except Exception as e:
             log.warning(f"Slice loading failed, using legacy fallback: {e}")
             await self._load_legacy_context(pool, message, "whatsapp", _add, remaining_tokens)

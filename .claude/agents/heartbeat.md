@@ -839,7 +839,7 @@ print(json.dumps({
     'expected': '<WHAT you expect by next cycle — be specific and falsifiable>',
     'metadata': {'idle_cycle': is_idle}
 }))
-")""
+")"
 
 # Log episodic event
 curl -s -X POST http://localhost:8100/episodic/events \
