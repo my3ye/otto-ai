@@ -41,3 +41,24 @@ All 3 prior critical issues resolved in task a95733f2:
 
 ## Pattern Noted
 "Entering governance" / "will govern" / "designed to" is the right language for early-status projects (registry=early). Avoid "is governed by" or "is the first product in governance" in present tense for early-status projects. This pattern appears across ecosystem articles.
+
+---
+
+## Pass 4: Solo Founder + AI Rewrite (131729c6, 2026-03-23, WF Step 1)
+
+**Verdict**: NEEDS_CHANGES | Score: 7.2/10
+
+**Critical (must fix before publish)**:
+1. "Published while the systems it describes are live" — 505 Systems + Panik App both `status=early` in universe registry. Governance protocol not deployed. Website is live (200), protocol is not. Qualify or remove this claim.
+2. "Apply to the founding cohort: 505.systems" — No cohort application form exists at 505.systems (verified: "apply"=False, "cohort"=False). Dead CTA.
+3. Education system + refuge pathway (opening list) — never covered in article body. Promise made, never fulfilled.
+
+**High (should fix)**:
+4. "121 million displaced people" — unsourced in any content file. UNHCR 2023 ~110M+; attribute or verify.
+5. DPC has no deployment reference — no chain, no contract, no testnet link.
+6. "Panik App — architecture running" — early status in registry. Qualify.
+
+**Medium**:
+7. SOS/505 naming explained too late — first-time readers confused until paragraph 8.
+
+**Strengths**: Opening line is best in the series. Beanstalk/ConstitutionDAO examples verified correct. DAO vs Organism distinction genuinely compelling. Integrity Layer prose is strongest in the article.
