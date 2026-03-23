@@ -20,6 +20,7 @@ import re
 
 from ..db import get_pool
 from .models import GatewayMessage, GatewayResponse
+from .location_pricing import detect_prospect_location, save_detected_country, build_pricing_context
 
 log = logging.getLogger("otto.gateway.athena_handler")
 
@@ -289,6 +290,18 @@ async def handle_athena_message(msg: GatewayMessage) -> GatewayResponse:
     # Log incoming
     await log_conversation(prospect_id, jid, "incoming", msg.content, stage)
 
+    # Detect prospect location and pricing tier
+    pool = await get_pool()
+    location = await detect_prospect_location(
+        pool=pool,
+        jid=jid,
+        outreach_id=prospect.get("outreach_id"),
+        cached_country=prospect.get("detected_country"),
+    )
+    # Cache detected country if new (not previously stored)
+    if not prospect.get("detected_country") and location["source"] != "cached":
+        await save_detected_country(pool, prospect_id, location["country"], location["source"])
+
     # Build context block
     context_parts = []
     if prospect.get("business_name"):
@@ -303,10 +316,12 @@ async def handle_athena_message(msg: GatewayMessage) -> GatewayResponse:
         context_parts.append(f"Notes so far:\n{prospect['qualification_notes']}")
     context_block = "\n".join(context_parts) if context_parts else "No prior context."
 
-    # Compose system prompt
+    # Compose system prompt with pricing context injected
+    pricing_context = build_pricing_context(location)
     stage_instruction = STAGE_INSTRUCTIONS.get(stage, STAGE_INSTRUCTIONS["new"])
     system_prompt = (
         ATHENA_BASE
+        + pricing_context
         + f"\n\nProspect name: {name or 'Unknown'}\n"
         + f"Context:\n{context_block}\n"
         + stage_instruction
@@ -357,6 +372,9 @@ async def handle_athena_message(msg: GatewayMessage) -> GatewayResponse:
             "prospect_id": prospect_id,
             "stage": stage,
             "account": "athena",
+            "detected_country": location.get("country"),
+            "pricing_source": location.get("source"),
+            "quoted_price": location["pricing"].get("price"),
         },
     )
 

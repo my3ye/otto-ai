@@ -26,6 +26,7 @@ async def list_prospects(
     if stage:
         rows = await pool.fetch(
             """SELECT id, jid, phone, name, stage, business_name, lead_type, city,
+                      detected_country, pricing_source,
                       qualification_notes, stage_updated_at, created_at
                FROM athena_prospects
                WHERE stage = $1
@@ -36,6 +37,7 @@ async def list_prospects(
     else:
         rows = await pool.fetch(
             """SELECT id, jid, phone, name, stage, business_name, lead_type, city,
+                      detected_country, pricing_source,
                       qualification_notes, stage_updated_at, created_at
                FROM athena_prospects
                ORDER BY stage_updated_at DESC
