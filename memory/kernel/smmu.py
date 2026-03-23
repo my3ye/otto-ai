@@ -250,7 +250,17 @@ class SMMU:
             loaded_tokens = 0
             loaded_ids = []
 
+            # Minimum similarity floor — skip semantically unrelated slices that
+            # only rank high due to access_count or importance_score (context-rot guard)
+            SIMILARITY_THRESHOLD = 0.7
+
             for r in rows:
+                if r["similarity"] < SIMILARITY_THRESHOLD:
+                    log.debug(
+                        f"S-MMU skipping low-similarity slice '{r['label']}' "
+                        f"({r['similarity']:.3f} < {SIMILARITY_THRESHOLD})"
+                    )
+                    continue
                 if loaded_tokens + r["token_count"] > remaining_tokens:
                     continue
 

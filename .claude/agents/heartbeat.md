@@ -79,12 +79,38 @@ ORIENT: What changed? What matters most right now?
   ```
   **Rule:** Do NOT repeat sending the same WhatsApp message if auto-repair already handled it.
 
+BUDGET GATE [Gate A — ABORT IF TRIGGERED]: Before proceeding to DECIDE, check budget:
+```bash
+curl -sf http://localhost:8100/kernel/status | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+budget = d.get('budget_remaining_usd')
+if budget is not None:
+    print(f'Budget remaining: \${budget:.4f}')
+    if float(budget) < 0.10:
+        print('BUDGET GATE TRIGGERED: below \$0.10 — ABORT CYCLE')
+    else:
+        print('Budget gate: OK')
+else:
+    print('Budget: unknown (kernel_status missing field) — proceed with caution')
+"
+```
+**If budget < $0.10**: Do NOT create tasks or send messages. Log the abort via episodic event and stop. The service auto-restarts each heartbeat with fresh budget.
+
 LEARN FROM MISTAKES: Before deciding, check what went wrong recently.
 - Fetch the pre-decision brief: `curl -sf http://localhost:8100/reasoning/pre-decision-brief`
 - Review any recent misses — what did you predict that didn't happen?
 - Read the active reasoning_chain principles — these are extracted lessons from past misses
 - Check your prediction accuracy (the `accuracy` field) — is it improving?
-- **CRITICAL: Get RL2F accuracy from API only** — use `curl -sf http://localhost:8100/reasoning/accuracy` and read the `accuracy_pct` field. NEVER self-compute accuracy by counting entries manually. Self-computation has produced wrong values 3 consecutive cycles (March 2026).
+- **CRITICAL: Get RL2F accuracy from API only** — use:
+  ```bash
+  # Raw accuracy (all entries including idle cycles)
+  curl -sf 'http://localhost:8100/reasoning/accuracy'
+  # Active-only accuracy (excludes idle cycles — the real signal)
+  curl -sf 'http://localhost:8100/reasoning/accuracy?active_only=true'
+  ```
+  Read `accuracy_pct` (raw) and `active_accuracy_pct` from pre-decision-brief for the uncontaminated signal. NEVER self-compute accuracy by counting entries manually. Self-computation has produced wrong values 3 consecutive cycles (March 2026).
+- The pre-decision-brief now returns `accuracy.last_20.idle_entries` — if this is high (>10), the raw `accuracy_pct` is polluted. Use `active_accuracy_pct` as your real accuracy signal.
 - Apply these lessons to your decisions below. Do NOT repeat the same mistake twice.
 - **Update last cycle's prediction**: Check the `last_pending` field in the brief — if it contains an entry,
   that is last cycle's unscored prediction. Compare its `expected` vs what actually happened, then score it:
@@ -109,6 +135,27 @@ DECIDE: What will I do this cycle? (list 3–5 specific actions)
 1. [P#] [action]
 2. [P#] [action]
 3. [P#] [action]
+
+DIRECTIVE GATE [Gate B — DEFERRED if triggered]: For each action in your DECIDE list, verify alignment:
+- Does this action serve P1 (WebAssist) or P2 (OMS) when they have open/unfinished work?
+  - If P1 or P2 have unfinished work AND this action is P3 or lower → mark it DEFERRED, do not create the task
+- Is the system rate-limited right now?
+  ```bash
+  curl -s -X POST http://localhost:8100/episodic/timeline \
+    -H 'Content-Type: application/json' \
+    -d '{"limit": 5, "hours": 1, "event_type": "rate_limit"}' | python3 -c "
+  import json, sys
+  events = json.load(sys.stdin)
+  print(f'Rate limit events in last 1h: {len(events)}')
+  if events:
+      print('RATE LIMIT ACTIVE — defer task creation, only review/message')
+  "
+  ```
+  - If rate-limited: defer ALL new task creation. Still review existing tasks and message Mev.
+- Is this task contradicting an active directive from Mev? (check semantic memories for directives)
+  - If contradiction detected → add to COLLABORATE CHECK below, do NOT act unilaterally
+
+This gate is advisory (soft-abort) — it flags misaligned actions rather than crashing the cycle. Log deferred actions in the workspace handoff.
 
 COLLABORATE CHECK: Before acting, check if any DECIDE actions need Mev's input.
 ASK MEV if any of these apply:
@@ -775,17 +822,24 @@ curl -sf -X PUT http://localhost:8100/working/memory/current_focus \
 
 # Write reasoning chain entry (RL2F feedback loop)
 # Records WHY you decided, WHAT you did, and WHAT you expect next — closing the learn loop
+# Gate C: classify cycle as idle or active BEFORE writing entry
+# idle_cycle=True if: tasks_created==0 AND queue was 0/0/0 AND no Mev messages received
+# idle_cycle=False if: you created tasks, reviewed tasks, or received/sent Mev messages
+# Tagging idle cycles keeps RL2F accuracy uncontaminated by zero-information predictions
 curl -s -X POST http://localhost:8100/reasoning \
   -H 'Content-Type: application/json' \
   -d "$(python3 -c "
 import json
+# Set is_idle based on this cycle's activity
+is_idle = False  # Replace with True if this was a zero-action idle cycle (no tasks created, queue 0/0/0, no Mev msgs)
 print(json.dumps({
     'heartbeat_type': 'orchestrator',
     'reasoning': '<WHY you made the choices you did this cycle — 1-2 sentences>',
     'decisions': '<WHAT you decided — tasks created, messages sent, reviews done>',
-    'expected': '<WHAT you expect by next cycle — be specific and falsifiable>'
+    'expected': '<WHAT you expect by next cycle — be specific and falsifiable>',
+    'metadata': {'idle_cycle': is_idle}
 }))
-")"
+")""
 
 # Log episodic event
 curl -s -X POST http://localhost:8100/episodic/events \

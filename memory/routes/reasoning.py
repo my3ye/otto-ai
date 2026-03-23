@@ -253,15 +253,25 @@ async def extract_lessons(
 async def reasoning_accuracy(
     window: int = Query(default=50, ge=5, le=200, description="Number of recent entries to analyze"),
     heartbeat_type: str | None = Query(default=None),
+    active_only: bool = Query(
+        default=False,
+        description="Exclude idle-cycle entries (metadata.idle_cycle=true) from accuracy calculation",
+    ),
 ):
     """Rolling accuracy of reasoning predictions.
 
     Returns hit/miss/partial counts and percentages over the last N resolved
     entries (excludes 'pending'). Includes trend comparison: last window vs
     prior window.
+
+    Set active_only=true to exclude idle-cycle entries that inflate the denominator
+    with zero-information predictions (e.g. queue=0/0/0, Mev silent).
     """
     pool = await get_pool()
 
+    idle_filter = (
+        "AND NOT (metadata->>'idle_cycle')::boolean IS TRUE" if active_only else ""
+    )
     type_filter = "AND heartbeat_type = $2" if heartbeat_type else ""
     params: list = [window * 2]  # fetch double for trend comparison
     if heartbeat_type:
@@ -271,6 +281,7 @@ async def reasoning_accuracy(
         f"""SELECT outcome_match, cycle_ts
             FROM reasoning_chain
             WHERE outcome_match != 'pending'
+            {idle_filter}
             {type_filter}
             ORDER BY cycle_ts DESC
             LIMIT $1""",
@@ -403,9 +414,9 @@ async def pre_decision_brief(
         for p in principles
     ]
 
-    # 3. Quick accuracy stats (last 20 resolved entries)
+    # 3. Quick accuracy stats (last 20 resolved entries) — both raw and active-only
     acc_rows = await pool.fetch(
-        """SELECT outcome_match FROM reasoning_chain
+        """SELECT outcome_match, metadata FROM reasoning_chain
            WHERE heartbeat_type = $1 AND outcome_match != 'pending'
            ORDER BY cycle_ts DESC LIMIT 20""",
         heartbeat_type,
@@ -413,6 +424,19 @@ async def pre_decision_brief(
     total = len(acc_rows)
     matched = sum(1 for r in acc_rows if r["outcome_match"] == "matched")
     accuracy_pct = round(matched / total * 100, 1) if total > 0 else 0.0
+
+    # Active-only stats: exclude idle-cycle entries tagged by Gate C
+    idle_entries = sum(
+        1 for r in acc_rows
+        if r["metadata"] and r["metadata"].get("idle_cycle") is True
+    )
+    active_rows = [
+        r for r in acc_rows
+        if not (r["metadata"] and r["metadata"].get("idle_cycle") is True)
+    ]
+    active_total = len(active_rows)
+    active_matched = sum(1 for r in active_rows if r["outcome_match"] == "matched")
+    active_accuracy_pct = round(active_matched / active_total * 100, 1) if active_total > 0 else 0.0
 
     # Build guidance
     guidance_parts = []
@@ -429,12 +453,26 @@ async def pre_decision_brief(
     if not guidance_parts:
         guidance_parts.append("No recent misses — predictions are on track.")
 
+    if idle_entries > 0:
+        guidance_parts.append(
+            f"NOTE: {idle_entries}/{total} recent entries are idle-cycle (tagged metadata.idle_cycle=true). "
+            f"Real accuracy (active-only): {active_accuracy_pct}% ({active_matched}/{active_total}). "
+            f"Use GET /reasoning/accuracy?active_only=true for the uncontaminated signal."
+        )
+
     return {
         "recent_misses": miss_briefs,
         "last_pending": last_pending,
         "active_principles": principle_briefs,
         "accuracy": {
-            "last_20": {"total": total, "matched": matched, "accuracy_pct": accuracy_pct},
+            "last_20": {
+                "total": total,
+                "matched": matched,
+                "accuracy_pct": accuracy_pct,
+                "idle_entries": idle_entries,
+                "active_entries": active_total,
+                "active_accuracy_pct": active_accuracy_pct,
+            },
         },
         "guidance": " ".join(guidance_parts),
     }
