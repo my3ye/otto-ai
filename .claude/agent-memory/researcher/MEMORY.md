@@ -1,5 +1,16 @@
 # Researcher Agent Memory
 
+## Constraint-Injection Checkpoints Research (2026-03-23)
+
+Research file: ~/otto/.claude/agent-memory/researcher/project_constraint_injection_research.md
+DB Note ID: 3f2c120e | Memory IDs: eae83da8, 98591a29, 6600825b, 69b7712c
+
+- **[P7 IMMEDIATE]** Add 3 PG-CoT gates to heartbeat.md: budget check post-WHY ($0.10 threshold), directive check post-DECIDE, idle_cycle tag post-EXPECTED. Start with binary budget gate. File: `heartbeat.md`
+- **[P6]** RL2F idle-cycle fix: 29/50 window = idle predictions (queue=0/0/0) — zero learning signal. Tag `idle_cycle: true/false` at write, report `active_cycle_accuracy` separately. Independent from P7 fix.
+- **[P5]** S-MMU: add `similarity_threshold=0.7` to slice injection — near-misses to L2. File: `smmu.py`
+- **[DEFERRED]** SSA telemetry formatter (no new urgency) — carry forward
+- External consensus: LlamaFirewall, SagaLLM, Task Shield, OMNIFLOW all validate mid-chain constraint injection
+
 ## BANKR Bot Research (2026-03-19)
 
 Research file: ~/otto/.claude/agent-memory/researcher/project_bankr_bot_research.md
