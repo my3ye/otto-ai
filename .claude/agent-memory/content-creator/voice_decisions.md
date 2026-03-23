@@ -49,6 +49,13 @@ type: feedback
 - Emotion comes from clarity of design, not from crisis imagery
 - Governance is physics, not ideology
 
+### On Verifiable Claims (2026-03-23 — from review feedback)
+- NEVER say "live" or "running" about a system listed as `status=early` in the Universe registry
+- Check registry before writing any "is live" / "architecture running" / "deployed" claims
+- Safe phrasing for early-stage systems: "the governance pilot", "designed for deployment", "entering [phase] in Phase 1"
+- CTA links must work — verify the destination page before publishing. "Apply" implies a form; use "waitlist" if form doesn't exist
+- Opening lists must match the article body — don't promise sections you don't deliver
+
 ### On Words
 - Use: build, contribute, flow, physics, mechanism, organism, weight, gravity, proximity
 - Avoid: revolutionary, disruptive, game-changing, believe, faith, trust us, easy, simple
