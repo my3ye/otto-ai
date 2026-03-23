@@ -33,6 +33,7 @@ from ..crypto.monitors import create_monitor, list_monitors, cancel_monitor
 from ..crypto.signals import publish_signal, list_signals, close_signal, get_signal_stats
 from ..crypto.launch import launch_on_base, launch_on_solana, list_launches
 from ..crypto.executor import get_quote
+from ..koink.launch import create_koink_token
 
 log = logging.getLogger("otto.routes.crypto")
 
@@ -161,6 +162,11 @@ async def get_status():
             "cdp_agentkit": bool(settings.cdp_api_key_name),
         },
         "note": "Phase 1 — price, portfolio, NL parse, and signals active. Execution wired in Phase 2.",
+        "koink": {
+            "enabled": settings.koink_enabled,
+            "phase": "0",
+            "nl_launch": settings.koink_enabled,  # NL koink_launch → /crypto/execute routing active
+        },
     }
 
 
@@ -190,13 +196,14 @@ async def execute_trade(req: ExecuteRequest):
     Requires CRYPTO_EXECUTION_ENABLED=true for actual execution.
     dry_run=true (default) returns the quote without broadcasting.
     """
-    if not settings.crypto_enabled:
-        raise HTTPException(status_code=503, detail="Crypto engine disabled. Set CRYPTO_ENABLED=true to activate.")
-
-    # Override chain if provided
+    # Parse intent first so koink_launch can bypass the crypto_enabled gate
+    # (koink_launch creates a DB record — it is not a trade execution).
     intent = await nl_parse(req.text)
     if req.chain:
         intent.chain = req.chain
+
+    if not settings.crypto_enabled and intent.action != "koink_launch":
+        raise HTTPException(status_code=503, detail="Crypto engine disabled. Set CRYPTO_ENABLED=true to activate.")
 
     valid, reason = intent.is_valid_for_execution()
     if not valid:
@@ -204,6 +211,52 @@ async def execute_trade(req: ExecuteRequest):
 
     if intent.is_query:
         raise HTTPException(status_code=400, detail="This is an information query, not a trade. Use /crypto/parse.")
+
+    # ── Koink launch routing ────────────────────────────────────────────────
+    if intent.action == "koink_launch":
+        if not settings.koink_enabled:
+            raise HTTPException(
+                status_code=503,
+                detail="Koink integration is disabled. Set KOINK_ENABLED=true to enable.",
+            )
+        params = intent.koink_params or {}
+        name = params.get("name") or intent.raw_text[:32]
+        symbol = params.get("symbol") or name.upper()[:8]
+        chain = intent.chain or "base"
+        if req.dry_run:
+            return {
+                "intent": intent.to_dict(),
+                "quote": None,
+                "status": "dry_run",
+                "message": f"Dry run: would create $KOINK token {name} ({symbol}) on {chain}.",
+            }
+        try:
+            result = await create_koink_token(
+                name=name,
+                symbol=symbol,
+                chain=chain,
+                total_supply=float(params.get("total_supply", 1_000_000_000)),
+                description=params.get("description"),
+                anti_whale_cap_pct=float(params.get("anti_whale_cap_pct", 2.0)),
+                sell_tax_initial_bps=int(params.get("sell_tax_initial_bps", 500)),
+                sell_tax_floor_bps=int(params.get("sell_tax_floor_bps", 100)),
+                treasury_pct=float(params.get("treasury_pct", 20.0)),
+                dhm_enabled=bool(params.get("dhm_enabled", True)),
+                dhm_max_multiplier=float(params.get("dhm_max_multiplier", 3.0)),
+                dhm_months=int(params.get("dhm_months", 12)),
+                vrf_type=params.get("vrf_type"),
+                creator_fee_pct=float(params.get("creator_fee_pct", 2.0)),
+                liquidity_pct=float(params.get("liquidity_pct", 60.0)),
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        return {
+            "intent": intent.to_dict(),
+            "quote": result,
+            "status": "pending",
+            "message": f"$KOINK token record created: {name} ({symbol}) on {chain}. Phase 1 contract deployment pending.",
+        }
+    # ── END koink_launch ───────────────────────────────────────────────────
 
     # Get quote (Phase 1: returns None for actual swaps)
     quote = await get_quote(intent)
@@ -412,12 +465,59 @@ async def close_signal_endpoint(signal_id: str, req: CloseSignalRequest):
 
 @router.post("/launch")
 async def launch_token(req: LaunchRequest):
-    """Launch a new token (Phase 3 — records intent, execution wired later)."""
+    """Launch a new token.
+
+    If koink_standard=True, routes to the $KOINK Standard engine (/koink/launch logic).
+    Otherwise falls through to Phase 3 generic launchers (Doppler/Raydium).
+    """
+    # ── $KOINK Standard routing ────────────────────────────────────────────
+    if req.koink_standard:
+        if not settings.koink_enabled:
+            raise HTTPException(
+                status_code=503,
+                detail="Koink integration is disabled. Set KOINK_ENABLED=true to enable.",
+            )
+        try:
+            result = await create_koink_token(
+                name=req.name,
+                symbol=req.symbol,
+                chain=req.chain,
+                total_supply=req.supply or 1_000_000_000,
+                description=req.description,
+                anti_whale_cap_pct=req.anti_whale_cap_pct or 2.0,
+                sell_tax_initial_bps=req.sell_tax_initial_bps or 500,
+                sell_tax_floor_bps=req.sell_tax_floor_bps or 100,
+                treasury_pct=req.treasury_pct or 20.0,
+                dhm_enabled=req.dhm_enabled if req.dhm_enabled is not None else True,
+                dhm_max_multiplier=req.dhm_max_multiplier or 3.0,
+                dhm_months=req.dhm_months or 12,
+                vrf_type=req.vrf_type,
+                creator_fee_pct=req.creator_fee_pct or 2.0,
+                liquidity_pct=60.0,
+            )
+        except ValueError as e:
+            raise HTTPException(status_code=400, detail=str(e))
+        return {**result, "routed_via": "koink_standard"}
+    # ── END $KOINK Standard routing ────────────────────────────────────────
+
     params = req.model_dump()
     if req.chain == "base":
         result = await launch_on_base(params)
     elif req.chain == "solana":
         result = await launch_on_solana(params)
+    elif req.chain in ("eth", "arbitrum", "optimism"):
+        # Phase 3: record intent, EVM deployment wired later
+        from ..crypto.launch import create_launch_record
+        record = await create_launch_record(
+            name=req.name,
+            symbol=req.symbol,
+            chain=req.chain,
+            launch_mechanism="evm_native",
+            total_supply=req.supply,
+            creator_fee_pct=req.creator_fee_pct,
+            description=req.description,
+        )
+        result = {**record, "message": f"Launch recorded on {req.chain}. EVM execution wired in Phase 3."}
     else:
         raise HTTPException(status_code=400, detail=f"Unsupported launch chain: {req.chain}")
     return result
