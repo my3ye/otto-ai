@@ -84,6 +84,16 @@ type: project
 - Status: draft
 - DO NOT repeat: contract/constitution paradox as opener, "ladder has no gate" frame, influence-consequence decoupling as the governance failure argument
 
+**Article 4 (PARAGRAPH INCEPTION — v2 revised): "The Answer Cannot Be Nobody"**
+- Content DB ID: 3a0e28e4-e222-447e-a1ea-43c91a15b5c9
+- File: /mnt/media/projects/505-systems-web/content/inception-article.md
+- Paragraph handle: @sos-systems (https://paragraph.com/@sos-systems)
+- Angle: Governance-first Paragraph launch article. Governance gap → DAO organism → DPC mechanics → three-layer structure → Panik App proof case → Integrity Layer (Phase 1 framing) → one-ladder refuge system → invitation with @sos-systems link
+- Story beat: The Law + The Mission
+- Status: ready (v2 — review feedback applied 2026-03-23)
+- Key additions in v2: DPC paragraph (Structural Impact/Consistent Energy/Weighted Resonance/decay), SOS/505 dual-name explained at open, Panik App proof case ("505 governs its first live product: Panik App"), governance flow example (Draft→Review→Comment→Vote→Execution, 72h expiry), bridge sentence before Integrity Layer, fixed present-tense on unbuilt offline mesh (now Phase 1 framing), Khartoum/Colombo framing, @sos-systems Paragraph CTA replaces dead Pink Paper link, Phase 0 disclosure (Snapshot + Gnosis Safe)
+- DO NOT repeat: DPC three-factor explanation as the central governance section; "Not one token, one vote" as the DPC contrast statement; Phase 0/Phase 1 roadmap disclosure framing; "one ladder / two entry points" as the unified framing for governance + refuge; Panik App as the first live proof case
+
 **Angles NOT yet written for SOS Systems:**
 - The individual: a specific persona story (activist, refugee, homeless builder) — close first-person narrative
 - The technical: how the self-education curriculum actually works (skill bounties, bounty→contribution loop)

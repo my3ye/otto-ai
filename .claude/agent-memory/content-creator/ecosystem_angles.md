@@ -7,14 +7,17 @@ type: project
 ## SOS Systems / 505 Systems
 
 **Covered:**
-- Technical governance (DPC, proposal lifecycle, three-layer stack) — inception article
-- Human journey / access shortage / unified ladder — "The Ladder Out"
+- Technical governance (DPC, proposal lifecycle, three-layer stack) — inception article (718002a0)
+- Human journey / access shortage / unified ladder — "The Ladder Out" (42a3bfae)
+- Constitutional amendment mechanics — "The DAO Is Not a Corporation. It Is a Constitution." (8a2ae4bf)
+- **Paragraph Inception (v2, revised 2026-03-23)** — "The Answer Cannot Be Nobody" (3a0e28e4) — governance-first launch piece; covers: DPC three factors, Panik App proof case, three-layer architecture, one-ladder refuge + governance as same system, Phase 0 Snapshot/Gnosis Safe disclosure, @sos-systems CTA
 
 **Open angles:**
 - First-person persona: a specific journey through the system (refugee → contributor → steward)
 - Skill bounties deep dive: how learning paths are generated and funded
 - Koink treasury → SOS funding flow
 - NOTE: Constitutional amendment mechanics now covered in "The DAO Is Not a Corporation. It Is a Constitution." (8a2ae4bf) — do not repeat Founder-level majority / Sovereign veto mechanics as the central argument
+- NOTE: DPC three-factor formula now explained in Paragraph inception v2 — do not repeat as a primary section in any subsequent SOS article. Reference it briefly only.
 
 ## MY3YE (Ecosystem overview)
 
