@@ -20,6 +20,12 @@ import logging
 from datetime import datetime, timezone
 from typing import List, Optional, Protocol, runtime_checkable
 
+try:
+    import httpx
+    _httpx_available = True
+except ImportError:
+    _httpx_available = False
+
 log = logging.getLogger("otto.gate_notifier")
 
 WHATSAPP_SEND = "/home/web3relic/otto/tools/whatsapp_send.sh"
@@ -162,8 +168,10 @@ class WebhookGateNotifier:
         }
 
     async def _post(self, payload: dict) -> None:
+        if not _httpx_available:
+            log.warning("httpx not installed — webhook notifications disabled")
+            return
         try:
-            import httpx
             headers = {"Content-Type": "application/json"}
             if self.secret:
                 headers["Authorization"] = f"Bearer {self.secret}"
@@ -175,8 +183,6 @@ class WebhookGateNotifier:
                         log.info(f"Gate webhook → {url}: {resp.status_code}")
                     except Exception as e:
                         log.warning(f"Gate webhook failed → {url}: {e}")
-        except ImportError:
-            log.warning("httpx not installed — webhook notifications disabled")
         except Exception as e:
             log.warning(f"Gate webhook error: {e}")
 

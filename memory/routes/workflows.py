@@ -18,7 +18,7 @@ import re
 import subprocess
 from collections import defaultdict
 from datetime import datetime, timezone, timedelta
-from typing import Optional, List, Protocol
+from typing import Optional, List
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
@@ -568,14 +568,17 @@ async def get_gate(gate_id: UUID):
         )
         approve_w = sum(float(v["weight"]) for v in votes if v["vote"] == "approve")
         reject_w  = sum(float(v["weight"]) for v in votes if v["vote"] == "reject")
-        total_w   = sum(float(v["weight"]) for v in votes)
+        total_w   = approve_w + reject_w   # abstain excluded from threshold calc
+        threshold = float(gate["approval_threshold"] or 0.5)
         result["tally"] = {
             "vote_count": len(votes),
             "approve_weight": approve_w,
             "reject_weight": reject_w,
             "total_weight": total_w,
             "quorum_reached": len(votes) >= (gate["quorum_required"] or 1),
-            "threshold_met": (approve_w / max(total_w, 1)) >= float(gate["approval_threshold"] or 0.5),
+            "approve_pct": round(approve_w / max(total_w, 0.0001), 4),
+            "threshold": threshold,
+            "threshold_met": (approve_w / max(total_w, 0.0001)) >= threshold,
         }
         result["votes"] = [dict(v) for v in votes]
 
@@ -612,7 +615,8 @@ async def vote_on_gate(gate_id: UUID, req: GateVoteRequest):
         INSERT INTO workflow_gate_votes (gate_id, voter_address, vote, weight, signature, reason)
         VALUES ($1, $2, $3, $4, $5, $6)
         ON CONFLICT (gate_id, voter_address) DO UPDATE
-            SET vote = EXCLUDED.vote, weight = EXCLUDED.weight, signature = EXCLUDED.signature
+            SET vote = EXCLUDED.vote, weight = EXCLUDED.weight,
+                signature = EXCLUDED.signature, reason = EXCLUDED.reason
         RETURNING id
     """, gate_id, req.voter_address, req.vote, req.weight, req.signature, req.reason)
 
@@ -777,16 +781,16 @@ async def _advance_workflow(pool, instance_id: UUID):
                     "step_name": step.get("name", f"Step {current}"),
                 }
                 gate_id = await _create_gate(pool, instance_id, current, "pre", gate_cfg, context)
+                # Notify via gate_notifier (WhatsApp + webhooks)
+                gate_row = await pool.fetchrow("SELECT * FROM workflow_gates WHERE id = $1", gate_id)
                 step_name = step.get("name", f"Step {current}")
-                gate_type = gate_cfg.get("type", "human")
-                if gate_type == "human":
-                    msg = (
-                        f"\U0001f512 Pre-step gate: '{inst['name']}'\n"
-                        f"Step: {step_name} (about to run)\n"
-                        f"Review prompt before execution.\n"
-                        f"Approve: POST /workflows/gates/{gate_id}/resolve"
+                asyncio.create_task(
+                    gate_notifier.gate_pending(
+                        dict(gate_row),
+                        {"id": str(instance_id), "name": inst["name"]},
+                        {"name": step_name},
                     )
-                    asyncio.create_task(_whastsapp_notify(msg))
+                )
                 return  # Pause — resume when gate is resolved
 
             elif existing_gate["status"] != "approved":
@@ -1492,19 +1496,6 @@ def _smart_truncate(msg: str, limit: int = 3500) -> str:
 # ── Gate Engine ─────────────────────────────────────────────────────────
 
 
-async def _whastsapp_notify(msg: str) -> None:
-    """Fire-and-forget WhatsApp notification."""
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "/home/web3relic/otto/tools/whatsapp_send.sh", msg,
-            stdout=asyncio.subprocess.DEVNULL,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-        await asyncio.wait_for(proc.communicate(), timeout=15)
-    except Exception as e:
-        log.warning(f"WhatsApp gate notify failed: {e}")
-
-
 async def _create_gate(
     pool, instance_id: UUID, step_position: int,
     gate_position: str, gate_cfg: dict, context_snapshot: dict
@@ -1633,6 +1624,23 @@ async def _resolve_gate(
                 instance_id, f"Gate rejected: {reason or 'no reason'}",
             )
 
+    # Notify gate resolved (WhatsApp + webhooks)
+    try:
+        inst_row = await pool.fetchrow(
+            "SELECT id, name FROM workflow_instances WHERE id = $1", instance_id
+        )
+        gate_final = await pool.fetchrow("SELECT * FROM workflow_gates WHERE id = $1", gate_id)
+        if inst_row and gate_final:
+            asyncio.create_task(
+                gate_notifier.gate_resolved(
+                    dict(gate_final),
+                    {"id": str(instance_id), "name": inst_row["name"]},
+                    gate_status,
+                )
+            )
+    except Exception as e:
+        log.warning(f"gate_resolved notification failed: {e}")
+
     return {"gate_id": str(gate_id), "gate_status": gate_status, "workflow_action": action}
 
 
@@ -1666,12 +1674,15 @@ async def _check_gate_timeouts(pool) -> int:
                     )
                 WHERE id = $1
             """, gate_id)
-            msg = (
-                f"\u26a0\ufe0f Gate timed out (escalated): '{gate['workflow_name']}'\n"
-                f"Step {gate['step_position']} \u2014 extended 1h. Please review.\n"
-                f"Approve: POST /workflows/gates/{gate_id}/resolve"
-            )
-            asyncio.create_task(_whastsapp_notify(msg))
+            # Notify via gate_notifier (WhatsApp + webhooks)
+            gate_row = await pool.fetchrow("SELECT * FROM workflow_gates WHERE id = $1", gate_id)
+            if gate_row:
+                asyncio.create_task(
+                    gate_notifier.gate_escalated(
+                        dict(gate_row),
+                        {"id": str(gate["instance_id"]), "name": gate["workflow_name"]},
+                    )
+                )
         else:
             # Auto-resolve with configured action (approve/reject/skip)
             try:
@@ -1685,36 +1696,66 @@ async def _check_gate_timeouts(pool) -> int:
 
 
 async def _check_dao_quorum(pool, gate_id: UUID) -> dict:
-    """Compute vote tally for a DAO gate. Auto-resolves if quorum + threshold reached."""
+    """Compute vote tally for a DAO gate. Auto-resolves if quorum + threshold reached.
+
+    Auto-approval:    quorum reached AND approve_pct >= threshold.
+    Early-rejection:  quorum reached AND reject_pct > (1 - threshold), making
+                      approval threshold mathematically unreachable.
+    """
     gate = await pool.fetchrow("SELECT * FROM workflow_gates WHERE id = $1", gate_id)
+    if not gate or gate["status"] != "pending":
+        return {
+            "resolved": False,
+            "reason": f"gate status={gate['status'] if gate else 'not found'}",
+        }
+
     votes = await pool.fetch(
         "SELECT vote, weight FROM workflow_gate_votes WHERE gate_id = $1", gate_id
     )
 
     approve_weight = sum(float(v["weight"]) for v in votes if v["vote"] == "approve")
     reject_weight  = sum(float(v["weight"]) for v in votes if v["vote"] == "reject")
-    total_weight   = sum(float(v["weight"]) for v in votes)
+    total_weight   = approve_weight + reject_weight   # abstain excluded from threshold calc
     vote_count     = len(votes)
 
     quorum_needed  = gate["quorum_required"] or 1
     threshold      = float(gate["approval_threshold"] or 0.5)
     quorum_reached = vote_count >= quorum_needed
-    threshold_met  = (approve_weight / max(total_weight, 1)) >= threshold
+    approve_pct    = approve_weight / max(total_weight, 0.0001)
+    reject_pct     = reject_weight  / max(total_weight, 0.0001)
 
     tally = {
-        "vote_count": vote_count,
-        "approve_weight": approve_weight,
-        "reject_weight": reject_weight,
-        "total_weight": total_weight,
-        "quorum_reached": quorum_reached,
-        "threshold_met": threshold_met,
+        "vote_count":      vote_count,
+        "approve_weight":  approve_weight,
+        "reject_weight":   reject_weight,
+        "total_weight":    total_weight,
+        "approve_pct":     round(approve_pct, 4),
+        "reject_pct":      round(reject_pct, 4),
+        "quorum_required": quorum_needed,
+        "quorum_reached":  quorum_reached,
+        "threshold":       threshold,
+        "threshold_met":   approve_pct >= threshold,
+        "resolved":        False,
     }
 
     if quorum_reached:
-        if threshold_met:
-            await _resolve_gate(pool, gate_id, "approve", "dao:quorum", "Quorum reached with approval threshold")
-        else:
-            await _resolve_gate(pool, gate_id, "reject", "dao:quorum", "Quorum reached but threshold not met")
+        if approve_pct >= threshold:
+            try:
+                await _resolve_gate(pool, gate_id, "approve", "dao:quorum",
+                                    "Quorum reached with approval threshold")
+            except ValueError:
+                pass  # Concurrent resolve — ignore
+            tally["resolved"] = True
+            tally["resolution"] = "approved"
+        elif reject_pct > (1.0 - threshold):
+            # Approval is now mathematically impossible even if all remaining voters approve
+            try:
+                await _resolve_gate(pool, gate_id, "reject", "dao:quorum",
+                                    "Quorum reached — approval threshold cannot be met")
+            except ValueError:
+                pass  # Concurrent resolve — ignore
+            tally["resolved"] = True
+            tally["resolution"] = "rejected"
 
     return tally
 
