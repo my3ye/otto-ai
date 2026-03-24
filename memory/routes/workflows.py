@@ -564,24 +564,41 @@ async def get_gate(gate_id: UUID):
     # Include vote tally for DAO gates
     if gate["gate_type"] == "dao":
         votes = await pool.fetch(
-            "SELECT vote, weight, voter_address, reason FROM workflow_gate_votes WHERE gate_id = $1",
+            """SELECT vote, weight, voter_address, reason, created_at
+               FROM workflow_gate_votes WHERE gate_id = $1
+               ORDER BY created_at""",
             gate_id,
         )
-        approve_w = sum(float(v["weight"]) for v in votes if v["vote"] == "approve")
-        reject_w  = sum(float(v["weight"]) for v in votes if v["vote"] == "reject")
-        total_w   = approve_w + reject_w   # abstain excluded from threshold calc
-        threshold = float(gate["approval_threshold"] or 0.5)
+        approve_w  = sum(float(v["weight"]) for v in votes if v["vote"] == "approve")
+        reject_w   = sum(float(v["weight"]) for v in votes if v["vote"] == "reject")
+        total_w    = approve_w + reject_w   # abstain excluded from threshold calc
+        threshold  = float(gate["approval_threshold"] or 0.5)
+        quorum_req = gate["quorum_required"] or 1
+        vote_cnt   = len(votes)
+        approve_pct = round(approve_w / max(total_w, 0.0001), 4)
+        reject_pct  = round(reject_w  / max(total_w, 0.0001), 4)
         result["tally"] = {
-            "vote_count": len(votes),
-            "approve_weight": approve_w,
-            "reject_weight": reject_w,
-            "total_weight": total_w,
-            "quorum_reached": len(votes) >= (gate["quorum_required"] or 1),
-            "approve_pct": round(approve_w / max(total_w, 0.0001), 4),
-            "threshold": threshold,
-            "threshold_met": (approve_w / max(total_w, 0.0001)) >= threshold,
+            "vote_count":      vote_cnt,
+            "quorum_required": quorum_req,
+            "quorum_reached":  vote_cnt >= quorum_req,
+            "approve_weight":  approve_w,
+            "reject_weight":   reject_w,
+            "total_weight":    total_w,
+            "approve_pct":     approve_pct,
+            "reject_pct":      reject_pct,
+            "threshold":       threshold,
+            "threshold_met":   approve_pct >= threshold,
         }
-        result["votes"] = [dict(v) for v in votes]
+        result["votes"] = [
+            {
+                "voter_address": v["voter_address"],
+                "vote":          v["vote"],
+                "weight":        float(v["weight"]),
+                "reason":        v["reason"],
+                "created_at":    v["created_at"].isoformat() if v["created_at"] else None,
+            }
+            for v in votes
+        ]
 
     return result
 
