@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field
 
 from ..db import get_pool
 from ..gate_notifier import gate_notifier
+from ..dao_module import get_dao_module
 
 log = logging.getLogger("otto.workflows")
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -589,6 +590,44 @@ async def _advance_workflow(pool, instance_id: UUID):
             return
 
         step = steps[current]
+
+        # ── PRE-STEP GATE ────────────────────────────────────────────────
+        gate_cfg = step.get("gate") or {}
+        if gate_cfg and gate_cfg.get("position", "post") == "pre":
+            # Check if there's already an approved pre-gate for this step
+            existing_gate = await pool.fetchrow("""
+                SELECT status FROM workflow_gates
+                WHERE instance_id = $1
+                  AND step_position = $2
+                  AND gate_position = 'pre'
+                ORDER BY created_at DESC LIMIT 1
+            """, instance_id, current)
+
+            if not existing_gate:
+                # First time hitting this step — create pre-gate and pause
+                context = {
+                    "prompt_preview": _interpolate(step.get("prompt_template", ""), dict(inst))[:2000],
+                    "variables": dict(_jsonb(inst.get("variables")) if inst.get("variables") else {}),
+                    "step_name": step.get("name", f"Step {current}"),
+                }
+                gate_id = await _create_gate(pool, instance_id, current, "pre", gate_cfg, context)
+                step_name = step.get("name", f"Step {current}")
+                gate_type = gate_cfg.get("type", "human")
+                if gate_type == "human":
+                    msg = (
+                        f"\U0001f512 Pre-step gate: '{inst['name']}'\n"
+                        f"Step: {step_name} (about to run)\n"
+                        f"Review prompt before execution.\n"
+                        f"Approve: POST /workflows/gates/{gate_id}/resolve"
+                    )
+                    asyncio.create_task(_whastsapp_notify(msg))
+                return  # Pause — resume when gate is resolved
+
+            elif existing_gate["status"] != "approved":
+                # Gate exists but not approved yet — still waiting
+                log.info(f"Workflow {instance_id} step {current}: pre-gate still pending")
+                return
+        # ── END PRE-STEP GATE ─────────────────────────────────────────────
 
         # Mark as running if still pending
         if inst["status"] == "pending":
@@ -1267,6 +1306,239 @@ def _smart_truncate(msg: str, limit: int = 3500) -> str:
     if cutoff > limit // 2:
         return msg[:cutoff] + "\n...[truncated]"
     return msg[:limit] + "...[truncated]"
+
+
+# ── Gate Engine ─────────────────────────────────────────────────────────
+
+
+async def _whastsapp_notify(msg: str) -> None:
+    """Fire-and-forget WhatsApp notification."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "/home/web3relic/otto/tools/whatsapp_send.sh", msg,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+        await asyncio.wait_for(proc.communicate(), timeout=15)
+    except Exception as e:
+        log.warning(f"WhatsApp gate notify failed: {e}")
+
+
+async def _create_gate(
+    pool, instance_id: UUID, step_position: int,
+    gate_position: str, gate_cfg: dict, context_snapshot: dict
+) -> UUID:
+    """Insert a workflow_gate row and pause the workflow instance. Returns gate ID."""
+    timeout_s = gate_cfg.get("timeout_seconds", 86400)
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=timeout_s)
+
+    row = await pool.fetchrow("""
+        INSERT INTO workflow_gates
+            (instance_id, step_position, gate_position, gate_type,
+             timeout_seconds, expires_at, timeout_action,
+             quorum_required, approval_threshold, context_snapshot)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)
+        RETURNING id
+    """,
+        instance_id, step_position, gate_position,
+        gate_cfg.get("type", "human"),
+        timeout_s, expires_at,
+        gate_cfg.get("timeout_action", "escalate"),
+        gate_cfg.get("quorum_required"),
+        gate_cfg.get("approval_threshold", 0.5),
+        json.dumps(context_snapshot),
+    )
+    gate_id = row["id"]
+
+    # Pause the workflow and record the pending gate
+    await pool.execute(
+        """UPDATE workflow_instances
+           SET status = 'paused',
+               pending_gate_id = $2
+           WHERE id = $1""",
+        instance_id, gate_id,
+    )
+
+    log.info(f"Gate {gate_id} created for workflow {instance_id} step {step_position} ({gate_position})")
+    return gate_id
+
+
+async def _resolve_gate(
+    pool, gate_id: UUID, action: str,
+    resolved_by: str, reason: str = None
+) -> dict:
+    """Resolve a gate (approve/reject/skip). Resumes or fails workflow. Returns resolution dict."""
+    gate = await pool.fetchrow("SELECT * FROM workflow_gates WHERE id = $1", gate_id)
+    if not gate:
+        raise ValueError(f"Gate {gate_id} not found")
+    if gate["status"] != "pending":
+        raise ValueError(f"Gate {gate_id} is already {gate['status']}")
+
+    status_map = {"approve": "approved", "reject": "rejected", "skip": "skipped"}
+    gate_status = status_map.get(action)
+    if not gate_status:
+        raise ValueError(f"Unknown action: {action}")
+
+    # Persist resolution
+    await pool.execute("""
+        UPDATE workflow_gates
+        SET status = $2, resolved_by = $3, resolved_at = now(), resolution_reason = $4
+        WHERE id = $1
+    """, gate_id, gate_status, resolved_by, reason)
+
+    # Clear pending_gate_id on the instance
+    await pool.execute(
+        "UPDATE workflow_instances SET pending_gate_id = NULL WHERE id = $1",
+        gate["instance_id"],
+    )
+
+    instance_id = gate["instance_id"]
+    step_position = gate["step_position"]
+    gate_position = gate["gate_position"]
+
+    if action == "approve":
+        if gate_position == "pre":
+            # Pre-gate approved → run the step now
+            await pool.execute(
+                "UPDATE workflow_instances SET status = 'running' WHERE id = $1",
+                instance_id,
+            )
+            asyncio.create_task(_advance_workflow(pool, instance_id))
+        else:
+            # Post-gate approved → advance to next step
+            await pool.execute(
+                """UPDATE workflow_instances
+                   SET status = 'running', current_step = current_step + 1
+                   WHERE id = $1""",
+                instance_id,
+            )
+            asyncio.create_task(_advance_workflow(pool, instance_id))
+
+    elif action == "skip":
+        inst = await pool.fetchrow(
+            "SELECT step_outputs, current_step FROM workflow_instances WHERE id = $1",
+            instance_id,
+        )
+        step_outputs = _jsonb(inst["step_outputs"])
+        step_outputs[str(step_position)] = f"[GATE-SKIPPED] {reason or ''}"
+        await pool.execute(
+            """UPDATE workflow_instances
+               SET status = 'running',
+                   current_step = current_step + 1,
+                   step_outputs = $2::jsonb
+               WHERE id = $1""",
+            instance_id, json.dumps(step_outputs),
+        )
+        asyncio.create_task(_advance_workflow(pool, instance_id))
+
+    elif action == "reject":
+        inst = await pool.fetchrow("SELECT * FROM workflow_instances WHERE id = $1", instance_id)
+        tmpl = await pool.fetchrow("SELECT steps FROM workflow_templates WHERE id = $1", inst["template_id"])
+        steps = tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"])
+        step = steps[step_position] if step_position < len(steps) else {}
+        on_rejection = step.get("gate", {}).get("on_rejection", "fail_workflow") if step.get("gate") else "fail_workflow"
+
+        if on_rejection == "retry_step":
+            await pool.execute(
+                "UPDATE workflow_instances SET status = 'running', current_step = $2 WHERE id = $1",
+                instance_id, step_position,
+            )
+            asyncio.create_task(_advance_workflow(pool, instance_id))
+        else:  # fail_workflow (default) or skip_step
+            await pool.execute(
+                """UPDATE workflow_instances
+                   SET status = 'failed', error = $2, completed_at = now()
+                   WHERE id = $1""",
+                instance_id, f"Gate rejected: {reason or 'no reason'}",
+            )
+
+    return {"gate_id": str(gate_id), "gate_status": gate_status, "workflow_action": action}
+
+
+async def _check_gate_timeouts(pool) -> int:
+    """Poll for expired pending gates and apply their timeout_action.
+    Returns number of gates processed.
+    Called by reflection heartbeat via POST /workflows/gates/check-timeouts.
+    """
+    expired = await pool.fetch("""
+        SELECT g.*, wi.name as workflow_name
+        FROM workflow_gates g
+        JOIN workflow_instances wi ON wi.id = g.instance_id
+        WHERE g.status = 'pending' AND g.expires_at < now()
+    """)
+
+    processed = 0
+    for gate in expired:
+        action = gate["timeout_action"]
+        gate_id = gate["id"]
+        log.warning(f"Gate {gate_id} timed out (action={action}, workflow={gate['workflow_name']})")
+
+        if action == "escalate":
+            # Extend by 1 hour and re-notify
+            await pool.execute("""
+                UPDATE workflow_gates
+                SET expires_at = now() + interval '1 hour',
+                    metadata = jsonb_set(
+                        COALESCE(metadata, '{}')::jsonb,
+                        '{escalated_at}',
+                        to_jsonb(now()::text)
+                    )
+                WHERE id = $1
+            """, gate_id)
+            msg = (
+                f"\u26a0\ufe0f Gate timed out (escalated): '{gate['workflow_name']}'\n"
+                f"Step {gate['step_position']} \u2014 extended 1h. Please review.\n"
+                f"Approve: POST /workflows/gates/{gate_id}/resolve"
+            )
+            asyncio.create_task(_whastsapp_notify(msg))
+        else:
+            # Auto-resolve with configured action (approve/reject/skip)
+            try:
+                await _resolve_gate(pool, gate_id, action, "system:timeout", "Auto-resolved on timeout")
+            except Exception as e:
+                log.error(f"Failed to auto-resolve gate {gate_id}: {e}")
+
+        processed += 1
+
+    return processed
+
+
+async def _check_dao_quorum(pool, gate_id: UUID) -> dict:
+    """Compute vote tally for a DAO gate. Auto-resolves if quorum + threshold reached."""
+    gate = await pool.fetchrow("SELECT * FROM workflow_gates WHERE id = $1", gate_id)
+    votes = await pool.fetch(
+        "SELECT vote, weight FROM workflow_gate_votes WHERE gate_id = $1", gate_id
+    )
+
+    approve_weight = sum(float(v["weight"]) for v in votes if v["vote"] == "approve")
+    reject_weight  = sum(float(v["weight"]) for v in votes if v["vote"] == "reject")
+    total_weight   = sum(float(v["weight"]) for v in votes)
+    vote_count     = len(votes)
+
+    quorum_needed  = gate["quorum_required"] or 1
+    threshold      = float(gate["approval_threshold"] or 0.5)
+    quorum_reached = vote_count >= quorum_needed
+    threshold_met  = (approve_weight / max(total_weight, 1)) >= threshold
+
+    tally = {
+        "vote_count": vote_count,
+        "approve_weight": approve_weight,
+        "reject_weight": reject_weight,
+        "total_weight": total_weight,
+        "quorum_reached": quorum_reached,
+        "threshold_met": threshold_met,
+    }
+
+    if quorum_reached:
+        if threshold_met:
+            await _resolve_gate(pool, gate_id, "approve", "dao:quorum", "Quorum reached with approval threshold")
+        else:
+            await _resolve_gate(pool, gate_id, "reject", "dao:quorum", "Quorum reached but threshold not met")
+
+    return tally
+
+
+# ── End Gate Engine ──────────────────────────────────────────────────────
 
 
 async def _notify_workflow_complete(inst: dict, tmpl: dict):
