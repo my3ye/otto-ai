@@ -277,21 +277,10 @@ async def validate_template(req: TemplateValidateRequest):
                     "type": err["type"],
                 })
 
-        # Validate embedded gate config
+        # Warn on very short gate timeouts (heartbeat-lag risk)
+        # Note: structural gate validation is already covered by StepSpec(**step) above.
         gate = step.get("gate")
         if gate and isinstance(gate, dict):
-            try:
-                GateConfig(**gate)
-            except ValidationError as e:
-                for err in e.errors():
-                    errors.append({
-                        "step": i,
-                        "field": "gate." + ".".join(str(x) for x in err["loc"]),
-                        "message": err["msg"],
-                        "type": err["type"],
-                    })
-
-            # Warn on very short timeouts (heartbeat-lag risk)
             timeout = gate.get("timeout_seconds", 86400)
             if isinstance(timeout, int) and timeout < 600:
                 warnings.append({
@@ -574,6 +563,15 @@ async def get_pending_gate(instance_id: UUID):
 
     context_snapshot = _jsonb(gate["context_snapshot"]) if gate["context_snapshot"] else {}
 
+    # Fetch template once — reused for both prompt preview (pre-gate) and step name
+    template_steps = []
+    if inst["template_id"]:
+        tmpl = await pool.fetchrow(
+            "SELECT steps FROM workflow_templates WHERE id = $1", inst["template_id"]
+        )
+        if tmpl:
+            template_steps = tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"])
+
     if gate_position == "post":
         # Step has already run — surface its output
         raw_output = step_outputs.get(str(step_pos), "")
@@ -584,13 +582,6 @@ async def get_pending_gate(instance_id: UUID):
             context_snapshot["step_output"] = output_str[:5000]
     else:
         # Pre-gate: surface interpolated prompt preview
-        template_steps = []
-        if inst["template_id"]:
-            tmpl = await pool.fetchrow(
-                "SELECT steps FROM workflow_templates WHERE id = $1", inst["template_id"]
-            )
-            if tmpl:
-                template_steps = tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"])
         if template_steps and step_pos < len(template_steps):
             step_spec = template_steps[step_pos]
             prompt_raw = step_spec.get("prompt_template", "")
@@ -600,15 +591,9 @@ async def get_pending_gate(instance_id: UUID):
 
     result["context_snapshot"] = context_snapshot
 
-    # Step name from template
-    if inst["template_id"]:
-        tmpl = await pool.fetchrow(
-            "SELECT steps FROM workflow_templates WHERE id = $1", inst["template_id"]
-        )
-        if tmpl:
-            template_steps = tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"])
-            if step_pos < len(template_steps):
-                result["step_name"] = template_steps[step_pos].get("name", f"Step {step_pos}")
+    # Step name from template (uses already-fetched template_steps)
+    if template_steps and step_pos < len(template_steps):
+        result["step_name"] = template_steps[step_pos].get("name", f"Step {step_pos}")
 
     # DAO tally for DAO gates
     if gate["gate_type"] == "dao":
