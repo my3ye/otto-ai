@@ -166,14 +166,47 @@ def _row_to_dict(row) -> dict:
     return d
 
 
+# Directories that artifact reads are permitted from. Paths outside these are
+# rejected to prevent path-traversal attacks via crafted [ARTIFACT: ...] tags
+# in agent step outputs.
+_ALLOWED_ARTIFACT_DIRS: tuple[str, ...] = (
+    os.path.realpath(os.path.expanduser("~/otto/logs/tasks")),
+    "/tmp",
+)
+
+
+def _is_safe_artifact_path(path: str) -> bool:
+    """Return True only if *path* resolves to a location under an allowed directory."""
+    try:
+        # Expand ~ and resolve symlinks / ".." components to get the canonical path
+        real = os.path.realpath(os.path.expanduser(path))
+    except Exception:
+        return False
+    return any(real.startswith(allowed + os.sep) or real == allowed
+               for allowed in _ALLOWED_ARTIFACT_DIRS)
+
+
 def _resolve_artifact(s: str, limit: int) -> str:
     """If *s* is an [ARTIFACT: path] reference, read up to *limit* chars from the file.
 
-    Falls back to returning *s* unchanged if the path is missing or unreadable.
+    Only paths under _ALLOWED_ARTIFACT_DIRS are permitted.  Any path outside
+    those directories is silently rejected and the original string is returned
+    unchanged — this prevents path-traversal attacks where a malicious agent
+    crafts step output like [ARTIFACT: /etc/passwd] to exfiltrate system files.
+
+    Falls back to returning *s* unchanged if the path is disallowed, missing,
+    or unreadable.
     """
     m = re.search(r'\[ARTIFACT: ([^\]]+)\]', s)
     if m:
         artifact_path = m.group(1).strip()
+        if not _is_safe_artifact_path(artifact_path):
+            log.warning(
+                "Rejected [ARTIFACT] read of disallowed path: %r — "
+                "only paths under %s are permitted",
+                artifact_path, _ALLOWED_ARTIFACT_DIRS,
+            )
+            return s
         if os.path.exists(artifact_path):
             try:
                 with open(artifact_path, "r") as f:
