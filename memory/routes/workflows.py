@@ -145,13 +145,39 @@ def _interpolate(template: str, instance: dict) -> str:
             step_outputs = {}
 
     for pos, output in step_outputs.items():
-        values[f"step_{pos}_output"] = str(output)[:8000]
+        output_str = str(output)
+        # GAP-2: if output is an artifact reference, read the full file
+        if output_str.startswith("[ARTIFACT:"):
+            import re as _re
+            m = _re.search(r'\[ARTIFACT: ([^\]]+)\]', output_str)
+            if m:
+                artifact_path = m.group(1).strip()
+                if os.path.exists(artifact_path):
+                    try:
+                        with open(artifact_path, "r") as f:
+                            output_str = f.read(8000)
+                    except Exception:
+                        pass  # keep the artifact reference as-is
+        values[f"step_{pos}_output"] = output_str[:8000]
 
     # prev_output = output of the step before current
     current = instance.get("current_step", 0)
     prev_pos = str(current - 1)
     if prev_pos in step_outputs:
-        values["prev_output"] = str(step_outputs[prev_pos])[:8000]
+        prev_str = str(step_outputs[prev_pos])
+        # GAP-2: resolve artifact reference for prev_output too
+        if prev_str.startswith("[ARTIFACT:"):
+            import re as _re
+            m = _re.search(r'\[ARTIFACT: ([^\]]+)\]', prev_str)
+            if m:
+                artifact_path = m.group(1).strip()
+                if os.path.exists(artifact_path):
+                    try:
+                        with open(artifact_path, "r") as f:
+                            prev_str = f.read(8000)
+                    except Exception:
+                        pass
+        values["prev_output"] = prev_str[:8000]
 
     # Workflow metadata
     values["workflow_name"] = instance.get("name", "")

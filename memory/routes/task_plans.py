@@ -319,7 +319,12 @@ async def execute_plan(pool, plan_id: UUID):
 
 
 async def _inject_dep_outputs(pool, task_id: UUID):
-    """Enrich a task's prompt with outputs from its completed dependencies."""
+    """Enrich a task's prompt with outputs from its completed dependencies.
+
+    GAP-2: if a dependency has an artifact_path in metadata, read the full
+    artifact file (up to 6000 chars) instead of the truncated DB output field.
+    Falls back to DB output if the file is absent or unreadable.
+    """
     row = await pool.fetchrow(
         "SELECT depends_on, prompt FROM tasks WHERE id = $1",
         task_id,
@@ -328,7 +333,7 @@ async def _inject_dep_outputs(pool, task_id: UUID):
         return
 
     deps = await pool.fetch("""
-        SELECT title, LEFT(output, 3000) as output
+        SELECT title, LEFT(output, 6000) as output, metadata
         FROM tasks
         WHERE id = ANY($1) AND status = 'completed' AND output IS NOT NULL
     """, row["depends_on"])
@@ -338,7 +343,24 @@ async def _inject_dep_outputs(pool, task_id: UUID):
 
     enrichment = "\n\n--- Context from completed prerequisites ---\n"
     for dep in deps:
-        enrichment += f"\n### {dep['title']}\n{dep['output']}\n"
+        dep_meta = dep["metadata"] or {}
+        if isinstance(dep_meta, str):
+            try:
+                dep_meta = json.loads(dep_meta)
+            except Exception:
+                dep_meta = {}
+
+        dep_output = dep["output"]
+        artifact_path = dep_meta.get("artifact_path") if isinstance(dep_meta, dict) else None
+        if artifact_path and os.path.exists(artifact_path):
+            try:
+                with open(artifact_path, "r") as f:
+                    dep_output = f.read(6000)
+                log.debug(f"GAP-2: injecting artifact for dep '{dep['title'][:40]}'")
+            except Exception:
+                pass  # fall back to DB output already set above
+
+        enrichment += f"\n### {dep['title']}\n{dep_output}\n"
 
     new_prompt = row["prompt"] + enrichment
     await pool.execute(

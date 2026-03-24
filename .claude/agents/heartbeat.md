@@ -668,6 +668,7 @@ for i in d.get('instances', []):
 **When creating work, prefer workflows over single tasks for multi-step requests:**
 - Content creation (articles, landing pages, copy) → `content-publishing-pipeline`
 - Feature development (code + review) → `feature-development`
+- **Multiple related tasks with dependencies** → ALWAYS use `POST /task-plans` (not multiple `POST /tasks`). Direct `/tasks` POST is only for single independent tasks.
 
 ```bash
 # Start a workflow instead of a single task
