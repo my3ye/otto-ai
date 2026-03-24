@@ -26,7 +26,6 @@ from pydantic import BaseModel, Field
 
 from ..db import get_pool
 from ..gate_notifier import gate_notifier
-from ..dao_module import get_dao_module
 
 log = logging.getLogger("otto.workflows")
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -131,7 +130,8 @@ def _jsonb(val) -> dict:
 
 def _row_to_dict(row) -> dict:
     d = dict(row)
-    for k in ("created_at", "updated_at", "started_at", "completed_at"):
+    for k in ("created_at", "updated_at", "started_at", "completed_at",
+              "expires_at", "resolved_at"):
         if d.get(k) is not None:
             d[k] = d[k].isoformat()
     d["id"] = str(d["id"])
@@ -143,7 +143,8 @@ def _row_to_dict(row) -> dict:
         d["instance_id"] = str(d["instance_id"])
     # Normalize JSONB
     for k in ("steps", "variables", "step_outputs", "step_task_ids",
-              "step_durations", "eval_scores", "mutation_diff", "metadata"):
+              "step_durations", "eval_scores", "mutation_diff", "metadata",
+              "context_snapshot"):
         if k in d and isinstance(d[k], str):
             try:
                 d[k] = json.loads(d[k])
@@ -523,7 +524,7 @@ async def list_gates(
         ORDER BY g.created_at DESC
         LIMIT ${i}
     """, *params, limit)
-    return [dict(r) for r in rows]
+    return [_row_to_dict(r) for r in rows]
 
 
 @router.get("/gates/check-timeouts")
@@ -634,7 +635,7 @@ async def list_instance_gates(instance_id: UUID):
         WHERE instance_id = $1
         ORDER BY step_position, gate_position, created_at
     """, instance_id)
-    return [dict(r) for r in rows]
+    return [_row_to_dict(r) for r in rows]
 
 
 # ── End Gate API Endpoints ────────────────────────────────────────────────
@@ -1616,7 +1617,22 @@ async def _resolve_gate(
                 instance_id, step_position,
             )
             asyncio.create_task(_advance_workflow(pool, instance_id))
-        else:  # fail_workflow (default) or skip_step
+        elif on_rejection == "skip_step":
+            inst_s = await pool.fetchrow(
+                "SELECT step_outputs FROM workflow_instances WHERE id = $1", instance_id
+            )
+            step_outputs = _jsonb(inst_s["step_outputs"])
+            step_outputs[str(step_position)] = f"[GATE-SKIP] {reason or ''}"
+            await pool.execute(
+                """UPDATE workflow_instances
+                   SET status = 'running',
+                       current_step = current_step + 1,
+                       step_outputs = $2::jsonb
+                   WHERE id = $1""",
+                instance_id, json.dumps(step_outputs),
+            )
+            asyncio.create_task(_advance_workflow(pool, instance_id))
+        else:  # fail_workflow (default)
             await pool.execute(
                 """UPDATE workflow_instances
                    SET status = 'failed', error = $2, completed_at = now()
