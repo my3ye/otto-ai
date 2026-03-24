@@ -22,7 +22,7 @@ from typing import Optional, List
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from ..db import get_pool
 from ..gate_notifier import gate_notifier
@@ -108,8 +108,21 @@ class WorkflowStartRequest(BaseModel):
 
 
 class WorkflowApproveRequest(BaseModel):
-    action: str = "approve"   # approve | reject | skip
+    action: str = "approve"         # approve | reject | skip
+    decision: Optional[str] = None  # OMS alias for action (OMS sends decision, not action)
     reason: Optional[str] = None
+
+    @model_validator(mode="after")
+    def resolve_action(self) -> "WorkflowApproveRequest":
+        # Accept decision as alias for action; only override if action is still at default
+        if self.decision and self.action == "approve":
+            self.action = self.decision
+        return self
+
+
+class TemplateValidateRequest(BaseModel):
+    name: str = "validate"
+    steps: List[dict]   # raw dicts — we validate them
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────
@@ -220,6 +233,83 @@ def _interpolate(template: str, instance: dict) -> str:
         for k, v in values.items():
             result = result.replace(f"{{{k}}}", str(v))
         return result
+
+
+# ── Template Schema & Validation ─────────────────────────────────────────
+
+@router.get("/templates/schema")
+async def get_template_schema():
+    """Return JSON Schema for workflow template structure.
+
+    Derived from Pydantic models — always in sync with the API contract.
+    Use this to validate templates client-side or build editor tooling.
+    """
+    return {
+        "template": TemplateCreate.model_json_schema(),
+        "step": StepSpec.model_json_schema(),
+        "gate": GateConfig.model_json_schema(),
+        "version": "1.0",
+    }
+
+
+@router.post("/templates/validate")
+async def validate_template(req: TemplateValidateRequest):
+    """Validate a workflow template config before saving.
+
+    Returns structured errors and warnings with step/field granularity.
+    Does not persist anything — pure validation.
+    """
+    from pydantic import ValidationError
+
+    errors: list = []
+    warnings: list = []
+
+    for i, step in enumerate(req.steps):
+        # Validate step structure
+        try:
+            StepSpec(**step)
+        except ValidationError as e:
+            for err in e.errors():
+                errors.append({
+                    "step": i,
+                    "field": ".".join(str(x) for x in err["loc"]),
+                    "message": err["msg"],
+                    "type": err["type"],
+                })
+
+        # Validate embedded gate config
+        gate = step.get("gate")
+        if gate and isinstance(gate, dict):
+            try:
+                GateConfig(**gate)
+            except ValidationError as e:
+                for err in e.errors():
+                    errors.append({
+                        "step": i,
+                        "field": "gate." + ".".join(str(x) for x in err["loc"]),
+                        "message": err["msg"],
+                        "type": err["type"],
+                    })
+
+            # Warn on very short timeouts (heartbeat-lag risk)
+            timeout = gate.get("timeout_seconds", 86400)
+            if isinstance(timeout, int) and timeout < 600:
+                warnings.append({
+                    "step": i,
+                    "field": "gate.timeout_seconds",
+                    "message": (
+                        f"Timeout {timeout}s is less than 600s. "
+                        "Otto's heartbeat runs every 30 minutes — short timeouts "
+                        "may not be processed in time."
+                    ),
+                })
+
+    return {
+        "valid": len(errors) == 0,
+        "step_count": len(req.steps),
+        "errors": errors,
+        "warnings": warnings,
+    }
 
 
 # ── Template CRUD ────────────────────────────────────────────────────────
@@ -418,6 +508,135 @@ async def get_instance(instance_id: UUID):
             steps = tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"])
             result["template_steps"] = steps
             result["total_steps"] = len(steps)
+
+    # Lightweight pending gate summary (avoids a second round-trip for the OMS status panel)
+    if row["status"] == "paused":
+        pending_gate = await pool.fetchrow("""
+            SELECT id, gate_type, gate_position, step_position, expires_at
+            FROM workflow_gates
+            WHERE instance_id = $1 AND status = 'pending'
+            ORDER BY created_at DESC LIMIT 1
+        """, instance_id)
+        if pending_gate:
+            seconds_remaining: Optional[int] = None
+            if pending_gate["expires_at"]:
+                delta = pending_gate["expires_at"] - datetime.now(timezone.utc)
+                seconds_remaining = max(0, int(delta.total_seconds()))
+            result["pending_gate_summary"] = {
+                "gate_id": str(pending_gate["id"]),
+                "gate_type": pending_gate["gate_type"],
+                "gate_position": pending_gate["gate_position"],
+                "step_position": pending_gate["step_position"],
+                "expires_at": pending_gate["expires_at"].isoformat() if pending_gate["expires_at"] else None,
+                "seconds_remaining": seconds_remaining,
+            }
+
+    return result
+
+
+@router.get("/instances/{instance_id}/gate")
+async def get_pending_gate(instance_id: UUID):
+    """Get the currently pending gate for a paused workflow instance.
+
+    Returns full gate context including context_snapshot (step output for post-gates,
+    prompt preview for pre-gates) and DAO vote tally for DAO gates.
+
+    Returns 404 if the instance has no pending gate.
+    """
+    pool = await get_pool()
+    inst = await pool.fetchrow("SELECT * FROM workflow_instances WHERE id = $1", instance_id)
+    if not inst:
+        raise HTTPException(404, "Instance not found")
+
+    gate = await pool.fetchrow("""
+        SELECT g.*, wi.name as workflow_name
+        FROM workflow_gates g
+        JOIN workflow_instances wi ON wi.id = g.instance_id
+        WHERE g.instance_id = $1 AND g.status = 'pending'
+        ORDER BY g.created_at DESC LIMIT 1
+    """, instance_id)
+    if not gate:
+        raise HTTPException(404, "No pending gate for this instance")
+
+    result = _row_to_dict(gate)
+
+    # Compute seconds_remaining
+    if gate["expires_at"]:
+        delta = gate["expires_at"] - datetime.now(timezone.utc)
+        result["seconds_remaining"] = max(0, int(delta.total_seconds()))
+    else:
+        result["seconds_remaining"] = None
+
+    # Enrich context_snapshot: pull step output or prompt preview from instance
+    step_pos = gate["step_position"]
+    gate_position = gate["gate_position"]
+    step_outputs = _jsonb(inst["step_outputs"])
+
+    context_snapshot = _jsonb(gate["context_snapshot"]) if gate["context_snapshot"] else {}
+
+    if gate_position == "post":
+        # Step has already run — surface its output
+        raw_output = step_outputs.get(str(step_pos), "")
+        if raw_output:
+            output_str = str(raw_output)
+            if output_str.startswith("[ARTIFACT:"):
+                output_str = _resolve_artifact(output_str, 5000)
+            context_snapshot["step_output"] = output_str[:5000]
+    else:
+        # Pre-gate: surface interpolated prompt preview
+        template_steps = []
+        if inst["template_id"]:
+            tmpl = await pool.fetchrow(
+                "SELECT steps FROM workflow_templates WHERE id = $1", inst["template_id"]
+            )
+            if tmpl:
+                template_steps = tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"])
+        if template_steps and step_pos < len(template_steps):
+            step_spec = template_steps[step_pos]
+            prompt_raw = step_spec.get("prompt_template", "")
+            instance_dict = _row_to_dict(inst)
+            prompt_preview = _interpolate(prompt_raw, instance_dict)
+            context_snapshot["prompt_preview"] = prompt_preview[:5000]
+
+    result["context_snapshot"] = context_snapshot
+
+    # Step name from template
+    if inst["template_id"]:
+        tmpl = await pool.fetchrow(
+            "SELECT steps FROM workflow_templates WHERE id = $1", inst["template_id"]
+        )
+        if tmpl:
+            template_steps = tmpl["steps"] if isinstance(tmpl["steps"], list) else json.loads(tmpl["steps"])
+            if step_pos < len(template_steps):
+                result["step_name"] = template_steps[step_pos].get("name", f"Step {step_pos}")
+
+    # DAO tally for DAO gates
+    if gate["gate_type"] == "dao":
+        votes = await pool.fetch(
+            """SELECT vote, weight FROM workflow_gate_votes WHERE gate_id = $1""",
+            gate["id"],
+        )
+        approve_w = sum(float(v["weight"]) for v in votes if v["vote"] == "approve")
+        reject_w  = sum(float(v["weight"]) for v in votes if v["vote"] == "reject")
+        total_w   = approve_w + reject_w  # abstain excluded from threshold calc
+        threshold = float(gate["approval_threshold"] or 0.5)
+        quorum_req = gate["quorum_required"] or 1
+        vote_cnt  = len(votes)
+        approve_pct = round(approve_w / max(total_w, 0.0001), 4)
+        result["tally"] = {
+            "vote_count":      vote_cnt,
+            "approve_weight":  approve_w,
+            "reject_weight":   reject_w,
+            "total_weight":    total_w,
+            "approve_pct":     approve_pct,
+            "reject_pct":      round(reject_w / max(total_w, 0.0001), 4),
+            "quorum_required": quorum_req,
+            "quorum_reached":  vote_cnt >= quorum_req,
+            "threshold":       threshold,
+            "threshold_met":   approve_pct >= threshold,
+        }
+    else:
+        result["tally"] = None
 
     return result
 
