@@ -1,5 +1,15 @@
 # Researcher Agent Memory
 
+## HiClaw Multi-Agent OS Architecture Research (2026-03-24)
+
+DB Note ID: f934ccf3 | Memory IDs: d829a87e, ffb52319, 3120a463, 02c9d695, 98f2052a
+
+- **[IMMEDIATE]** Add `[ACCEPTANCE CRITERIA]` block to heartbeat.md task creation — zero cost, directly fixes QA rejection rate
+- **[P2 SECURITY]** Credential isolation: task_runner.sh holds raw `ANTHROPIC_API_KEY` — route via Memory API proxy instead (gateway-token pattern)
+- **[P3 EFFICIENCY]** Artifact-path references: outputs >2KB → write to file, store path in DB (30-60% context token reduction)
+- **[CONTEXT]** Architecture parity: Otto already has DAG plans=HiClaw project-mgmt, workflow engine=task-coordination, /gateway/incoming=Manager routing. Gap is enforcement discipline, not missing components.
+- **[DO NOT ADOPT]** Matrix/Tuwunel (500MB overhead, overengineered), ZeroClaw/NanoClaw (in development, not production)
+
 ## Constraint-Injection Checkpoints Research (2026-03-23)
 
 Research file: ~/otto/.claude/agent-memory/researcher/project_constraint_injection_research.md
