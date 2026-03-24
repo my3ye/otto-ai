@@ -1,13 +1,24 @@
 # Researcher Agent Memory
 
+## Three-Paper Synthesis: HiClaw + TrustGraph + VISTA (2026-03-24) — VALIDATED
+
+DB Note ID: 9dacc65b | Memory IDs: b8caf97a, 892df600, 57c6abad, 6819725c, a2f3d976, de793994, 1cd61702, aabbf1b8
+
+- **[P1 ACTION]** VISTA hypothesis loop (~$3): Parse existing `qa_rejection_reason` into {failure_type, hypothesis} labels, inject into retry task prompts. NOT a new field — `task_retry_feedback` already has the field. Gap is structured categorization + prompt injection.
+- **[P2 ACTION]** Context Cores (~$5, design-first): Postgres schema `context_cores(id, domain, version, ontology_json, provenance_json, retrieval_policies_json, promoted_at)`. Domains: webassist/koink/sos_systems.
+- **[P4 LOWEST]** Credential isolation: task_runner.sh inherits via systemd env, no literal key. Risk LOW. Sprint backlog score 1.7/25.
+- **[ARCHITECTURE]** Otto already matches HiClaw (DAG=Manager) and TrustGraph (Neo4j/pgvector=KG+vectors). Gaps are additions, not rebuilds.
+- **[CONVERGENCE]** All 3 papers: add structure at every stage. HiClaw=dispatch, TrustGraph=retrieval, VISTA=failure diagnosis.
+- **[OMNIFLOW PAIRING]** OMNIFLOW (constrain-before) + VISTA (diagnose-after) = closed optimization loop.
+- **[CAVEATS]** VISTA benchmarks math-domain only (GSM8K). Context Cores $5 estimate rough. VISTA CC BY-NC-ND — re-implement, do NOT copy.
+- **[DO NOT ADOPT]** Matrix/Tuwunel (500MB), ZeroClaw/NanoClaw (unstable), TrustGraph Cassandra/Pulsar (incompatible stack)
+
 ## HiClaw Multi-Agent OS Architecture Research (2026-03-24)
 
 DB Note ID: f934ccf3 | Memory IDs: d829a87e, ffb52319, 3120a463, 02c9d695, 98f2052a
 
-- **[IMMEDIATE]** Add `[ACCEPTANCE CRITERIA]` block to heartbeat.md task creation — zero cost, directly fixes QA rejection rate
-- **[P2 SECURITY]** Credential isolation: task_runner.sh holds raw `ANTHROPIC_API_KEY` — route via Memory API proxy instead (gateway-token pattern)
-- **[P3 EFFICIENCY]** Artifact-path references: outputs >2KB → write to file, store path in DB (30-60% context token reduction)
-- **[CONTEXT]** Architecture parity: Otto already has DAG plans=HiClaw project-mgmt, workflow engine=task-coordination, /gateway/incoming=Manager routing. Gap is enforcement discipline, not missing components.
+- **[DONE]** Artifact-path references: commit 9253b59 merged. hiclaw-artifact-path-architecture-2026-03-24.md exists.
+- **[CONTEXT]** Architecture parity confirmed: Otto already matches HiClaw at structural level.
 - **[DO NOT ADOPT]** Matrix/Tuwunel (500MB overhead, overengineered), ZeroClaw/NanoClaw (in development, not production)
 
 ## Constraint-Injection Checkpoints Research (2026-03-23)
