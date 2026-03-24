@@ -352,15 +352,18 @@ async def _inject_dep_outputs(pool, task_id: UUID):
 
         dep_output = dep["output"]
         artifact_path = dep_meta.get("artifact_path") if isinstance(dep_meta, dict) else None
+        used_artifact = False
         if artifact_path and os.path.exists(artifact_path):
             try:
                 with open(artifact_path, "r") as f:
                     dep_output = f.read(6000)
+                used_artifact = True
                 log.debug(f"GAP-2: injecting artifact for dep '{dep['title'][:40]}'")
             except Exception:
                 pass  # fall back to DB output already set above
 
-        enrichment += f"\n### {dep['title']}\n{dep_output}\n"
+        header = f"{dep['title']} [artifact]" if used_artifact else dep['title']
+        enrichment += f"\n### {header}\n{dep_output}\n"
 
     new_prompt = row["prompt"] + enrichment
     await pool.execute(

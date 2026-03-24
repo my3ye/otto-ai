@@ -14,6 +14,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import subprocess
 from collections import defaultdict
 from datetime import datetime, timezone
@@ -123,6 +124,23 @@ def _row_to_dict(row) -> dict:
     return d
 
 
+def _resolve_artifact(s: str, limit: int) -> str:
+    """If *s* is an [ARTIFACT: path] reference, read up to *limit* chars from the file.
+
+    Falls back to returning *s* unchanged if the path is missing or unreadable.
+    """
+    m = re.search(r'\[ARTIFACT: ([^\]]+)\]', s)
+    if m:
+        artifact_path = m.group(1).strip()
+        if os.path.exists(artifact_path):
+            try:
+                with open(artifact_path, "r") as f:
+                    return f.read(limit)
+            except Exception:
+                pass
+    return s
+
+
 def _interpolate(template: str, instance: dict) -> str:
     """Interpolate {variables}, {prev_output}, {step_N_output} into a prompt template."""
     values = defaultdict(str)
@@ -148,16 +166,7 @@ def _interpolate(template: str, instance: dict) -> str:
         output_str = str(output)
         # GAP-2: if output is an artifact reference, read the full file
         if output_str.startswith("[ARTIFACT:"):
-            import re as _re
-            m = _re.search(r'\[ARTIFACT: ([^\]]+)\]', output_str)
-            if m:
-                artifact_path = m.group(1).strip()
-                if os.path.exists(artifact_path):
-                    try:
-                        with open(artifact_path, "r") as f:
-                            output_str = f.read(8000)
-                    except Exception:
-                        pass  # keep the artifact reference as-is
+            output_str = _resolve_artifact(output_str, 8000)
         values[f"step_{pos}_output"] = output_str[:8000]
 
     # prev_output = output of the step before current
@@ -167,16 +176,7 @@ def _interpolate(template: str, instance: dict) -> str:
         prev_str = str(step_outputs[prev_pos])
         # GAP-2: resolve artifact reference for prev_output too
         if prev_str.startswith("[ARTIFACT:"):
-            import re as _re
-            m = _re.search(r'\[ARTIFACT: ([^\]]+)\]', prev_str)
-            if m:
-                artifact_path = m.group(1).strip()
-                if os.path.exists(artifact_path):
-                    try:
-                        with open(artifact_path, "r") as f:
-                            prev_str = f.read(8000)
-                    except Exception:
-                        pass
+            prev_str = _resolve_artifact(prev_str, 8000)
         values["prev_output"] = prev_str[:8000]
 
     # Workflow metadata

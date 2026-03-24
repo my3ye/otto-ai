@@ -767,16 +767,8 @@ if echo "$OUTPUT" | grep -qE "^Error: Reached max turns|^Error: max.steps reache
     OUTPUT="[INCOMPLETE — hit max_turns/max_steps limit. Task may have partially completed. Verify by checking the codebase directly.]"
 fi
 
-# Truncate output if too large
-MAX_OUTPUT_LEN=50000
-if [ ${#OUTPUT} -gt $MAX_OUTPUT_LEN ]; then
-    OUTPUT="${OUTPUT:0:$MAX_OUTPUT_LEN}
-
-[TRUNCATED — output exceeded ${MAX_OUTPUT_LEN} chars]"
-    log "Output truncated to ${MAX_OUTPUT_LEN} chars"
-fi
-
 # ── HiClaw GAP-2: Artifact Path References ─────────────────────────────────
+# Write artifact BEFORE truncation so the file always contains the full output.
 # When output > 2KB and task succeeded, write full output to a persistent
 # artifact file. Store only a summary + path reference in the DB output field.
 # Prevents DB bloat and context inflation when chaining tasks/workflows.
@@ -797,6 +789,15 @@ ${ARTIFACT_SUMMARY}
     log "GAP-2: artifact written (${ARTIFACT_BYTES} bytes) → ${ARTIFACT_PATH}"
 fi
 # ── End Artifact Path References ────────────────────────────────────────────
+
+# Truncate output if too large (runs after artifact write — artifact is always full)
+MAX_OUTPUT_LEN=50000
+if [ ${#OUTPUT} -gt $MAX_OUTPUT_LEN ]; then
+    OUTPUT="${OUTPUT:0:$MAX_OUTPUT_LEN}
+
+[TRUNCATED — output exceeded ${MAX_OUTPUT_LEN} chars]"
+    log "Output truncated to ${MAX_OUTPUT_LEN} chars"
+fi
 
 # ── NEEDS_MEV_INPUT: Task-level collaboration request ─────────────────────────
 # If the task output contains [NEEDS_MEV_INPUT]...[/NEEDS_MEV_INPUT], extract the
