@@ -1294,7 +1294,7 @@ m['autoevolve_state']['experiments_this_generation'] = int('$AE_EXP')
 with open(tmp_path, 'w') as f:
     json.dump(m, f, indent=2)
 os.rename(tmp_path, meta_path)
-print(f'meta_memory updated: rl2f={rl2f:.2f} ({direction}), ae_gen=$AE_GEN, ae_exp=$AE_EXP')
+print(f'meta_memory updated: rl2f={rl2f:.2f} ({direction}), ae_gen={int("$AE_GEN")}, ae_exp={int("$AE_EXP")}')
 "
 ```
 

@@ -42,7 +42,7 @@
       "priority": 1,
       "action": "Move AutoEvolve to Step 1 on IDLE/DEGRADED cycles via Step 0.5 classifier",
       "expected_impact": "AutoEvolve fires at least 1x per 48h instead of 0x",
-      "status": "in_progress",
+      "status": "done",
       "proposed_patch_id": null
     }
   ],
