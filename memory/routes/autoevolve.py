@@ -358,3 +358,147 @@ def _select_best_hypothesis(
         "prompt_edit",
         0.50,
     )
+
+
+# ── Reflection Versions ──────────────────────────────────────────────────────
+# EMRS Phase 2 — versioned manifest for self-modifications (2026-03-24)
+
+from datetime import timedelta  # noqa: E402 (appended after module body)
+
+
+class ReflectionVersionCreate(BaseModel):
+    target_file: str
+    version: int
+    content_hash: str
+    diff: str
+    patch_summary: str
+    hypothesis: Optional[str] = None
+    experiment_id: Optional[UUID] = None
+    rl2f_before: Optional[float] = None
+    source: str = "autoevolve"
+
+
+class ReflectionVersionOut(BaseModel):
+    id: UUID
+    version: int
+    target_file: str
+    content_hash: str
+    diff: str
+    patch_summary: str
+    hypothesis: Optional[str]
+    rl2f_before: Optional[float]
+    rl2f_after: Optional[float]
+    status: str
+    applied_at: Optional[datetime]
+    veto_expires_at: Optional[datetime]
+    evaluated_at: Optional[datetime]
+    created_at: datetime
+
+
+@router.post("/versions", response_model=ReflectionVersionOut, status_code=201)
+async def create_version(body: ReflectionVersionCreate):
+    """Record a self-modification patch — enters pending_veto state."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        now = datetime.now(timezone.utc)
+        veto_exp = now + timedelta(hours=48)
+        row = await conn.fetchrow(
+            """
+            INSERT INTO reflection_versions
+              (version, target_file, content_hash, diff, patch_summary, hypothesis,
+               experiment_id, rl2f_before, source, applied_at, veto_expires_at)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+            RETURNING *
+            """,
+            body.version, body.target_file, body.content_hash, body.diff,
+            body.patch_summary, body.hypothesis, body.experiment_id,
+            body.rl2f_before, body.source, now, veto_exp,
+        )
+        return dict(row)
+
+
+@router.get("/versions", response_model=list[ReflectionVersionOut])
+async def list_versions(
+    target_file: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 20,
+):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        q = "SELECT * FROM reflection_versions WHERE archived=FALSE AND deleted_at IS NULL"
+        params: list = []
+        if target_file:
+            params.append(target_file)
+            q += f" AND target_file=${len(params)}"
+        if status:
+            params.append(status)
+            q += f" AND status=${len(params)}"
+        params.append(limit)
+        q += f" ORDER BY created_at DESC LIMIT ${len(params)}"
+        rows = await conn.fetch(q, *params)
+        return [dict(r) for r in rows]
+
+
+@router.get("/versions/{version_id}", response_model=ReflectionVersionOut)
+async def get_version(version_id: UUID):
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM reflection_versions WHERE id=$1", version_id
+        )
+        if not row:
+            raise HTTPException(404, "Version not found")
+        return dict(row)
+
+
+@router.post("/versions/{version_id}/veto")
+async def veto_version(version_id: UUID):
+    """Mev (or auto-rollback) rejects a patch within the veto window."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "UPDATE reflection_versions SET status='vetoed', evaluated_at=NOW() "
+            "WHERE id=$1 RETURNING id, status",
+            version_id,
+        )
+        if not row:
+            raise HTTPException(404, "Version not found")
+        return {"id": str(row["id"]), "status": row["status"]}
+
+
+@router.post("/versions/check-rollbacks")
+async def check_rollbacks():
+    """Called by reflection Step 6. Returns patches that need rolling back
+    (RL2F dropped >15% after this patch went active)."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT * FROM rollback_candidates ORDER BY created_at ASC"
+        )
+        return {"rollback_needed": [dict(r) for r in rows]}
+
+
+@router.get("/meta-state")
+async def get_meta_state():
+    """Current EMRS summary — useful for OMS dashboard and reflection Step 0.5."""
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        pending = await conn.fetchval(
+            "SELECT COUNT(*) FROM reflection_versions "
+            "WHERE status='pending_veto' AND archived=FALSE AND deleted_at IS NULL"
+        )
+        active = await conn.fetchval(
+            "SELECT COUNT(*) FROM reflection_versions "
+            "WHERE status='active' AND archived=FALSE AND deleted_at IS NULL"
+        )
+        rollbacks = await conn.fetchval("SELECT COUNT(*) FROM rollback_candidates")
+        gen_row = await conn.fetchrow(
+            "SELECT generation FROM autoevolve_experiments "
+            "ORDER BY created_at DESC LIMIT 1"
+        )
+        return {
+            "pending_patches": pending,
+            "active_patches": active,
+            "rollback_candidates": rollbacks,
+            "current_generation": gen_row["generation"] if gen_row else 1,
+        }

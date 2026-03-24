@@ -141,8 +141,8 @@ curl -sf http://localhost:8100/autoevolve/generation | python3 -c "import sys,js
 
 ```
 CYCLE_TYPE = IDLE      if: queue pending=0 AND rl2f not worsening this cycle
-CYCLE_TYPE = DEGRADED  if: rl2f_trend.direction="declining" AND cycles_since_improvement >= 3
-                           OR autoevolve_state.experiments_this_generation=0 AND generation stuck > 5 cycles
+CYCLE_TYPE = DEGRADED  if: (rl2f_trend.direction="declining" AND cycles_since_improvement >= 3)
+                           OR (autoevolve_state.experiments_this_generation=0)
 CYCLE_TYPE = CRITICAL  if: system health failure (disk >90%, memory OOM, timer down)
 CYCLE_TYPE = HEALTHY   otherwise
 ```
@@ -1043,6 +1043,18 @@ curl -sf 'http://localhost:8100/tasks?status=running'
 - If disk is >80% full, clean old logs
 - If a task is marked "running" but stale, flag it
 - Do NOT restart services unless they're actually down
+
+**Check for auto-rollback candidates (EMRS):**
+```bash
+ROLLBACKS=$(curl -sf -X POST http://localhost:8100/autoevolve/versions/check-rollbacks 2>/dev/null || echo '{"rollback_needed":[]}')
+echo "$ROLLBACKS" | python3 -c "import sys,json; d=json.load(sys.stdin); n=len(d.get('rollback_needed',[])); print(f'Rollback candidates: {n}')"
+```
+
+If `rollback_needed` count > 0, for each candidate:
+1. Note the `target_file` and `patch_summary` from the record
+2. Revert: apply the diff in reverse or restore from git: `git checkout HEAD -- <target_file>`
+3. Mark reverted: `curl -sf -X POST http://localhost:8100/autoevolve/versions/<id>/veto`
+4. Log to episodic: "Auto-rolled back version N of [file] — RL2F drop exceeded 15% threshold"
 
 ### 7. Proactive growth tasks
 

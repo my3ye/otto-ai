@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_emrs_implementation.md](project_emrs_implementation.md) — EMRS Phase 1 review (2026-03-24, WF Step 2): APPROVE with warnings. Phase 1 (meta_memory.json + Step 0.5 classifier + Step 8b write) clean. Phase 2 (migration 075, /versions, record_version, rollback) not yet implemented.
 - [project_polkadot_entry_review.md](project_polkadot_entry_review.md) — Polkadot ecosystem entry content stack review (2026-03-20): NEEDS_CHANGES (pre-submission). 10 patterns flagged. No blockers but code evidence gap is critical before W3F submission.
 
 - [universe_page_audit.md](project_universe_page.md) — Universe page at mev.otto.lk/universe audit (2026-03-13): critical name display bug, 8 tasks created for public readiness
