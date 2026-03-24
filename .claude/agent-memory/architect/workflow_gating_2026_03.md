@@ -23,4 +23,10 @@ Workflow gating system architecture designed 2026-03-24.
 
 **Full spec:** ~/otto/docs/workflow-gating-architecture-2026-03-24.md
 
+**Implementation plan written (2026-03-24):** ~/otto/docs/gating-implementation-plan-2026-03-24.md
+- Phase 1 scope: human gates (pre + post), migration 074, 6 new API endpoints, backward-compat with review_mode=human_approval
+- Critical codebase note: `timedelta` and `Protocol` not currently imported in workflows.py — must add
+- Integration points: `_advance_workflow` line 564 (pre-gate), `handle_step_completion` lines 720-743 (replace review_mode block), `approve_step` line 396 (delegate to _resolve_gate)
+- New helper: `_whastsapp_notify()` extracts inline WhatsApp subprocess calls
+
 **How to apply:** When building the implementation, follow the spec exactly. Migration 074 runs first. Phase 1 covers human+post-step gates. Pre-step + DAO are Phase 2.
