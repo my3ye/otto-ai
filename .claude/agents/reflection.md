@@ -106,7 +106,53 @@ curl -sf http://localhost:8100/workspace/read?key=reflection_handoff 2>/dev/null
   || echo '{"value": "No prior reflection handoff."}'
 ```
 
+Also load meta_memory (cross-cycle causal state — do not skip):
+
+```bash
+cat ~/otto/meta_memory.json 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+rl = d.get('rl2f_trend', {})
+ae = d.get('autoevolve_state', {})
+print(f'meta_memory: rl2f={rl.get(\"direction\",\"unknown\")} ({rl.get(\"last_7d_accuracy\",0):.2f}), cycles_no_improvement={rl.get(\"cycles_since_improvement\",0)}, ae_gen={ae.get(\"generation\",1)}, ae_experiments={ae.get(\"experiments_this_generation\",0)}')
+" 2>/dev/null || echo "meta_memory: not found (will bootstrap)"
+```
+
 Incorporate these notes into your OBSERVE step. If the orchestrator flagged a pending item or decision, address it.
+
+---
+
+### 0.5. Cycle Classification (ALWAYS RUN — 2 min max)
+
+Read meta-state and classify this cycle to determine step ordering:
+
+```bash
+# Queue state
+curl -sf http://localhost:8100/tasks/queue/status | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Queue: pending={d.get(\"pending\",0)} running={d.get(\"running\",0)}')"
+
+# RL2F accuracy
+curl -sf http://localhost:8100/rl2f/accuracy | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'RL2F: {d.get(\"accuracy\",\"?\")}')" 2>/dev/null || echo "RL2F: unavailable"
+
+# AutoEvolve generation (stuck at 1 = frozen)
+curl -sf http://localhost:8100/autoevolve/generation | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'AE generation: {d.get(\"current_generation\",\"?\")} (experiments: {d.get(\"total_experiments\",0)})')" 2>/dev/null || echo "AE generation: unavailable"
+```
+
+**Classify this cycle:**
+
+```
+CYCLE_TYPE = IDLE      if: queue pending=0 AND rl2f not worsening this cycle
+CYCLE_TYPE = DEGRADED  if: rl2f_trend.direction="declining" AND cycles_since_improvement >= 3
+                           OR autoevolve_state.experiments_this_generation=0 AND generation stuck > 5 cycles
+CYCLE_TYPE = CRITICAL  if: system health failure (disk >90%, memory OOM, timer down)
+CYCLE_TYPE = HEALTHY   otherwise
+```
+
+**Branch based on cycle type:**
+- **IDLE or DEGRADED** → After completing Steps 1–3 (reconcile, MARS, health), **jump to Step 7c (AutoEvolve) BEFORE Steps 4–6.** AutoEvolve must not be skipped when the system has capacity and is stagnating.
+- **CRITICAL** → Focus Steps 1 and 6 only (reconcile + health). Skip AutoEvolve.
+- **HEALTHY** → Standard linear flow through all steps.
+
+Record classification in your Current State: `Cycle type: [IDLE|DEGRADED|HEALTHY|CRITICAL] — reason: [brief]`
 
 ---
 
@@ -1191,6 +1237,53 @@ Replace all bracketed placeholders with actual values. The orchestrator reads th
 curl -s -X POST http://localhost:8100/episodic/events \
   -H 'Content-Type: application/json' \
   -d '{"content": "Reflection: Mission alignment [aligned/corrected]. Reconciled N blockers. Consolidated M memories. Added K procedures. Growth status: [assessment]. Adversarial check: [summary of what survived/was corrected]. Created J tasks.", "event_type": "reflection", "importance": 6}'
+```
+
+### 8b. Update meta_memory.json
+
+Write back cross-cycle causal state atomically (always run — takes <5s):
+
+```bash
+# Get current RL2F accuracy
+RL2F_NOW=$(curl -sf http://localhost:8100/rl2f/accuracy | python3 -c "import sys,json; print(json.load(sys.stdin).get('accuracy', 0.30))" 2>/dev/null || echo "0.30")
+# Get autoevolve generation
+AE_GEN=$(curl -sf http://localhost:8100/autoevolve/generation | python3 -c "import sys,json; print(json.load(sys.stdin).get('current_generation', 1))" 2>/dev/null || echo "1")
+# Get active experiment count
+AE_EXP=$(curl -sf "http://localhost:8100/autoevolve/experiments?status=active&limit=20" | python3 -c "import sys,json; print(len(json.load(sys.stdin)))" 2>/dev/null || echo "0")
+
+python3 -c "
+import json, os, datetime
+
+meta_path = os.path.expanduser('~/otto/meta_memory.json')
+tmp_path = os.path.expanduser('~/otto/.meta_memory.json.tmp')
+
+try:
+    with open(meta_path) as f:
+        m = json.load(f)
+except Exception:
+    m = {'schema_version': 1, 'rl2f_trend': {'historical': []}, 'autoevolve_state': {}, 'causal_hypotheses': [], 'reflection_versions': {'pending_patches': []}}
+
+now = datetime.datetime.utcnow().isoformat() + 'Z'
+rl2f = float('$RL2F_NOW')
+prev = m.get('rl2f_trend', {}).get('last_7d_accuracy', rl2f)
+direction = 'declining' if rl2f < prev - 0.02 else ('improving' if rl2f > prev + 0.02 else 'stable')
+
+m['last_updated'] = now
+m.setdefault('rl2f_trend', {})['last_7d_accuracy'] = rl2f
+m['rl2f_trend']['direction'] = direction
+cycles_since = m['rl2f_trend'].get('cycles_since_improvement', 0)
+m['rl2f_trend']['cycles_since_improvement'] = 0 if direction == 'improving' else cycles_since + 1
+m['rl2f_trend'].setdefault('historical', []).append({'date': now[:10], 'accuracy': rl2f})
+m['rl2f_trend']['historical'] = m['rl2f_trend']['historical'][-30:]
+
+m.setdefault('autoevolve_state', {})['generation'] = int('$AE_GEN')
+m['autoevolve_state']['experiments_this_generation'] = int('$AE_EXP')
+
+with open(tmp_path, 'w') as f:
+    json.dump(m, f, indent=2)
+os.rename(tmp_path, meta_path)
+print(f'meta_memory updated: rl2f={rl2f:.2f} ({direction}), ae_gen=$AE_GEN, ae_exp=$AE_EXP')
+"
 ```
 
 ## What you do NOT do
