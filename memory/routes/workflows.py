@@ -17,14 +17,15 @@ import os
 import re
 import subprocess
 from collections import defaultdict
-from datetime import datetime, timezone
-from typing import Optional, List
+from datetime import datetime, timezone, timedelta
+from typing import Optional, List, Protocol
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
 from ..db import get_pool
+from ..gate_notifier import gate_notifier
 
 log = logging.getLogger("otto.workflows")
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -33,6 +34,31 @@ TASK_RUNNER = "/home/web3relic/otto/task_runner.sh"
 
 
 # ── Pydantic Models ──────────────────────────────────────────────────────
+
+class GateConfig(BaseModel):
+    type: str = "human"                        # human | dao
+    position: str = "post"                     # pre | post
+    timeout_seconds: int = 86400               # 24h default
+    timeout_action: str = "escalate"           # approve | reject | skip | escalate
+    quorum_required: Optional[int] = None
+    approval_threshold: float = 0.5
+    context_fields: List[str] = Field(default_factory=lambda: ["prev_output"])
+    on_rejection: str = "fail_workflow"        # fail_workflow | retry_step | skip_step
+
+
+class GateResolveRequest(BaseModel):
+    action: str                                # approve | reject | skip
+    reason: Optional[str] = None
+    resolved_by: str = "mev"
+
+
+class GateVoteRequest(BaseModel):
+    voter_address: str
+    vote: str                                  # approve | reject | abstain
+    reason: Optional[str] = None
+    signature: Optional[str] = None
+    weight: float = 1.0
+
 
 class StepSpec(BaseModel):
     position: int
@@ -47,6 +73,7 @@ class StepSpec(BaseModel):
     timeout_seconds: int = 900
     on_failure: str = "pause"             # retry_once | pause | skip | fail_workflow
     working_directory: Optional[str] = None
+    gate: Optional[GateConfig] = None     # gate config for this step
 
 
 class TemplateCreate(BaseModel):
@@ -728,18 +755,25 @@ async def handle_step_completion(pool, instance_id: UUID, task_id: UUID, task_st
                 )
                 log.info(f"Workflow {instance_id} step {current}: paused for human approval")
 
-                # Notify Mev
+                # Notify via gate_notifier (WhatsApp + configured webhooks)
                 step_name = step.get("name", f"Step {current}")
-                msg = f"Workflow '{inst['name']}' paused at step: {step_name}\nAwaiting your approval.\nApprove at: POST /workflows/instances/{instance_id}/approve"
-                try:
-                    proc = await asyncio.create_subprocess_exec(
-                        "/home/web3relic/otto/tools/whatsapp_send.sh", msg,
-                        stdout=asyncio.subprocess.DEVNULL,
-                        stderr=asyncio.subprocess.DEVNULL,
+                synthetic_gate = {
+                    "id": str(instance_id),
+                    "gate_type": "human",
+                    "gate_position": "post",
+                    "step_position": current,
+                    "timeout_seconds": 86400,
+                    "timeout_action": "escalate",
+                    "approval_threshold": 0.5,
+                    "status": "pending",
+                }
+                asyncio.create_task(
+                    gate_notifier.gate_pending(
+                        synthetic_gate,
+                        {"id": str(instance_id), "name": inst["name"]},
+                        {"name": step_name},
                     )
-                    await asyncio.wait_for(proc.communicate(), timeout=10)
-                except Exception:
-                    pass
+                )
                 return
 
             # auto or agent_review — advance to next step

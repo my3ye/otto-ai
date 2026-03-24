@@ -113,6 +113,13 @@ class Settings(BaseSettings):
     # ── SOS Systems ────────────────────────────────────────────────────
     sos_enabled: bool = False          # Master feature flag — Phase 0 available now
 
+    # ── Gate Notification System ──────────────────────────────────────
+    gate_whatsapp_enabled: bool = True
+    # Comma-separated list of webhook URLs to POST gate events to
+    gate_webhook_urls: str = ""
+    # Optional bearer token sent as Authorization: Bearer <token> in webhook POSTs
+    gate_webhook_secret: str = ""
+
     # ── Secrets Vault ─────────────────────────────────────────────────
     # Fernet master key — ONLY secret that must stay in .env.
     # Generate with: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
