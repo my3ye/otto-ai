@@ -26,6 +26,19 @@ EMRS designed 2026-03-24 to fix Otto's frozen meta-layer (DGM-H bottleneck diagn
 **Success metrics:** AutoEvolve generation 2+ (from 1), RL2F stabilized (from 30% declining), meta_memory.json accumulating causal hypotheses.
 
 **Full design at:** `~/otto/docs/evolvable-meta-reflection-architecture-2026-03-24.md`
+**Implementation plan at:** `~/otto/docs/emrs-implementation-plan-2026-03-24.md`
 
-**Why:** Root cause is execution order + no causal memory, not missing infrastructure. self_patch.py already exists. The fix is minimal: 5 lines in reflection.md (Step 0.5) + 1 JSON file.
+**Codebase state (verified 2026-03-24):** reflection.md is 1249 lines. Step 7c at line 1093, Step 0 at line 98. Last migration is 074. autoevolve.py has /experiments+/generation+/insights but NO /versions endpoints. meta_memory.json does NOT exist yet.
+
+**Why:** Root cause is execution order + no causal memory, not missing infrastructure. self_patch.py already exists. The fix is minimal: ~40 lines in reflection.md (Step 0.5) + 1 JSON file.
 **How to apply:** Phase 1 is safe to implement autonomously. Phase 2+ should be presented to Mev as a coherent package given it touches live self-modification paths.
+
+**Execution order for impl agent:**
+1. Create ~/otto/meta_memory.json (bootstrap)
+2. Insert Step 0.5 into reflection.md after line 110
+3. Add meta_memory read to reflection Step 0
+4. Add meta_memory write to reflection Step 8/handoff
+5. Run migration 075
+6. Add /versions endpoints to autoevolve.py
+7. Add record_version() to self_patch.py
+8. Add rollback check to reflection Step 6
