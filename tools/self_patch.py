@@ -261,6 +261,63 @@ def apply_patch(patch_path: Path, eval_gate: bool = False) -> None:
     if eval_gate and baseline_score is not None:
         print(f"  Eval gate passed: {baseline_score:.4f} → {patch.get('eval_post', '?'):.4f}")
 
+    # Record version in reflection_versions table for audit + rollback tracking
+    diff_repr = f"-{repr(patch['old_string'][:200])}\n+{repr(patch['new_string'][:200])}"
+    record_version(
+        target_rel=patch["target"],
+        diff=diff_repr,
+        patch_summary=patch.get("reason", "No reason provided"),
+        hypothesis=patch.get("hypothesis"),
+    )
+
+
+def record_version(
+    target_rel: str,
+    diff: str,
+    patch_summary: str,
+    hypothesis: str = None,
+) -> str | None:
+    """Record an applied patch to the reflection_versions table via Memory API.
+    Returns the version UUID on success, None on failure (non-fatal).
+    """
+    try:
+        import hashlib
+        target_path = OTTO_ROOT / target_rel
+        content_hash = hashlib.sha256(target_path.read_bytes()).hexdigest()
+
+        # Determine next version number for this file
+        resp = requests.get(
+            f"{MEMORY_API}/autoevolve/versions",
+            params={"target_file": target_rel, "limit": 1},
+            timeout=5,
+        )
+        existing = resp.json() if resp.ok else []
+        next_version = (existing[0]["version"] + 1) if existing else 1
+
+        payload = {
+            "version": next_version,
+            "target_file": target_rel,
+            "content_hash": content_hash,
+            "diff": diff,
+            "patch_summary": patch_summary,
+            "hypothesis": hypothesis,
+            "source": "self_patch",
+        }
+        r = requests.post(
+            f"{MEMORY_API}/autoevolve/versions",
+            json=payload,
+            timeout=5,
+        )
+        if r.ok:
+            version_id = r.json().get("id")
+            print(f"Recorded version {next_version} for {target_rel} (id={version_id})")
+            return version_id
+        else:
+            print(f"WARNING: Failed to record version: {r.status_code} {r.text}", file=sys.stderr)
+    except Exception as e:
+        print(f"WARNING: record_version failed (non-fatal): {e}", file=sys.stderr)
+    return None
+
 
 def list_pending() -> None:
     """Print all pending patch proposals."""
