@@ -776,6 +776,28 @@ if [ ${#OUTPUT} -gt $MAX_OUTPUT_LEN ]; then
     log "Output truncated to ${MAX_OUTPUT_LEN} chars"
 fi
 
+# ── HiClaw GAP-2: Artifact Path References ─────────────────────────────────
+# When output > 2KB and task succeeded, write full output to a persistent
+# artifact file. Store only a summary + path reference in the DB output field.
+# Prevents DB bloat and context inflation when chaining tasks/workflows.
+ARTIFACT_PATH=""
+ARTIFACT_BYTES=0
+ARTIFACT_THRESHOLD=2048
+if [ ${#OUTPUT} -gt $ARTIFACT_THRESHOLD ] && [ "$EXIT_CODE" -eq 0 ]; then
+    ARTIFACT_DIR="${LOG_DIR}/${TASK_ID}"
+    mkdir -p "$ARTIFACT_DIR"
+    ARTIFACT_PATH="${ARTIFACT_DIR}/output.md"
+    printf '%s' "$OUTPUT" > "$ARTIFACT_PATH"
+    ARTIFACT_BYTES=${#OUTPUT}
+    ARTIFACT_SUMMARY="${OUTPUT:0:500}"
+    OUTPUT="[ARTIFACT: ${ARTIFACT_PATH}]
+
+${ARTIFACT_SUMMARY}
+...[${ARTIFACT_BYTES} bytes total — full output at: ${ARTIFACT_PATH}]"
+    log "GAP-2: artifact written (${ARTIFACT_BYTES} bytes) → ${ARTIFACT_PATH}"
+fi
+# ── End Artifact Path References ────────────────────────────────────────────
+
 # ── NEEDS_MEV_INPUT: Task-level collaboration request ─────────────────────────
 # If the task output contains [NEEDS_MEV_INPUT]...[/NEEDS_MEV_INPUT], extract the
 # question and create a decision proposal so Mev can respond via WhatsApp.
@@ -967,13 +989,18 @@ fi
 # Report result back to API using python3 for safe JSON encoding
 RESULT_JSON=$(python3 -c "
 import json, sys
+meta = json.loads(sys.argv[4])
+artifact_path = sys.argv[5]
+if artifact_path:
+    meta['artifact_path'] = artifact_path
+    meta['artifact_bytes'] = int(sys.argv[6])
 print(json.dumps({
     'output': sys.argv[1] if sys.argv[1] else None,
     'error': sys.argv[2] if sys.argv[2] else None,
     'exit_code': int(sys.argv[3]),
-    'metadata': json.loads(sys.argv[4]),
+    'metadata': meta,
 }))
-" "$OUTPUT" "$STDERR" "$EXIT_CODE" "$META_PAYLOAD")
+" "$OUTPUT" "$STDERR" "$EXIT_CODE" "$META_PAYLOAD" "$ARTIFACT_PATH" "${ARTIFACT_BYTES:-0}")
 
 curl -sf -X POST "${API}/tasks/${TASK_ID}/complete" \
     -H 'Content-Type: application/json' \
