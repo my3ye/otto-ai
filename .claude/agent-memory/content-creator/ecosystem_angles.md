@@ -27,9 +27,12 @@ type: project
 - "The Eye That Sees What Must Be Built" — full ecosystem intro, projects across many verticals, all four story beats (2026-03-19, DB: af414a05)
 - **Decentralized Eye full site reframe** (2026-03-24, DB: f79e2d82) — complete narrative rewrite of my3ye.xyz around the Eye as primary lens. Hero: "Everything is watched. Not everything is seen." New manifesto stanzas: Watchers, Distinction, Three Eyes. Mechanism reframed as how the eye measures contribution. Protocols: "What the Eye Sees Must Be Built." River metaphor preserved, not replaced — the eye sees the river. All five sections covered: hero / manifesto / mechanism / protocols / CTA.
 
+**Covered (2026-03-25):**
+- Honest-accounting intro — "Before the Protocol, the Proof" (eaf5395d). Present-tense reality: what's live, what's in development, what's in design. Ecosystem emergence as founding story + open invitation. Does NOT repeat lake/river central frame or civilization collapse.
+
 **Open angles:**
 - The mechanism: how DPC contribution weighting works across the full ecosystem simultaneously
-- The origin: founder narrative / why MY3YE came to exist
+- The origin: personal founder narrative / why MY3YE came to exist (Mev hasn't provided — must wait)
 - The economics: universal tokenomics deep dive — $0 raised, 60/30/10 split, what that signals
 
 ## Shakrah
