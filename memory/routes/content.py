@@ -562,15 +562,15 @@ async def diff_versions(
     content_id: str,
     v1: int = Query(..., description="First version number"),
     v2: int = Query(..., description="Second version number"),
-    mode: str = Query("word", description="Diff mode: word (default), line, char"),
+    mode: str = Query("word", description="Diff mode: word (default) or line"),
 ):
     """Compare two versions and return field-level diffs.
 
     mode=word (default): word-level inline diff, best for prose articles
     mode=line: legacy line-level unified diff (backward compat)
     """
-    if mode not in ("word", "line", "char"):
-        raise HTTPException(400, "mode must be one of: word, line, char")
+    if mode not in ("word", "line"):
+        raise HTTPException(400, "mode must be one of: word, line")
 
     pool = await get_pool()
     async with pool.acquire() as conn:
