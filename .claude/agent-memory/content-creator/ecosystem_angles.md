@@ -94,6 +94,7 @@ type: project
 
 **Covered:**
 - Nervous system / substrate argument / community-governed marketplace / Otto Band ownership / Panik handoff (inception rewrite 2026-03-19, DB: f8ab84ff)
+- Practitioner angle: corporate wellness extraction vs planned Shakrah marketplace, healer narrative entry (2026-03-25 WF Step 0, DB: efb65920). All claims qualified as planned/in development (status=early).
   - Angle: substrate not optimization, load-bearing infrastructure that looks soft
 
 **Open:**

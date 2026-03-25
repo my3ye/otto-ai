@@ -88,6 +88,14 @@ type: project
 ## SHAKRAH
 ### What the Body Knows Before the Protocol Does (f8ab84ff)
 
+### What the Healer Carries (efb65920)
+- **DB ID**: efb65920-4cb1-48f8-bb88-a435c3f0e8b0
+- **Angle**: Practitioner perspective — corporate wellness extraction vs Shakrah planned practitioner-governed marketplace. Healer narrative entry. Biometric data ownership, community governance, Tusita Sanctuary as physical anchor.
+- **Status**: draft — all claims qualified as planned/in development (status=early, no deployed contract)
+- **Story beat**: The Mission + The Dream
+- **File**: /mnt/media/projects/my3ye-web/content/blog/what-the-healer-carries.mdx
+- **What NOT to repeat**: substrate/nervous system angle (f8ab84ff), builders-must-be-whole civilizational angle (b6b478a5), corporate 30-40% take rate as central argument
+
 ## Web3 / Blockchain Security
 
 ### Trust Is the Attack Surface (d6571c34)
