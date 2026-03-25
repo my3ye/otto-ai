@@ -477,7 +477,7 @@ async def list_versions(content_id: str):
         rows = await conn.fetch(
             """SELECT id, content_id, version, title,
                       LEFT(body, 200) AS body_preview,
-                      status, tags, changed_fields, change_note, changed_by, created_at
+                      status, tags, changed_fields, change_note, changed_by, created_at, label
                FROM content_versions
                WHERE content_id = $1
                ORDER BY version DESC""",
@@ -562,8 +562,16 @@ async def diff_versions(
     content_id: str,
     v1: int = Query(..., description="First version number"),
     v2: int = Query(..., description="Second version number"),
+    mode: str = Query("word", description="Diff mode: word (default), line, char"),
 ):
-    """Compare two versions and return field-level diffs."""
+    """Compare two versions and return field-level diffs.
+
+    mode=word (default): word-level inline diff, best for prose articles
+    mode=line: legacy line-level unified diff (backward compat)
+    """
+    if mode not in ("word", "line", "char"):
+        raise HTTPException(400, "mode must be one of: word, line, char")
+
     pool = await get_pool()
     async with pool.acquire() as conn:
         ver1 = await conn.fetchrow(
@@ -601,43 +609,119 @@ async def diff_versions(
             if old != new:
                 changes[field] = {"old": old, "new": new}
 
-        # Body diff with unified diff
+        # Body diff
         old_body = ver1.get("body") or ""
         new_body = ver2.get("body") or ""
         if old_body != new_body:
-            diff_lines = list(difflib.unified_diff(
-                old_body.splitlines(keepends=True),
-                new_body.splitlines(keepends=True),
-                fromfile=f"v{v1}", tofile=f"v{v2}",
-            ))
-            changes["body"] = {
+            body_change: dict = {
                 "old_length": len(old_body),
                 "new_length": len(new_body),
-                "diff": "".join(diff_lines),
+                # Always include raw bodies so frontend can pass to diff renderer directly
+                "raw_old": old_body,
+                "raw_new": new_body,
             }
 
-        # Tags diff
+            if mode == "line":
+                # Legacy line-level unified diff (backward compat)
+                diff_lines = list(difflib.unified_diff(
+                    old_body.splitlines(keepends=True),
+                    new_body.splitlines(keepends=True),
+                    fromfile=f"v{v1}", tofile=f"v{v2}",
+                ))
+                body_change["diff"] = "".join(diff_lines)
+            else:
+                # Word-level diff: tokenize on whitespace boundaries, track ops
+                old_words = old_body.split()
+                new_words = new_body.split()
+                matcher = difflib.SequenceMatcher(None, old_words, new_words, autojunk=False)
+                word_diff = []
+                for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+                    if tag == "equal":
+                        word_diff.append({"op": "equal", "text": " ".join(old_words[i1:i2])})
+                    elif tag == "replace":
+                        word_diff.append({"op": "delete", "text": " ".join(old_words[i1:i2])})
+                        word_diff.append({"op": "insert", "text": " ".join(new_words[j1:j2])})
+                    elif tag == "delete":
+                        word_diff.append({"op": "delete", "text": " ".join(old_words[i1:i2])})
+                    elif tag == "insert":
+                        word_diff.append({"op": "insert", "text": " ".join(new_words[j1:j2])})
+                body_change["word_diff"] = word_diff
+
+            changes["body"] = body_change
+
+        # Tags diff — include unchanged as well for completeness
         old_tags = list(ver1.get("tags") or [])
         new_tags = list(ver2.get("tags") or [])
-        if old_tags != new_tags:
+        added_tags = [t for t in new_tags if t not in old_tags]
+        removed_tags = [t for t in old_tags if t not in new_tags]
+        unchanged_tags = [t for t in old_tags if t in new_tags]
+        if added_tags or removed_tags:
             changes["tags"] = {
-                "added": [t for t in new_tags if t not in old_tags],
-                "removed": [t for t in old_tags if t not in new_tags],
+                "added": added_tags,
+                "removed": removed_tags,
+                "unchanged": unchanged_tags,
             }
 
-        # Metadata diff
+        # Metadata diff — key-level instead of old/new blob
         old_meta = ver1.get("metadata") or {}
         new_meta = ver2.get("metadata") or {}
+        if isinstance(old_meta, str):
+            old_meta = json.loads(old_meta) if old_meta else {}
+        if isinstance(new_meta, str):
+            new_meta = json.loads(new_meta) if new_meta else {}
         if old_meta != new_meta:
-            changes["metadata"] = {"old": old_meta, "new": new_meta}
+            meta_added = {k: v for k, v in new_meta.items() if k not in old_meta}
+            meta_removed = {k: v for k, v in old_meta.items() if k not in new_meta}
+            meta_changed = {
+                k: {"old": old_meta[k], "new": new_meta[k]}
+                for k in old_meta
+                if k in new_meta and old_meta[k] != new_meta[k]
+            }
+            changes["metadata"] = {
+                "added": meta_added,
+                "removed": meta_removed,
+                "changed": meta_changed,
+            }
 
         return {
             "content_id": content_id,
             "v1": v1,
             "v2": v2,
+            "mode": mode,
             "changes": changes,
             "fields_changed": list(changes.keys()),
         }
+
+
+@router.patch("/{content_id}/versions/{version}/label")
+async def set_version_label(content_id: str, version: int, body: dict):
+    """Set or clear a human-readable label on a version snapshot.
+
+    { "label": "Post-review draft" }   → set label
+    { "label": null }                   → clear label
+    """
+    label = body.get("label")
+    if label is not None:
+        label = str(label).strip()
+        if len(label) > 100:
+            raise HTTPException(400, "Label must be 100 characters or fewer")
+        if len(label) == 0:
+            label = None  # treat empty string as clear
+
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        exists = await conn.fetchval(
+            "SELECT 1 FROM content_versions WHERE content_id = $1 AND version = $2",
+            content_id, version,
+        )
+        if not exists:
+            raise HTTPException(404, f"Version {version} not found")
+
+        await conn.execute(
+            "UPDATE content_versions SET label = $1 WHERE content_id = $2 AND version = $3",
+            label, content_id, version,
+        )
+        return {"ok": True, "version": version, "label": label}
 
 
 # ── Content Links ───────────────────────────────────────────────
