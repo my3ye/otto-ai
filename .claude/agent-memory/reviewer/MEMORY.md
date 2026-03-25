@@ -1,6 +1,8 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_oneon_intro_article.md](project_oneon_intro_article.md) — ONEON "The Line That Cannot Be Cut" intro article (2026-03-25, WF Step 1): NEEDS_CHANGES (7.5/10). Critical: "fourteen projects" stale (registry=18); "early access" at oneon.ink ambiguous. Warnings: Memory Capsule unexplained, chain unspecified, no mesh differentiation. Voice and metaphor strong.
+- [project_continuous_runner.md](project_continuous_runner.md) — Continuous task dispatcher review (2026-03-25): NEEDS_CHANGES. 1 critical: TOCTOU race in /tasks/{id}/run API (SELECT then UPDATE without transaction). 3 warnings: can_run_more flag semantics, stale sentinel, urllib3 log spam. Dispatcher is live and working.
 - [project_emrs_implementation.md](project_emrs_implementation.md) — EMRS Phase 1 review (2026-03-24, WF Step 2): NEEDS_CHANGES. Critical: /rl2f/accuracy → 422 (correct: /rl2f/stats + accuracy_7d). Core Step 0.5 classifier logic correct. Phase 2 (migration 075, /versions, record_version, rollback) not yet implemented.
 - [project_polkadot_entry_review.md](project_polkadot_entry_review.md) — Polkadot ecosystem entry content stack review (2026-03-20): NEEDS_CHANGES (pre-submission). 10 patterns flagged. No blockers but code evidence gap is critical before W3F submission.
 
