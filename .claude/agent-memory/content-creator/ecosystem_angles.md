@@ -25,6 +25,7 @@ type: project
 - Landing page hero + protocol descriptions (rewritten 2026-03-19, 5 commits to Vercel)
 - Landing page copy — full four-section copy (Hero / Vision / Ecosystem / CTA) with all brand lines used verbatim (2026-03-19, DB: b6a0daef-6f82-45fc-b066-b3a78cc53d3f). Three CTA commitment levels: Follow / Manifesto / Pink Paper.
 - "The Eye That Sees What Must Be Built" — full ecosystem intro, projects across many verticals, all four story beats (2026-03-19, DB: af414a05)
+- **Decentralized Eye full site reframe** (2026-03-24, DB: f79e2d82) — complete narrative rewrite of my3ye.xyz around the Eye as primary lens. Hero: "Everything is watched. Not everything is seen." New manifesto stanzas: Watchers, Distinction, Three Eyes. Mechanism reframed as how the eye measures contribution. Protocols: "What the Eye Sees Must Be Built." River metaphor preserved, not replaced — the eye sees the river. All five sections covered: hero / manifesto / mechanism / protocols / CTA.
 
 **Open angles:**
 - The mechanism: how DPC contribution weighting works across the full ecosystem simultaneously
@@ -70,10 +71,14 @@ type: project
 - Landing page copy v3 (2026-03-22, commit 4a576de). Review feedback applied: quantum→VRF-seeded, dead CTAs→real links, every-chain qualified, disclaimer visible, GitHub link, social links, Conviction Multiplier (was Diamond Hands), MY3YE context one-liner.
   - NOTE: The "quantum" language was a credibility failure with builders — always use the actual mechanism name (VRF, commit-reveal, etc.) in technical claims. Never decorate with "quantum" as a buzzword.
 
+**Covered (2026-03-25):**
+- MEV as extraction machine / anti-extraction as architecture — "The Block Is a Battleground" (07e384b3). Koink VRF fair launch cited as real example. Technical: PBS, MEV-Share, SUAVE, intent-based, VRF commit-reveal.
+
 **Open:**
 - Creator journey: who launches on Koink.fun
 - Cross-chain deployment comparison (Solana vs Base vs Polkadot)
 - Community treasury governance mechanics in depth
+- MEV redistribution: how anti-MEV value returns to LPs (sequel to 07e384b3)
 
 ## SHAKRAH
 

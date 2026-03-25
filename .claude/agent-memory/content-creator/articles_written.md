@@ -61,8 +61,26 @@ type: project
 ## SHAKRAH
 ### What the Body Knows Before the Protocol Does (f8ab84ff)
 
+## Web3 / Blockchain Security
+
+### Trust Is the Attack Surface (d6571c34)
+- **DB ID**: d6571c34-44c6-4f0d-b38c-17b7d79ddce0
+- **Angle**: Thought leadership — blockchain security failures are architectural not technical; "keeper problem" is the attack surface; audits document the problem, not solve it; MY3YE design principle = minimal trusted surface area; connects to "machine needs no priest" without repeating that article; references Ronin, Wormhole, Nomad exploits
+- **Story beat**: The Law ("this is not punishment, this is physics")
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/trust-is-the-attack-surface.mdx
+
+## DeFi / Web3 Technical
+
+### The Block Is a Battleground (07e384b3)
+- **Project**: KOINK
+- **Angle**: MEV as the ultimate "lake" system — extraction by proximity not contribution. Three strategies (front-run, sandwich, liquidation). 2026 landscape: PBS, MEV-Share, intent-based, VRF. Koink.fun VRF fair launch as real-world example of encoded anti-extraction.
+- **Story beats**: The Law + The Mission
+- **Status**: draft
+
 ## Angles NOT yet taken
 - Personal founder motivation/story (flagged as missing everywhere)
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
 - Solo founder + AI as a *how-to* or *model* article (partially started in rewrite)
 - Otto AI inception article (7b8062df is a version but may need rewrite)
+- MEV redistribution model: how anti-MEV protocols return value to LPs (extension of The Block Is a Battleground)
