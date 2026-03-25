@@ -129,6 +129,15 @@ type: project
 - **File**: /mnt/media/projects/my3ye-web/content/blog/what-compounds-in-the-silence.mdx
 - **Note**: Avoids MEV mechanics (Block Is a Battleground) and bridge exploit case studies (Trust Is the Attack Surface)
 
+## PiPi
+
+### The Meme Is the Method (fb979e60)
+- **Angle**: PiPi as FUNCTIONAL DESIGN — not mythology or PI framework explainer, but WHY the ecosystem chose a meme character. Culture as engineered trust layer. Meme bypasses skeptic; protocol follows.
+- **Story beat**: The Frame
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/the-meme-is-the-method.mdx
+- **What NOT to repeat**: mythology (Three Lives), PI framework explainer (v2 First Meme), Pepe heritage angle, K-k-koink as primary hook
+
 ## Angles NOT yet taken
 - Personal founder motivation/story (flagged as missing everywhere)
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
