@@ -72,11 +72,35 @@ type: project
 
 ## DeFi / Web3 Technical
 
+### The Currency That Did Not Ask Permission (1e4021b4)
+- **DB ID**: 1e4021b4-5c1e-4b36-b1e8-a606646cc217
+- **Angle**: Narrative/human — Venezuela remittance story, stablecoin as permissionless infrastructure, correspondent banking exclusion as structural failure, DeFi as physics not disruption. Composite illustrative character.
+- **Story beat**: The Mission
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/the-currency-that-did-not-ask-permission.mdx
+
 ### The Block Is a Battleground (07e384b3)
 - **Project**: KOINK
 - **Angle**: MEV as the ultimate "lake" system — extraction by proximity not contribution. Three strategies (front-run, sandwich, liquidation). 2026 landscape: PBS, MEV-Share, intent-based, VRF. Koink.fun VRF fair launch as real-world example of encoded anti-extraction.
 - **Story beats**: The Law + The Mission
 - **Status**: draft
+
+### A Contract That Cannot Lie (de8b2d4b)
+- **DB ID**: de8b2d4b-1794-49b2-bcdd-e210d2b657f6
+- **Angle**: Beginner explainer — contracts depend on enforcers; smart contracts make enforcement automatic and immutable. Extends vending machine analogy. Honest about limitations (bugs = law, need careful authors). No Solidity required to understand.
+- **Story beat**: The Mission
+- **File**: /mnt/media/projects/my3ye-web/content/blog/a-contract-that-cannot-lie.mdx
+- **Status**: draft
+
+## Web3 Trend Analysis
+
+### What Compounds in the Silence (3f91edff)
+- **DB ID**: 3f91edff-d4d4-43be-830a-93d86e6a5373
+- **Angle**: Q1 2026 trend analysis — three structural shifts: intent-based execution as standard (not trend), AI exploit discovery operational (defender asymmetry widens), contribution-weighted governance becoming tractable. Frame: absence of speculation reveals genuine physics.
+- **Story beat**: The Frame — "This is not punishment. This is physics."
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/what-compounds-in-the-silence.mdx
+- **Note**: Avoids MEV mechanics (Block Is a Battleground) and bridge exploit case studies (Trust Is the Attack Surface)
 
 ## Angles NOT yet taken
 - Personal founder motivation/story (flagged as missing everywhere)
@@ -84,3 +108,4 @@ type: project
 - Solo founder + AI as a *how-to* or *model* article (partially started in rewrite)
 - Otto AI inception article (7b8062df is a version but may need rewrite)
 - MEV redistribution model: how anti-MEV protocols return value to LPs (extension of The Block Is a Battleground)
+- Q1 2026 angles remaining: AI+Web3 convergence (deeper), L2 ecosystem maturation, developer credentialing shift

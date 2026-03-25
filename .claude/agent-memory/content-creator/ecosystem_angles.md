@@ -74,6 +74,13 @@ type: project
 **Covered (2026-03-25):**
 - MEV as extraction machine / anti-extraction as architecture — "The Block Is a Battleground" (07e384b3). Koink VRF fair launch cited as real example. Technical: PBS, MEV-Share, SUAVE, intent-based, VRF commit-reveal.
 
+## MY3YE / General Web3 Narrative
+
+**Covered (2026-03-25):**
+- DeFi real-world impact narrative — "The Currency That Did Not Ask Permission" (1e4021b4). Venezuela stablecoin remittance story. Correspondent banking exclusion → USDC as permissionless alternative. Connects to ONEON + SOS Systems mission. Story beat: The Mission.
+
+**Note:** Human/narrative DeFi angle now covered — next DeFi piece should be different: creator economy, yield farming, DAO coordination, or MEV redistribution (the sequel angle noted in Koink open angles).
+
 **Open:**
 - Creator journey: who launches on Koink.fun
 - Cross-chain deployment comparison (Solana vs Base vs Polkadot)
