@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# pre-push hook: owner-aware gh auth switcher
+# Reads .repo-owner from the repo root, switches gh CLI auth to that account,
+# then allows git to proceed with the push.
+#
+# Exit codes:
+#   0 — auth switched (or not needed), push proceeds
+#   1 — .repo-owner missing or gh auth switch failed, push BLOCKED
+
+set -euo pipefail
+
+# Find the repo root
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+if [[ -z "$REPO_ROOT" ]]; then
+  echo "❌ pre-push: Could not determine repo root. Push blocked." >&2
+  exit 1
+fi
+
+OWNER_FILE="$REPO_ROOT/.repo-owner"
+
+# Enforce .repo-owner presence
+if [[ ! -f "$OWNER_FILE" ]]; then
+  echo "" >&2
+  echo "╔══════════════════════════════════════════════════════════════╗" >&2
+  echo "║  ❌  PUSH BLOCKED — .repo-owner file missing                ║" >&2
+  echo "╠══════════════════════════════════════════════════════════════╣" >&2
+  echo "║                                                              ║" >&2
+  echo "║  Every repo must declare its GitHub owner so the correct    ║" >&2
+  echo "║  account is used for pushes.                                ║" >&2
+  echo "║                                                              ║" >&2
+  echo "║  Fix:  echo '<github-username>' > .repo-owner               ║" >&2
+  echo "║        git add .repo-owner && git commit -m 'add repo owner'║" >&2
+  echo "║                                                              ║" >&2
+  echo "║  Valid owners: ottomev | PipiAgent | my3ye                  ║" >&2
+  echo "╚══════════════════════════════════════════════════════════════╝" >&2
+  echo "" >&2
+  exit 1
+fi
+
+# Read and trim the owner
+OWNER="$(cat "$OWNER_FILE" | tr -d '[:space:]')"
+
+if [[ -z "$OWNER" ]]; then
+  echo "❌ pre-push: .repo-owner is empty. Push blocked." >&2
+  echo "   Fix: echo '<github-username>' > .repo-owner" >&2
+  exit 1
+fi
+
+# Get currently active gh account
+CURRENT_USER="$(gh auth status 2>/dev/null | grep 'Logged in to github.com account' | awk '{print $NF}' | tr -d '[:space:]')"
+# Alternative parse for newer gh versions
+if [[ -z "$CURRENT_USER" ]]; then
+  CURRENT_USER="$(gh api user --jq '.login' 2>/dev/null | tr -d '[:space:]')"
+fi
+
+if [[ "$CURRENT_USER" == "$OWNER" ]]; then
+  echo "✅ pre-push: gh auth already active as '$OWNER' — push proceeds." >&2
+  exit 0
+fi
+
+echo "🔄 pre-push: Switching gh auth from '$CURRENT_USER' → '$OWNER' ..." >&2
+
+if ! gh auth switch --user "$OWNER" 2>&1 | tee /dev/stderr; then
+  echo "" >&2
+  echo "╔══════════════════════════════════════════════════════════════╗" >&2
+  echo "║  ❌  PUSH BLOCKED — gh auth switch failed                   ║" >&2
+  echo "╠══════════════════════════════════════════════════════════════╣" >&2
+  echo "║                                                              ║" >&2
+  echo "║  Could not switch to GitHub account: $OWNER" >&2
+  echo "║                                                              ║" >&2
+  echo "║  Fix:  gh auth login --hostname github.com                  ║" >&2
+  echo "║        (log in as '$OWNER' and re-run push)                 ║" >&2
+  echo "╚══════════════════════════════════════════════════════════════╝" >&2
+  echo "" >&2
+  exit 1
+fi
+
+echo "✅ pre-push: gh auth switched to '$OWNER' — push proceeds." >&2
+exit 0
