@@ -146,6 +146,15 @@ type: project
 - **File**: /mnt/media/projects/my3ye-web/content/blog/the-meme-is-the-method.mdx
 - **What NOT to repeat**: mythology (Three Lives), PI framework explainer (v2 First Meme), Pepe heritage angle, K-k-koink as primary hook
 
+## Otto Music
+
+### What the Algorithm Cannot Hear (edcf8095)
+- **Angle**: Discovery algorithm failure + four fronts (Manager/Player/Studio/Events/Festivals) + listener early-believer model + cultural layer (Tusita). PRE-WRITE CONSTRAINT applied — status=concept.
+- **Story beat**: The Frame ("This is not punishment. This is physics.")
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/what-the-algorithm-cannot-hear.mdx
+- **Existing article NOT repeated**: 8d15bb5a covers label extraction/royalties/AI tools — this covers discovery + four fronts structure
+
 ## Angles NOT yet taken
 - Personal founder motivation/story (flagged as missing everywhere)
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)

@@ -135,7 +135,7 @@ type: project
 
 - Otto AI — decentralized intelligence
 - Panik App — inception article written (DB: d6132803). Open: guardian model, mesh tech, Shakrah handoff, conflict zone narrative.
-- Otto Music — decentralized music / artists + royalties
+- Otto Music — "What the Algorithm Cannot Hear" (edcf8095, 2026-03-25): four fronts structure (Manager/Player/Studio/Events) + discovery algorithm problem + listener early-believer model. ALSO: existing article 8d15bb5a covers label extraction + royalties + AI tools. Open: events/festivals deep dive, artist residency story, cross-ecosystem audio integration.
 - Otto Travel — community-governed travel
 - PiPi — mascot / emotional bridge to mission. PiPi×Polkadot article written (bc1746f7). Open: Solana launch narrative.
 
