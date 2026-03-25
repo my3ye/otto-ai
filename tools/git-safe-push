@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# git-safe-push — owner-aware git push wrapper
+#
+# Reads .repo-owner from the repo root, switches gh auth to the correct account,
+# then runs git push with the given arguments.
+#
+# Use this instead of bare 'git push' to get clean exit codes and correct auth.
+#
+# Usage (same as git push):
+#   git-safe-push                     # push current branch to its upstream
+#   git-safe-push origin main         # push specific branch
+#   git-safe-push --force             # force push
+#   git-safe-push --set-upstream origin HEAD  # set upstream
+#
+# Git alias setup (already configured):
+#   git config --global alias.spush '!~/otto/tools/git-safe-push'
+#   Then: git spush [args...]
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+OWNER_FILE="$REPO_ROOT/.repo-owner"
+
+if [[ ! -f "$OWNER_FILE" ]]; then
+  echo "" >&2
+  echo "╔══════════════════════════════════════════════════════════════╗" >&2
+  echo "║  ❌  git-safe-push: .repo-owner file missing                ║" >&2
+  echo "╠══════════════════════════════════════════════════════════════╣" >&2
+  echo "║  Fix: echo '<github-username>' > .repo-owner                ║" >&2
+  echo "║       git add .repo-owner && git commit -m 'add repo owner' ║" >&2
+  echo "╚══════════════════════════════════════════════════════════════╝" >&2
+  exit 1
+fi
+
+OWNER="$(cat "$OWNER_FILE" | tr -d '[:space:]')"
+if [[ -z "$OWNER" ]]; then
+  echo "❌ git-safe-push: .repo-owner is empty. Aborting." >&2
+  exit 1
+fi
+
+CURRENT_USER="$(gh api user --jq '.login' 2>/dev/null | tr -d '[:space:]' || echo "")"
+
+if [[ "$CURRENT_USER" != "$OWNER" ]]; then
+  echo "🔄 git-safe-push: switching gh auth: $CURRENT_USER → $OWNER" >&2
+  if ! gh auth switch --user "$OWNER" 2>&1 | grep -E "Switched|error" >&2; then
+    echo "❌ git-safe-push: gh auth switch to '$OWNER' failed." >&2
+    exit 1
+  fi
+fi
+
+echo "🚀 git-safe-push: pushing as '$OWNER'..." >&2
+
+# Run git push with hook disabled (hook would re-enter wrapper logic)
+GH_PUSH_OWNER_ACTIVE=1 git push --no-verify "$@"
+STATUS=$?
+
+if [[ $STATUS -eq 0 ]]; then
+  echo "✅ git-safe-push: push succeeded as '$OWNER'." >&2
+else
+  echo "❌ git-safe-push: push failed (exit $STATUS)." >&2
+fi
+
+exit $STATUS

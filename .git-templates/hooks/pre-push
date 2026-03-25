@@ -1,13 +1,26 @@
 #!/usr/bin/env bash
 # pre-push hook: owner-aware gh auth switcher
-# Reads .repo-owner from the repo root, switches gh CLI auth to that account,
-# then allows git to proceed with the push.
 #
-# Exit codes:
-#   0 — auth switched (or not needed), push proceeds
-#   1 — .repo-owner missing or gh auth switch failed, push BLOCKED
+# BEHAVIOR:
+#   1. Blocks pushes when .repo-owner is missing (hard enforcement)
+#   2. If current gh auth matches .repo-owner → exit 0, push proceeds normally
+#   3. If current gh auth doesn't match → switch auth, re-run push with --no-verify,
+#      exit 1 to abort the original (which had wrong-account credentials)
+#
+# EXIT CODES:
+#   0 — auth was already correct, push proceeds
+#   1 — auth mismatch: re-attempted with correct account (or hard block)
+#
+# NOTE: When exit 1 with re-attempt, the push DID succeed (via re-attempt).
+#       The original git push command exits non-zero but the content is pushed.
+#       Use tools/git-safe-push instead of bare 'git push' for clean exit codes.
 
 set -euo pipefail
+
+# Guard: skip hook logic if we're inside a re-attempted push
+if [[ "${GH_PUSH_OWNER_ACTIVE:-}" == "1" ]]; then
+  exit 0
+fi
 
 # Find the repo root
 REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
@@ -17,8 +30,10 @@ if [[ -z "$REPO_ROOT" ]]; then
 fi
 
 OWNER_FILE="$REPO_ROOT/.repo-owner"
+REMOTE_NAME="${1:-origin}"
+REMOTE_URL="${2:-}"
 
-# Enforce .repo-owner presence
+# ── Hard block: .repo-owner missing ──────────────────────────────────────────
 if [[ ! -f "$OWNER_FILE" ]]; then
   echo "" >&2
   echo "╔══════════════════════════════════════════════════════════════╗" >&2
@@ -46,34 +61,42 @@ if [[ -z "$OWNER" ]]; then
   exit 1
 fi
 
-# Get currently active gh account
-CURRENT_USER="$(gh auth status 2>/dev/null | grep 'Logged in to github.com account' | awk '{print $NF}' | tr -d '[:space:]')"
-# Alternative parse for newer gh versions
-if [[ -z "$CURRENT_USER" ]]; then
-  CURRENT_USER="$(gh api user --jq '.login' 2>/dev/null | tr -d '[:space:]')"
-fi
+# ── Check current active gh account ──────────────────────────────────────────
+CURRENT_USER="$(gh api user --jq '.login' 2>/dev/null | tr -d '[:space:]' || echo "")"
 
 if [[ "$CURRENT_USER" == "$OWNER" ]]; then
-  echo "✅ pre-push: gh auth already active as '$OWNER' — push proceeds." >&2
+  echo "✅ pre-push: gh auth is '$OWNER' — correct for this repo." >&2
   exit 0
 fi
 
-echo "🔄 pre-push: Switching gh auth from '$CURRENT_USER' → '$OWNER' ..." >&2
+# ── Auth mismatch: switch and re-attempt ──────────────────────────────────────
+echo "" >&2
+echo "⚠️  pre-push: gh auth mismatch — active='$CURRENT_USER', required='$OWNER'" >&2
+echo "🔄 pre-push: switching auth to '$OWNER'..." >&2
 
-if ! gh auth switch --user "$OWNER" 2>&1 | tee /dev/stderr; then
-  echo "" >&2
-  echo "╔══════════════════════════════════════════════════════════════╗" >&2
-  echo "║  ❌  PUSH BLOCKED — gh auth switch failed                   ║" >&2
-  echo "╠══════════════════════════════════════════════════════════════╣" >&2
-  echo "║                                                              ║" >&2
-  echo "║  Could not switch to GitHub account: $OWNER" >&2
-  echo "║                                                              ║" >&2
-  echo "║  Fix:  gh auth login --hostname github.com                  ║" >&2
-  echo "║        (log in as '$OWNER' and re-run push)                 ║" >&2
-  echo "╚══════════════════════════════════════════════════════════════╝" >&2
-  echo "" >&2
+if ! gh auth switch --user "$OWNER" 2>&1 | grep -E "Switched|error|Error" >&2; then
+  echo "❌ pre-push: gh auth switch to '$OWNER' failed." >&2
+  echo "   Ensure '$OWNER' is logged in: gh auth login" >&2
   exit 1
 fi
 
-echo "✅ pre-push: gh auth switched to '$OWNER' — push proceeds." >&2
-exit 0
+echo "✅ pre-push: switched to '$OWNER'. Re-attempting push..." >&2
+
+# Drain stdin (git passed us refspecs — we consume them so the re-attempt uses defaults)
+# shellcheck disable=SC2162
+while read line; do :; done
+
+# Re-run push with correct auth. --no-verify skips hooks on re-attempt.
+GH_PUSH_OWNER_ACTIVE=1 git push --no-verify "$REMOTE_NAME" 2>&1
+PUSH_STATUS=$?
+
+if [[ $PUSH_STATUS -eq 0 ]]; then
+  echo "✅ pre-push: push to '$REMOTE_NAME' succeeded as '$OWNER'." >&2
+else
+  echo "❌ pre-push: push to '$REMOTE_NAME' failed (exit $PUSH_STATUS) even as '$OWNER'." >&2
+fi
+
+# Exit 1 to abort the original push (re-attempt already pushed the content).
+# NOTE: 'git push' will exit non-zero here, but the push DID succeed.
+# Use tools/git-safe-push for clean exit codes.
+exit 1
