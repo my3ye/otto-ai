@@ -18,6 +18,13 @@ type: project
 
 ## MY3YE Ecosystem
 
+### Before the Protocol, the Proof (eaf5395d)
+- **Angle**: Honest accounting — what exists NOW (Otto operational, WebAssist live, inception articles published) vs what is in development (ONEON, Tusita, SOS Systems, Shakrah, Panik — early) vs what is in design (Koink, Ottolabs, Music/Travel/Market/Properties — concept). Ecosystem emergence as founding story + invitation.
+- **Story beats**: Mission + Dream
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/before-the-protocol-the-proof.mdx
+- **Does NOT repeat**: lake/river as central frame, civilization collapse angle, Decentralized Eye reframe
+
 ### What We Are Building (474227ce)
 - **Angle**: Full ecosystem founding vision — lake/extractive vs river/contributive, 10 protocols overview
 - **Status**: published
@@ -51,12 +58,32 @@ type: project
 ### Intelligence That Works for You (7b8062df)
 - **Angle**: AI as servant not master
 
+### The Machine Is Already Running (bfe5167e)
+- **Angle**: Compounding memory — corporate AI forgets by design, Otto compounds. Evidence not pitch. Phase 1 live (single VM, AgentOS, dual heartbeat). Phase 3/4 in development/planned.
+- **Story beat**: The Mission
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/the-machine-is-already-running.mdx
+
 ## KOINK
 ### Chaos With Structure. Chaos That Compounds. (9c46d865)
 ### The Meme Has Always Been a Mirror (e451f538)
 
 ## OTTOLABS
 ### The Workshop Is the Revolution (5892656b)
+- **Angle**: Physical manufacturing/R&D arm — digital sovereignty without physical infrastructure is performance
+- **Status**: draft (published: true in MDX)
+
+### The Means of Production Belong to the Many (15982c81)
+- **Angle**: Comprehensive physical stack — device ecosystem, robotics, energy, manufacturing
+- **Status**: draft
+
+### First the Intelligence, Then the Iron (7f9681d0)
+- **DB ID**: 7f9681d0-8e7f-4a19-a17d-6b24646ec994
+- **Angle**: AI services commercial engine — WebAssist (live), Tech Assist, App Assist, Brand Assist; intelligence → revenue → hardware sequencing; Otto as first proof of Ottolabs
+- **Story beat**: The Mission + The Frame
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/first-the-intelligence-then-the-iron.mdx
+- **What NOT to repeat**: services-fund-hardware sequencing, "revenue is the mechanism" framing
 
 ## SHAKRAH
 ### What the Body Knows Before the Protocol Does (f8ab84ff)
