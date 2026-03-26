@@ -227,6 +227,24 @@ Goal: limit real persons to max 3 wallets
 - World ID nullifier pooled cap: same person's wallets share one cap bucket (strongest anti-whale)
 - Wallet age gate (<30 days = reject): easiest single filter. Scoring: age > tx count > clustering > cross-chain > ENS > POAP
 
+## Grant Landscape Research (2026-03-26) — CURRENT
+
+Report: ~/otto/projects/capital/grants_landscape_2026_march.md
+DB Note ID: e05ac964 | Memory IDs: cf303b3c, 41b06654
+
+- **[STALE — UPDATE]** All prior W3F Level 1/2 grant memories are STALE. W3F general grants DISCONTINUED Oct 2025. Only path now: Polkadot OpenGov Treasury (Polkassembly).
+- **[P1 NOW]** ENS Public Goods Builder Grants ($12K-$50K, rolling, OPEN) — ONEON identity is natural fit. Apply: builder.ensgrants.xyz
+- **[P2 NOW]** Solana Foundation grants (~$30-50K, rolling, OPEN) — Koink.fun + Otto AI. Apply: solana.org/grants-funding
+- **[P3 UPCOMING]** Gitcoin GG25 — Q2 2026 (May), AI agents domain. Register at builder.gitcoin.co NOW before round opens.
+- **[P4 NOW]** Deep Funding (SingularityNET) — up to $100K, open-source AI. Apply: deepfunding.ai
+- **[P5 ROLLING]** EF ESP Wishlist/RFP model (OPEN) — requires Ethereum framing. esp.ethereum.foundation/applicants
+- **[CLOSED]** Arbitrum Trailblazer 1.0 and 2.0 — BOTH COMPLETED. No AI-specific successor.
+- **[CHANGED]** Optimism RPGF → now continuous missions via OP Atlas. Register: atlas.optimism.io
+- **[MISSED]** Base Batches Startup Track — deadline was March 9, 2026. Next window: 2027 or retroactive grants.
+- **[OPEN]** Starknet Seed ($25K) and Growth ($1M) grants — but requires Starknet-native work (low priority).
+- **[OPEN]** ASI:Accelerator (Fetch.ai/CUDOS) — compute credits + mentorship for AI agent projects.
+- **[OPEN]** NEAR AI Agent Fund ($20M) — requires NEAR deployment. near.org/funding
+
 ## OMNIFLOW Research (2026-03-23) — arXiv 2603.15797
 
 DB Note ID: d6f032cc | Memory IDs: ed747a84 (PG-CoT), faa39d49 (frozen LLM), 6f2d63b6 (SSA)
