@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+# pre-commit hook: enforce correct committer identity
+#
+# BEHAVIOR:
+#   1. Reads .repo-owner from the repo root
+#   2. Maps the owner to the expected git user.name and user.email
+#   3. Auto-corrects local git config if identity is wrong (never blocks)
+#   4. If .repo-owner is missing → warns but allows commit (third-party repos)
+#   5. If owner is unknown → hard block with clear error
+#
+# Account → Identity mapping:
+#   ottomev   → name=ottomev,    email=abraottomev@gmail.com
+#   PipiAgent → name=PipiAgent,  email=web3otto@gmail.com
+#   my3ye     → name=my3ye,      email=my3ye.otto@gmail.com
+#
+# This hook is installed in ~/otto/.git-templates/hooks/ and symlinked/copied
+# into every repo. Run install-commit-enforcer.sh to update existing repos.
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"
+OWNER_FILE="$REPO_ROOT/.repo-owner"
+
+# ── No .repo-owner: warn and skip ─────────────────────────────────────────────
+if [[ ! -f "$OWNER_FILE" ]]; then
+  echo "⚠️  pre-commit: No .repo-owner file in this repo. Skipping identity enforcement." >&2
+  echo "   To enable: echo '<github-username>' > .repo-owner" >&2
+  echo "   Valid owners: ottomev | PipiAgent | my3ye" >&2
+  exit 0
+fi
+
+OWNER="$(tr -d '[:space:]' < "$OWNER_FILE")"
+
+if [[ -z "$OWNER" ]]; then
+  echo "⚠️  pre-commit: .repo-owner is empty. Skipping identity enforcement." >&2
+  exit 0
+fi
+
+# ── Map owner → expected git identity ─────────────────────────────────────────
+case "$OWNER" in
+  ottomev)
+    EXPECTED_NAME="ottomev"
+    EXPECTED_EMAIL="abraottomev@gmail.com"
+    ;;
+  PipiAgent)
+    EXPECTED_NAME="PipiAgent"
+    EXPECTED_EMAIL="web3otto@gmail.com"
+    ;;
+  my3ye)
+    EXPECTED_NAME="my3ye"
+    EXPECTED_EMAIL="my3ye.otto@gmail.com"
+    ;;
+  *)
+    echo "" >&2
+    echo "╔══════════════════════════════════════════════════════════════╗" >&2
+    echo "║  ❌  COMMIT BLOCKED — unknown owner in .repo-owner          ║" >&2
+    echo "╠══════════════════════════════════════════════════════════════╣" >&2
+    echo "║  Owner: '$OWNER'                                            ║" >&2
+    echo "║  Valid: ottomev | PipiAgent | my3ye                        ║" >&2
+    echo "║  Fix:   echo 'ottomev' > .repo-owner                       ║" >&2
+    echo "╚══════════════════════════════════════════════════════════════╝" >&2
+    echo "" >&2
+    exit 1
+    ;;
+esac
+
+# ── Get current committer identity (resolved: local → global → system) ────────
+CURRENT_NAME="$(git config user.name 2>/dev/null || echo "")"
+CURRENT_EMAIL="$(git config user.email 2>/dev/null || echo "")"
+
+# ── Check and auto-correct ─────────────────────────────────────────────────────
+CORRECTED=0
+
+if [[ "$CURRENT_NAME" != "$EXPECTED_NAME" ]]; then
+  echo "🔧 pre-commit: Correcting user.name: '${CURRENT_NAME:-<unset>}' → '$EXPECTED_NAME'" >&2
+  git config --local user.name "$EXPECTED_NAME"
+  CORRECTED=1
+fi
+
+if [[ "$CURRENT_EMAIL" != "$EXPECTED_EMAIL" ]]; then
+  echo "🔧 pre-commit: Correcting user.email: '${CURRENT_EMAIL:-<unset>}' → '$EXPECTED_EMAIL'" >&2
+  git config --local user.email "$EXPECTED_EMAIL"
+  CORRECTED=1
+fi
+
+if [[ $CORRECTED -eq 1 ]]; then
+  echo "✅ pre-commit: Identity corrected — commit will be authored as $EXPECTED_NAME <$EXPECTED_EMAIL>" >&2
+else
+  echo "✅ pre-commit: Committer identity OK ($EXPECTED_NAME <$EXPECTED_EMAIL>)" >&2
+fi
+
+exit 0
