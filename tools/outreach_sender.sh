@@ -10,7 +10,7 @@
 
 set -euo pipefail
 
-WHATSAPP_URL="http://localhost:3001"
+WHATSAPP_URL="http://localhost:3002"  # Athena's WebAssist WhatsApp (not Otto's Ottolabs 3001)
 ADMIN_JID="94743806705@s.whatsapp.net"
 DB_CONTAINER="memory-postgres-1"
 DB_USER="otto"

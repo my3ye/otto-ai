@@ -3,10 +3,17 @@ Outreach Queue API routes — manage AI-generated outreach messages for Web Assi
 Mev reviews and approves messages before they're sent.
 """
 
+import logging
+import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from ..db import get_pool
+
+log = logging.getLogger("otto.routes.outreach")
+
+# Athena's WebAssist WhatsApp service (port 3002)
+ATHENA_WHATSAPP_URL = "http://localhost:3002"
 
 router = APIRouter(prefix="/outreach", tags=["outreach"])
 
@@ -125,7 +132,7 @@ async def approve_message(message_id: str, body: ApprovalBody):
 
 @router.post("/queue/{message_id}/mark-sent")
 async def mark_sent(message_id: str):
-    """Mark an approved message as sent."""
+    """Mark an approved message as sent (DB only — no actual WhatsApp call)."""
     pool = await get_pool()
     result = await pool.execute("""
         UPDATE outreach_queue
@@ -135,6 +142,130 @@ async def mark_sent(message_id: str):
     if result == "UPDATE 0":
         raise HTTPException(status_code=404, detail="Message not found or not in approved state")
     return {"ok": True, "id": message_id, "status": "sent"}
+
+
+@router.post("/queue/{message_id}/send")
+async def send_message(message_id: str):
+    """Send a single approved message via Athena's WhatsApp (port 3002)."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        "SELECT id, phone, message_body, status FROM outreach_queue WHERE id = $1",
+        message_id,
+    )
+    if not row:
+        raise HTTPException(status_code=404, detail="Message not found")
+    if row["status"] not in ("approved", "failed"):
+        raise HTTPException(status_code=400, detail=f"Message is '{row['status']}' — only approved/failed can be sent")
+    if not row["phone"]:
+        raise HTTPException(status_code=400, detail="No phone number on this message")
+
+    # Format JID
+    clean_phone = row["phone"].replace("+", "").replace(" ", "").replace("-", "")
+    jid = f"{clean_phone}@s.whatsapp.net"
+
+    # Send via Athena (port 3002 — WebAssist line, not Otto's 3001)
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as http:
+            resp = await http.post(
+                f"{ATHENA_WHATSAPP_URL}/send",
+                json={"jid": jid, "message": row["message_body"]},
+            )
+            if resp.status_code != 200:
+                # Mark as failed
+                await pool.execute(
+                    "UPDATE outreach_queue SET status = 'failed' WHERE id = $1",
+                    message_id,
+                )
+                raise HTTPException(
+                    status_code=502,
+                    detail=f"Athena WhatsApp returned {resp.status_code}: {resp.text[:200]}",
+                )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await pool.execute(
+            "UPDATE outreach_queue SET status = 'failed' WHERE id = $1",
+            message_id,
+        )
+        raise HTTPException(status_code=503, detail=f"Athena WhatsApp unreachable: {e}")
+
+    # Mark as sent
+    await pool.execute(
+        "UPDATE outreach_queue SET status = 'sent', sent_at = NOW() WHERE id = $1",
+        message_id,
+    )
+    # Update lead status
+    await pool.execute(
+        """UPDATE web_assist_leads SET outreach_status = 'contacted', outreach_at = NOW()
+           WHERE id = (SELECT lead_id FROM outreach_queue WHERE id = $1)""",
+        message_id,
+    )
+    log.info(f"Outreach sent via Athena: msg={message_id} jid={jid}")
+    return {"ok": True, "id": message_id, "status": "sent", "jid": jid}
+
+
+@router.post("/queue/send-approved")
+async def send_all_approved(limit: int = 50):
+    """Send all approved outreach messages via Athena's WhatsApp (port 3002).
+    Returns summary of sent/failed counts.
+    """
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """SELECT id, phone, message_body FROM outreach_queue
+           WHERE status = 'approved' AND phone IS NOT NULL
+           ORDER BY lead_score DESC NULLS LAST
+           LIMIT $1""",
+        limit,
+    )
+    if not rows:
+        return {"ok": True, "sent": 0, "failed": 0, "detail": "No approved messages to send"}
+
+    sent_ids = []
+    failed_ids = []
+
+    async with httpx.AsyncClient(timeout=15.0) as http:
+        for row in rows:
+            clean_phone = row["phone"].replace("+", "").replace(" ", "").replace("-", "")
+            jid = f"{clean_phone}@s.whatsapp.net"
+            try:
+                resp = await http.post(
+                    f"{ATHENA_WHATSAPP_URL}/send",
+                    json={"jid": jid, "message": row["message_body"]},
+                )
+                if resp.status_code == 200:
+                    await pool.execute(
+                        "UPDATE outreach_queue SET status = 'sent', sent_at = NOW() WHERE id = $1",
+                        row["id"],
+                    )
+                    await pool.execute(
+                        """UPDATE web_assist_leads SET outreach_status = 'contacted', outreach_at = NOW()
+                           WHERE id = (SELECT lead_id FROM outreach_queue WHERE id = $1)""",
+                        row["id"],
+                    )
+                    sent_ids.append(str(row["id"]))
+                    log.info(f"Outreach sent: msg={row['id']} jid={jid}")
+                else:
+                    await pool.execute(
+                        "UPDATE outreach_queue SET status = 'failed' WHERE id = $1",
+                        row["id"],
+                    )
+                    failed_ids.append(str(row["id"]))
+                    log.warning(f"Outreach send failed: msg={row['id']} status={resp.status_code}")
+            except Exception as e:
+                await pool.execute(
+                    "UPDATE outreach_queue SET status = 'failed' WHERE id = $1",
+                    row["id"],
+                )
+                failed_ids.append(str(row["id"]))
+                log.error(f"Outreach send error: msg={row['id']} error={e}")
+
+    return {
+        "ok": True,
+        "sent": len(sent_ids),
+        "failed": len(failed_ids),
+        "sent_ids": sent_ids,
+        "failed_ids": failed_ids,
+    }
 
 
 @router.get("/dashboard", response_class=HTMLResponse)

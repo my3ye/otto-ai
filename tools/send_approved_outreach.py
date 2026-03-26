@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 DB_CONTAINER = "memory-postgres-1"
 DB_USER = "otto"
 DB_NAME = "memory"
-WHATSAPP_URL = "http://localhost:3001"
+WHATSAPP_URL = "http://localhost:3002"  # Athena's WebAssist WhatsApp (not Otto's Ottolabs 3001)
 DELAY_SECONDS = 5  # between messages (reduced for task execution)
 
 LOG_FORMAT = "%(asctime)s [outreach_sender] %(levelname)s: %(message)s"
