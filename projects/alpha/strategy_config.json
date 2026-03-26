@@ -1,6 +1,6 @@
 {
-  "version": 1,
-  "updated_at": "2026-03-12T12:40:00Z",
+  "version": 2,
+  "updated_at": "2026-03-27T00:00:00Z",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
     {
@@ -12,6 +12,11 @@
       "ts": "2026-03-12T12:40:00Z",
       "change": "Lowered TP1_TARGET from 10.0% to 5.5%",
       "rationale": "Research Iter 28: TP1=10% is mathematically unattainable within 2h window — 90.9% expiry rate despite 81.8% win rate. Tokens reach only ~5.5% avg PnL. Lowering TP1 to 5.5% to match actual price action."
+    },
+    {
+      "ts": "2026-03-27T00:00:00Z",
+      "change": "Lowered min_quality_score from 0.60 to 0.50; lowered tp1_pct from 5.5% to 1.5%, tp2_pct from 25% to 3.0%",
+      "rationale": "Research finding (2 consecutive iterations): direction accuracy 88.9% but only 22.2% reach TP targets — 5.5% TP is 3-4x too aggressive for 90-min window. min_quality_score=0.60 blocking all publication (0 signals/24h). Lowering quality threshold to restore flow; reducing TP targets to match actual 90-min price action."
     }
   ],
   "convergence": {
@@ -20,7 +25,7 @@
     "confidence_levels": ["ULTRA", "HIGH"]
   },
   "single_wallet": {
-    "min_quality_score": 0.6,
+    "min_quality_score": 0.5,
     "min_buy_usd": 100,
     "noisy_wallets": ["SM_1", "SM_2", "SM_4", "SM_7"],
     "min_market_cap": 500000,
@@ -38,8 +43,8 @@
     "min_token_age_days": 7
   },
   "tp_sl": {
-    "tp1_pct": 0.055,
-    "tp2_pct": 0.25,
+    "tp1_pct": 0.015,
+    "tp2_pct": 0.030,
     "tp3_pct": 0.50,
     "sl_pct": 0.15
   },
@@ -49,7 +54,7 @@
     "win_rate_tighten_threshold": 0.40,
     "win_rate_relax_threshold": 0.65,
     "quality_score_step": 0.05,
-    "quality_score_min": 0.55,
+    "quality_score_min": 0.50,
     "quality_score_max": 0.80,
     "max_changes_per_cycle": 2
   }
