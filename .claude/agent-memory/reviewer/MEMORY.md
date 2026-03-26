@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_panik_launch_review.md](project_panik_launch_review.md) — Panik App launch sign-off review (2026-03-26): NO-GO. Critical: no deployable GitHub remote (ottomev archived, PipiAgent repo doesn't exist); zero SEO meta tags in index.html. Waitlist modal + API fully functional.
 - [project_koink_landing_audit.md](project_koink_landing_audit.md) — Koink.fun landing page full audit (2026-03-26): NEEDS_CHANGES. Critical: "quantum" in H1, weak CTA (X.com only, no email capture), #trojan UX gap, no countdown/urgency. Warnings: anti-whale framing needs update, no og:image, sell taxes undefined.
 - [project_koink_article_step1_review.md](project_koink_article_step1_review.md) — Koink.Fun "What the Creator Keeps" intro article (2026-03-25, WF Step 1): MINOR_CHANGES (8.0/10). Critical: VRF claim needs sourcing/softening; "The Koink" unexplained in CTA. Warnings: anti-whale Sybil gap, "sell taxes" undefined, ecosystem-internal frequency reference. Best Koink article so far — no false live claims.
 - [project_oneon_intro_article.md](project_oneon_intro_article.md) — ONEON "The Line That Cannot Be Cut" intro article (2026-03-25, WF Step 1): NEEDS_CHANGES (7.5/10). Critical: "fourteen projects" stale (registry=18); "early access" at oneon.ink ambiguous. Warnings: Memory Capsule unexplained, chain unspecified, no mesh differentiation. Voice and metaphor strong.
