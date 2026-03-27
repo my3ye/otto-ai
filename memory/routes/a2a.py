@@ -5,6 +5,7 @@ Agents in plans/workflows can send messages to peers, share artifacts,
 ask questions, and receive completion signals via channel-scoped messaging.
 """
 
+import json
 import logging
 from datetime import datetime, timezone
 from typing import Optional
@@ -30,7 +31,7 @@ class A2ASend(BaseModel):
     sender_agent_type: Optional[str] = None
     recipient_id: Optional[str] = None  # None = broadcast to channel
     message_type: str = "message"
-    content: str
+    content: str = Field(..., max_length=4096)
     metadata: dict = Field(default_factory=dict)
     in_reply_to: Optional[UUID] = None
 
@@ -97,7 +98,7 @@ async def send_message(req: A2ASend):
            RETURNING *""",
         req.channel_id, req.sender_id, req.sender_agent_type,
         req.recipient_id, req.message_type, req.content,
-        __import__("json").dumps(req.metadata), req.in_reply_to,
+        json.dumps(req.metadata), req.in_reply_to,
     )
     logger.info(f"A2A message sent: {req.sender_id} -> channel {req.channel_id} ({req.message_type})")
     return _row_to_message(row)
@@ -207,9 +208,9 @@ async def get_peers(
         rows = await pool.fetch(
             """SELECT t.id, t.title, t.agent_type, t.status
                FROM tasks t
-               JOIN workflow_instances wi ON wi.id = $1
                WHERE t.metadata->>'workflow_instance_id' = $1::text
                AND t.status = 'running'
+               AND EXISTS (SELECT 1 FROM workflow_instances WHERE id = $1)
                ORDER BY t.created_at""",
             workflow_instance_id,
         )
@@ -217,16 +218,18 @@ async def get_peers(
     return [dict(r) for r in rows]
 
 
+class A2ACreateChannel(BaseModel):
+    channel_id: Optional[UUID] = None
+    creator_id: str
+    purpose: str = ""
+
+
 @router.post("/channel", response_model=A2AMessage)
-async def create_channel(
-    channel_id: Optional[UUID] = None,
-    creator_id: str = Query(..., description="ID of the agent creating the channel"),
-    purpose: str = Query("", description="Channel purpose"),
-):
+async def create_channel(req: A2ACreateChannel):
     """Create an ad-hoc channel by posting an initial signal message."""
     import uuid as _uuid
 
-    cid = channel_id or _uuid.uuid4()
+    cid = req.channel_id or _uuid.uuid4()
     pool = await get_pool()
 
     row = await pool.fetchrow(
@@ -234,10 +237,10 @@ async def create_channel(
            (channel_id, sender_id, message_type, content, metadata)
            VALUES ($1, $2, 'signal', $3, '{"event": "channel_created"}'::jsonb)
            RETURNING *""",
-        cid, creator_id, f"Channel created: {purpose}" if purpose else "Channel created",
+        cid, req.creator_id, f"Channel created: {req.purpose}" if req.purpose else "Channel created",
     )
 
-    logger.info(f"A2A channel created: {cid} by {creator_id}")
+    logger.info(f"A2A channel created: {cid} by {req.creator_id}")
     return _row_to_message(row)
 
 
@@ -250,29 +253,35 @@ async def cleanup_expired_messages(pool=None):
 
     # Delete expired messages
     expired = await pool.fetchval(
-        "DELETE FROM a2a_messages WHERE expires_at IS NOT NULL AND expires_at < now() RETURNING count(*)"
+        """WITH deleted AS (
+               DELETE FROM a2a_messages
+               WHERE expires_at IS NOT NULL AND expires_at < now()
+               RETURNING 1
+           ) SELECT count(*) FROM deleted"""
     )
 
     # Delete messages from completed plans older than 7 days
     old_plan = await pool.fetchval(
-        """DELETE FROM a2a_messages
-           WHERE channel_id IN (
-               SELECT id FROM task_plans
-               WHERE status IN ('completed', 'failed', 'cancelled')
-               AND updated_at < now() - interval '7 days'
-           )
-           RETURNING count(*)"""
+        """WITH deleted AS (
+               DELETE FROM a2a_messages
+               WHERE channel_id IN (
+                   SELECT id FROM task_plans
+                   WHERE status IN ('completed', 'failed', 'cancelled')
+                   AND updated_at < now() - interval '7 days'
+               ) RETURNING 1
+           ) SELECT count(*) FROM deleted"""
     )
 
     # Delete messages from completed workflows older than 7 days
     old_wf = await pool.fetchval(
-        """DELETE FROM a2a_messages
-           WHERE channel_id IN (
-               SELECT id FROM workflow_instances
-               WHERE status IN ('completed', 'failed', 'cancelled')
-               AND updated_at < now() - interval '7 days'
-           )
-           RETURNING count(*)"""
+        """WITH deleted AS (
+               DELETE FROM a2a_messages
+               WHERE channel_id IN (
+                   SELECT id FROM workflow_instances
+                   WHERE status IN ('completed', 'failed', 'cancelled')
+                   AND updated_at < now() - interval '7 days'
+               ) RETURNING 1
+           ) SELECT count(*) FROM deleted"""
     )
 
     total = (expired or 0) + (old_plan or 0) + (old_wf or 0)
@@ -285,10 +294,9 @@ async def cleanup_expired_messages(pool=None):
 
 def _row_to_message(row) -> A2AMessage:
     """Convert asyncpg Record to A2AMessage."""
-    import json as _json
     d = dict(row)
     if isinstance(d.get("metadata"), str):
-        d["metadata"] = _json.loads(d["metadata"])
+        d["metadata"] = json.loads(d["metadata"])
     elif d.get("metadata") is None:
         d["metadata"] = {}
     if d.get("read_by") is None:

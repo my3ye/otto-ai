@@ -920,7 +920,7 @@ async def _a2a_completion_signal(pool, task_id: UUID, row, req):
                VALUES ($1, $2, $3, 'completion', $4, $5::jsonb)""",
             channel, str(task_id), row.get("agent_type"),
             content,
-            __import__("json").dumps({
+            json.dumps({
                 "exit_code": req.exit_code,
                 "task_title": row.get("title", ""),
             }),
