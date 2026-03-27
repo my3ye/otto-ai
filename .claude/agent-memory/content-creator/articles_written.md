@@ -40,6 +40,15 @@ type: project
 ## Content written 2026-03-19 (content library rewrite)
 6 blog article replacements (philosophy + tech), 7 inception articles across projects, MY3YE landing page copy (b6a0daef)
 
+## MY3YE Landing Page — Fresh v2 (2026-03-27)
+- **DB ID**: 70fbf60b-dc21-4244-9127-4e74acdb6daf
+- **Commit**: f6aa790
+- **Angle**: Blank-slate rewrite. Hero leads with RIVER LAW ("Power is not a lake. Power is a river.") instead of Decentralized Eye/watching frame.
+- **Manifesto**: New title "The River Does Not Ask Permission." New spine: The System → River → Law → Pattern → Physics → Encoding → The Seat → The Edge → The Game → The Close.
+- **CTA**: Canonical "We are asking you to build." Sub-message leads with $0 raised / 60% to builders as the concrete proof.
+- **Font fix**: CTA H2 bumped from `lg:text-4xl` → `lg:text-5xl` for consistency with Mechanism/Protocols H2s.
+- **What NOT to repeat**: watching/seeing distinction as hero frame, "Decentralized Eye" as section title, "The Core Principle" as Proof of Grit callout eyebrow.
+
 ## ONEON
 ### Identity Is the First Layer (e071b473)
 - **Angle**: Identity as infrastructure — sovereign identity before network
