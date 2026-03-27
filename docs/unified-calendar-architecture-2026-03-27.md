@@ -350,6 +350,175 @@ The 195 rows in `social_calendar_posts` are an older system. The unified calenda
 - Auto-generate schedule for new content on create
 - "Coverage gap" alerts (days with no slots)
 
+### Frontend Component Architecture
+
+#### File Layout
+
+```
+interfaces/web-next/src/
+├── app/content-calendar/
+│   └── page.tsx                    # Main page (state, data fetching, layout)
+├── components/calendar/
+│   ├── UnifiedCalendarView.tsx     # Month/week grid adapted for CalendarSlot[]
+│   ├── DayDetailPanel.tsx          # Sheet: day's posting queue with actions
+│   ├── ContentSlotPicker.tsx       # Dialog: search content → schedule to date
+│   └── UnscheduledSidebar.tsx      # Collapsible panel: unscheduled content backlog
+└── lib/
+    └── api-types.ts                # Add CalendarSlot + CalendarDayResponse types
+```
+
+#### Component Tree
+
+```
+ContentCalendarPage
+├── Header (title + [Month|Week|Today] tabs + [Today] button + filters)
+│   ├── Tabs (view switcher)
+│   ├── Select (platform filter)
+│   └── Select (status filter)
+├── UnifiedCalendarView (month or week grid)
+│   ├── MonthGrid → DayCells with slot dot indicators
+│   └── WeekGrid → DayColumns with slot cards
+├── DayDetailPanel (Sheet, opens on day click)
+│   ├── Day header (date + Add Slot button)
+│   ├── Pinned section (Separator + pinned slots)
+│   ├── Slot list (ordered by position)
+│   │   └── SlotCard per item
+│   │       ├── Content title (link to content hub)
+│   │       ├── Badge × 3 (platform, action, status)
+│   │       ├── Move up/down buttons
+│   │       └── DropdownMenu (Mark Ready, Mark Posted, Skip, Unpin, Remove)
+│   └── Empty state ("No posts scheduled")
+├── ContentSlotPicker (Dialog, opens from Add Slot)
+│   ├── Command (search existing content)
+│   ├── Select (platform)
+│   ├── Select (action)
+│   └── Button (Schedule)
+└── UnscheduledSidebar (collapsible right panel or drawer)
+    ├── Count badge
+    ├── Filter by content_type
+    └── Scrollable list of unscheduled items (click to schedule)
+```
+
+#### TypeScript Types
+
+```typescript
+// Add to api-types.ts
+interface CalendarSlot {
+  id: string
+  content_id: string
+  slot_date: string          // YYYY-MM-DD
+  slot_position: number
+  platform: string
+  action: string
+  status: string             // queued | ready | posted | skipped
+  posted_at: string | null
+  posted_by: string | null
+  notes: string | null
+  pinned: boolean
+  created_at: string
+  updated_at: string
+  content: CalendarSlotContent
+}
+
+interface CalendarSlotContent {
+  id: string
+  title: string
+  content_type: string
+  status: string
+  project_id: string | null
+  character: string | null
+  tags: string[]
+  body_preview: string       // First 200 chars
+}
+
+interface CalendarDayResponse {
+  date: string
+  pinned: CalendarSlot[]
+  scheduled: CalendarSlot[]
+  stats: { total: number; ready: number; posted: number; queued: number }
+}
+
+interface CalendarStatsResponse {
+  dates: Record<string, { total: number; posted: number; ready: number; queued: number }>
+  coverage: { days_with_slots: number; total_days: number; gap_days: string[] }
+}
+```
+
+#### Platform + Status Visual System
+
+```typescript
+const PLATFORM_COLORS: Record<string, string> = {
+  paragraph: "bg-violet-500/10 text-violet-400 border-violet-500/20",
+  x:         "bg-sky-500/10 text-sky-400 border-sky-500/20",
+  telegram:  "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+  farcaster: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+  linkedin:  "bg-blue-500/10 text-blue-400 border-blue-500/20",
+  discord:   "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+}
+
+const SLOT_STATUS_COLORS: Record<string, string> = {
+  queued:  "bg-muted/60 text-muted-foreground",
+  ready:   "bg-amber-500/10 text-amber-400",
+  posted:  "bg-green-500/10 text-green-400",
+  skipped: "bg-red-500/10 text-red-400/60",
+}
+
+const ACTION_LABELS: Record<string, string> = {
+  publish:  "Publish",
+  announce: "Announce",
+  share:    "Share",
+  thread:   "Thread",
+  deploy:   "Deploy",
+}
+```
+
+#### shadcn/ui Component Usage
+
+| Component | Where | Purpose |
+|---|---|---|
+| Tabs | Page header | Month/Week/Today view switcher |
+| Select | Filters | Platform + status filters |
+| Sheet | DayDetailPanel | Slide-in day queue |
+| Dialog | ContentSlotPicker | Add content to calendar |
+| Command | ContentSlotPicker | Search content by title |
+| Card | SlotCard | Individual slot in day detail |
+| Badge | SlotCard | Platform, action, status indicators |
+| Button | Everywhere | Actions, navigation |
+| ScrollArea | Day detail, sidebar | Scrollable lists |
+| Separator | Day detail | Between pinned and regular slots |
+| DropdownMenu | SlotCard | Per-slot actions menu |
+| Tooltip | Calendar dots | Hover preview on month view |
+| Skeleton | Loading states | Calendar + day panel |
+
+#### CalendarView Adaptation Strategy
+
+The existing `CalendarView.tsx` is 330 lines, tightly coupled to `SocialPost` type. Two options:
+
+**Option A (chosen): Create `UnifiedCalendarView.tsx`** — Copy the rendering logic, change the data type to `CalendarSlot[]`, add platform color badges on dots. The existing CalendarView stays untouched for backward compat.
+
+**Option B (rejected): Make CalendarView generic** — Would require changing the social calendar pages too. Higher blast radius for no gain.
+
+### Backend Files to Create/Modify
+
+| File | Action | Details |
+|---|---|---|
+| `memory/routes/calendar_routes.py` | CREATE | All 8 endpoints, prefix `/calendar` |
+| `memory/api.py` | MODIFY | Register `calendar_routes.router` |
+| Migration 077 | APPLY | `docker exec memory-postgres-1 psql -U otto -d memory -f /path/to/077` |
+| Seed script | RUN | `docker exec memory-postgres-1 psql -U otto -d memory -f /path/to/seed` |
+
+### Frontend Files to Create/Modify
+
+| File | Action | Details |
+|---|---|---|
+| `app/content-calendar/page.tsx` | CREATE | Main page (~300 lines) |
+| `components/calendar/UnifiedCalendarView.tsx` | CREATE | Adapted from CalendarView (~350 lines) |
+| `components/calendar/DayDetailPanel.tsx` | CREATE | Sheet with slot list (~200 lines) |
+| `components/calendar/ContentSlotPicker.tsx` | CREATE | Dialog with content search (~150 lines) |
+| `components/calendar/UnscheduledSidebar.tsx` | CREATE | Backlog panel (~100 lines) |
+| `lib/api-types.ts` | MODIFY | Add CalendarSlot types |
+| `components/layout/app-sidebar.tsx` | MODIFY | Add Content Calendar nav item |
+
 ### Risks
 
 - **Content table metadata gaps**: Most `metadata` JSONB is `{}`. The `platform_target` and `pillar` fields from the CSV exist only in the CSV export, not in the DB. Mitigation: queue logic uses `project_id` and `tags` for topic spread, not metadata. The generate endpoint can infer platform from `content_type` (article → paragraph, social_post → x).
