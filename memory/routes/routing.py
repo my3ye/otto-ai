@@ -20,6 +20,34 @@ from ..models import TaskRouteRequest, ExecutionStrategy, JitRLOptimizeResponse
 
 log = logging.getLogger("otto.routing")
 
+# ── Coding Agent Model Rule ──────────────────────────────────────────
+# Mev directive (2026-03-27): coding-heavy agent types must default to Opus.
+# Non-coding agents (researcher, content-creator, reviewer, etc.) stay on Sonnet.
+# architect and security-audit already had Opus in their frontmatter; listed here
+# for completeness so routing.py is the single authoritative source.
+CODING_AGENT_TYPES: frozenset[str] = frozenset([
+    "coder",
+    "debugger",
+    "architect",
+    "solidity-smart-contract-engineer",
+    "blockchain-security-auditor",
+    "security-audit",
+    "Solidity Smart Contract Engineer",   # normalised form used in some DB rows
+    "Blockchain Security Auditor",        # normalised form used in some DB rows
+])
+
+
+def model_for_agent(agent_type: str | None) -> str:
+    """Return the correct default model for a given agent_type.
+
+    Rule: coding agents → 'opus', everything else → 'sonnet'.
+    Keeping the decision here means routing.py is the single source of truth.
+    """
+    if agent_type and agent_type.lower() in {a.lower() for a in CODING_AGENT_TYPES}:
+        return "opus"
+    return "sonnet"
+
+
 # ── Task Type Keyword Sets ──────────────────────────────────────────
 
 RESEARCH_KEYWORDS = frozenset([
@@ -98,10 +126,16 @@ def route_task(req: TaskRouteRequest) -> ExecutionStrategy:
     4. research_chunked — research type
     5. eval_focused     — eval type
     6. standard         — default (use task params as-is)
+
+    Model selection: coding agents (coder, debugger, architect, etc.) always get
+    'opus' regardless of strategy. All other agents default to 'sonnet'.
     """
     title = req.title or ""
     prompt = req.prompt or ""
     task_type = detect_task_type(title, prompt)
+
+    # Agent-type-based model override (Mev directive 2026-03-27)
+    default_model = model_for_agent(req.agent_type)
 
     lats_fallback_prompt = (
         req.metadata.get("failure_fallback")
@@ -116,7 +150,7 @@ def route_task(req: TaskRouteRequest) -> ExecutionStrategy:
         return ExecutionStrategy(
             strategy="lats_fallback",
             task_type=task_type,
-            recommended_model="sonnet",
+            recommended_model=default_model,
             recommended_max_turns=max(req.max_turns, 40),
             recommended_timeout_seconds=max(req.timeout_seconds, 600),
             recommended_max_budget_usd=max(req.max_budget_usd, 3.0),
@@ -136,7 +170,7 @@ def route_task(req: TaskRouteRequest) -> ExecutionStrategy:
         return ExecutionStrategy(
             strategy="express",
             task_type=task_type,
-            recommended_model="sonnet",
+            recommended_model=default_model,
             recommended_max_turns=min(req.max_turns, 15),
             recommended_timeout_seconds=min(max(req.timeout_seconds, 120), 300),
             recommended_max_budget_usd=min(max(req.max_budget_usd, 0.5), 2.0),
@@ -152,7 +186,7 @@ def route_task(req: TaskRouteRequest) -> ExecutionStrategy:
         return ExecutionStrategy(
             strategy="full_budget_build",
             task_type=task_type,
-            recommended_model="sonnet",
+            recommended_model=default_model,
             recommended_max_turns=max(req.max_turns, 60),
             recommended_timeout_seconds=max(req.timeout_seconds, 900),
             recommended_max_budget_usd=max(req.max_budget_usd, 5.0),
@@ -168,7 +202,7 @@ def route_task(req: TaskRouteRequest) -> ExecutionStrategy:
         return ExecutionStrategy(
             strategy="research_chunked",
             task_type=task_type,
-            recommended_model="sonnet",
+            recommended_model=default_model,
             recommended_max_turns=max(req.max_turns, 40),
             recommended_timeout_seconds=max(req.timeout_seconds, 900),
             recommended_max_budget_usd=max(req.max_budget_usd, 2.0),
@@ -184,7 +218,7 @@ def route_task(req: TaskRouteRequest) -> ExecutionStrategy:
         return ExecutionStrategy(
             strategy="eval_focused",
             task_type=task_type,
-            recommended_model="sonnet",
+            recommended_model=default_model,
             recommended_max_turns=max(req.max_turns, 30),
             recommended_timeout_seconds=max(req.timeout_seconds, 900),
             recommended_max_budget_usd=max(req.max_budget_usd, 3.0),
@@ -199,7 +233,7 @@ def route_task(req: TaskRouteRequest) -> ExecutionStrategy:
     return ExecutionStrategy(
         strategy="standard",
         task_type=task_type,
-        recommended_model="sonnet",
+        recommended_model=default_model,
         recommended_max_turns=req.max_turns,
         recommended_timeout_seconds=req.timeout_seconds,
         recommended_max_budget_usd=req.max_budget_usd,

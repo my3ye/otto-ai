@@ -26,6 +26,7 @@ from pydantic import BaseModel, Field, model_validator
 
 from ..db import get_pool
 from ..gate_notifier import gate_notifier
+from .routing import model_for_agent
 
 log = logging.getLogger("otto.workflows")
 router = APIRouter(prefix="/workflows", tags=["workflows"])
@@ -1098,19 +1099,22 @@ async def _advance_workflow(pool, instance_id: UUID):
         prompt = _interpolate(step.get("prompt_template", ""), dict(inst))
 
         # Create task for this step
+        # Coding agents (coder, debugger, architect, etc.) run on opus per Mev directive 2026-03-27
+        step_agent_type = step.get("agent_type")
+        step_model = model_for_agent(step_agent_type)
         work_dir = step.get("working_directory") or inst["working_directory"] or tmpl["default_working_dir"]
         task_row = await pool.fetchrow(
             """INSERT INTO tasks
                (title, prompt, priority, model, cli, agent_type,
                 max_budget_usd, max_turns, timeout_seconds,
                 working_directory, created_by, metadata)
-               VALUES ($1, $2, $3, 'sonnet', 'claude', $4,
+               VALUES ($1, $2, $3, $10, 'claude', $4,
                        $5, $6, $7, $8, 'workflow', $9)
                RETURNING id, title""",
             f"[WF] {inst['name']} / Step {current}: {step['name']}",
             prompt,
             inst["priority"],
-            step.get("agent_type"),
+            step_agent_type,
             step.get("max_budget_usd", 5.0),
             step.get("max_turns", 50),
             step.get("timeout_seconds", 900),
@@ -1120,6 +1124,7 @@ async def _advance_workflow(pool, instance_id: UUID):
                 "workflow_step": current,
                 "workflow_step_name": step.get("name", ""),
             }),
+            step_model,  # $10 — coding agents get opus
         )
         task_id = task_row["id"]
 

@@ -21,6 +21,7 @@ from uuid import UUID
 from ..db import get_pool
 from .types import InterruptType
 from . import ivt
+from ..routes.routing import model_for_agent
 
 log = logging.getLogger("otto.kernel.ric")
 
@@ -976,6 +977,9 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
     # Use agent_type from dispatch classifier
     agent_type = dispatch.get("agent_type", "coder")
 
+    # Coding agents (coder, debugger, architect, etc.) run on opus per Mev directive 2026-03-27
+    task_model = model_for_agent(agent_type)
+
     # Create task
     metadata = {
         "created_by_reactive_dispatch": True,
@@ -989,12 +993,12 @@ async def _reactive_dispatch(content: str, reply: str, channel: str, pool) -> No
             """INSERT INTO tasks (title, prompt, priority, model, cli,
                    max_budget_usd, max_turns, timeout_seconds, agent_type,
                    working_directory, created_by, metadata)
-               VALUES ($1, $2, $3, 'sonnet', 'claude',
+               VALUES ($1, $2, $3, $9, 'claude',
                    $5, $6, $7, $8,
                    '/home/web3relic/otto', 'reactive_dispatch', $4)
                RETURNING id, title""",
             title, prompt, priority, metadata,
-            max_budget, max_turns, timeout, agent_type,
+            max_budget, max_turns, timeout, agent_type, task_model,
         )
         task_id = row["id"]
     except Exception as e:

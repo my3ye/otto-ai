@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 
 from ..db import get_pool
 from ..llm import extract_json, extract_json_array, provider_chat
+from .routing import model_for_agent
 
 log = logging.getLogger("otto.task_plans")
 router = APIRouter(prefix="/task-plans", tags=["task-plans"])
@@ -550,16 +551,18 @@ async def create_plan(
             metadata["workflow_template"] = item.workflow_template
             metadata["workflow_variables"] = item.workflow_variables
 
+        # Coding agents (coder, debugger, architect, etc.) run on opus per Mev directive 2026-03-27
+        task_model = model_for_agent(item.agent_type)
         row = await pool.fetchrow(
             """INSERT INTO tasks (title, prompt, priority, model, cli, agent_type,
                    max_budget_usd, max_turns, timeout_seconds,
                    working_directory, created_by, metadata, plan_id)
-               VALUES ($1, $2, $3, 'sonnet', 'claude', $4,
+               VALUES ($1, $2, $3, $10, 'claude', $4,
                    $5, 50, 900, $6, $7, $8, $9)
                RETURNING id""",
             item.title, item.prompt, item.priority, item.agent_type,
             10.0 if item.priority >= 8 else 5.0,
-            item.working_directory, created_by, metadata, plan_id,
+            item.working_directory, created_by, metadata, plan_id, task_model,
         )
         temp_to_uuid[item.temp_id] = row["id"]
 
