@@ -196,12 +196,32 @@ try:
     from .config import settings as _mcp_settings
 
     _mcp_app = _mcp_server.sse_app()
+    # Wrap with auth middleware (raw ASGI, SSE-compatible)
     if _mcp_settings.mcp_token:
-        _mcp_app.add_middleware(MCPAuthMiddleware, token=_mcp_settings.mcp_token)
+        _mcp_app = MCPAuthMiddleware(_mcp_app, token=_mcp_settings.mcp_token)
     app.mount("/mcp", _mcp_app)
+    _mcp_mounted = True
     logger.info("MCP server mounted at /mcp (SSE transport)")
 except Exception as e:
+    _mcp_mounted = False
     logger.warning(f"MCP server initialization failed (non-fatal): {e}")
+
+
+@app.get("/mcp-status", tags=["mcp"])
+async def mcp_status():
+    """MCP server status. SSE endpoint at /mcp/sse, messages at /mcp/messages/."""
+    return {
+        "mounted": _mcp_mounted,
+        "transport": "sse",
+        "endpoints": {
+            "sse": "/mcp/sse",
+            "messages": "/mcp/messages/",
+        },
+        "auth": "X-MCP-Token header required" if _mcp_mounted else "n/a",
+        "tools": 15,
+        "resources": 4,
+        "prompts": 3,
+    }
 
 
 @app.get("/hello", response_class=HTMLResponse)

@@ -1,38 +1,57 @@
-"""MCP bearer-token authentication middleware.
+"""MCP bearer-token authentication middleware (pure ASGI).
 
 Validates X-MCP-Token header against settings.mcp_token.
 Skips auth if mcp_token is empty (dev mode).
+
+Uses raw ASGI (not BaseHTTPMiddleware) to avoid breaking SSE streaming.
 """
 
 import hmac
+import json
 import logging
-from starlette.middleware.base import BaseHTTPMiddleware
-from starlette.requests import Request
-from starlette.responses import JSONResponse
 
 logger = logging.getLogger("otto.mcp.auth")
 
 
-class MCPAuthMiddleware(BaseHTTPMiddleware):
-    """Validates bearer token on /mcp/* routes only."""
+class MCPAuthMiddleware:
+    """Pure ASGI middleware — validates bearer token on all requests."""
 
     def __init__(self, app, token: str):
-        super().__init__(app)
+        self.app = app
         self.token = token
 
-    async def dispatch(self, request: Request, call_next):
-        # Only guard MCP endpoints
-        if not request.url.path.startswith("/mcp"):
-            return await call_next(request)
+    async def __call__(self, scope, receive, send):
+        # Only guard HTTP requests; let lifespan/websocket pass through
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
 
         # Dev mode: no auth if token is empty
         if not self.token:
-            return await call_next(request)
+            await self.app(scope, receive, send)
+            return
 
-        # Validate token from header
-        provided = request.headers.get("X-MCP-Token", "")
+        # Extract X-MCP-Token from headers
+        headers = dict(scope.get("headers", []))
+        provided = headers.get(b"x-mcp-token", b"").decode("utf-8", errors="ignore")
+
         if not hmac.compare_digest(provided, self.token):
-            logger.warning(f"MCP auth failed from {request.client.host if request.client else 'unknown'}")
-            return JSONResponse({"error": "Invalid or missing MCP token"}, status_code=401)
+            client = scope.get("client", ("unknown", 0))
+            logger.warning(f"MCP auth failed from {client[0]}")
+            # Send 401 response directly
+            body = json.dumps({"error": "Invalid or missing MCP token"}).encode()
+            await send({
+                "type": "http.response.start",
+                "status": 401,
+                "headers": [
+                    [b"content-type", b"application/json"],
+                    [b"content-length", str(len(body)).encode()],
+                ],
+            })
+            await send({
+                "type": "http.response.body",
+                "body": body,
+            })
+            return
 
-        return await call_next(request)
+        await self.app(scope, receive, send)
