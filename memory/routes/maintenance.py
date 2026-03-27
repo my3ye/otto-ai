@@ -367,6 +367,15 @@ async def run_maintenance_job():
             f"new_facts={result.facts_stored}"
         )
 
+        # A2A: clean up expired messages
+        try:
+            from .a2a import cleanup_expired_messages
+            a2a_cleaned = await cleanup_expired_messages()
+            if a2a_cleaned:
+                logger.info(f"A2A cleanup: {a2a_cleaned} messages removed")
+        except Exception as e:
+            logger.debug(f"A2A cleanup skipped: {e}")
+
         # AgentOS: trigger maintenance sync pulse
         try:
             from ..kernel.sync import run_sync_pulse

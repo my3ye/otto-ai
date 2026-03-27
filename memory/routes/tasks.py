@@ -815,6 +815,9 @@ async def complete_task(task_id: UUID, req: TaskComplete):
     from .task_plans import on_plan_task_complete
     asyncio.create_task(on_plan_task_complete(pool, task_id, status))
 
+    # ── A2A: Announce completion to channel ────────────────────────
+    asyncio.create_task(_a2a_completion_signal(pool, task_id, row, req))
+
     return TaskOut(**dict(row))
 
 
@@ -890,6 +893,40 @@ async def _jitrl_ingest_task(task_id: UUID):
         log.debug(f"JitRL ingested task {str(task_id)[:8]} as experience")
     except Exception as e:
         log.debug(f"JitRL ingest skipped for {str(task_id)[:8]}: {e}")
+
+
+async def _a2a_completion_signal(pool, task_id: UUID, row, req):
+    """Announce task completion to A2A channel if task belongs to a plan/workflow."""
+    try:
+        plan_id = row.get("plan_id")
+        wf_instance = None
+        meta = row.get("metadata")
+        if isinstance(meta, dict):
+            wf_instance = meta.get("workflow_instance_id")
+        elif isinstance(meta, str):
+            import json as _j
+            wf_instance = _j.loads(meta).get("workflow_instance_id")
+
+        channel = plan_id or (UUID(wf_instance) if wf_instance else None)
+        if not channel:
+            return
+
+        output_excerpt = (req.output or "")[:200]
+        content = f"Task {str(task_id)[:8]} ({row.get('agent_type', 'unknown')}) {row.get('status', 'completed')}: {output_excerpt}"
+
+        await pool.execute(
+            """INSERT INTO a2a_messages
+               (channel_id, sender_id, sender_agent_type, message_type, content, metadata)
+               VALUES ($1, $2, $3, 'completion', $4, $5::jsonb)""",
+            channel, str(task_id), row.get("agent_type"),
+            content,
+            __import__("json").dumps({
+                "exit_code": req.exit_code,
+                "task_title": row.get("title", ""),
+            }),
+        )
+    except Exception as e:
+        log.debug(f"A2A completion signal skipped for {str(task_id)[:8]}: {e}")
 
 
 async def _fire_task_interrupt(task_id: UUID, status: str):

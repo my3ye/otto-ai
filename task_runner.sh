@@ -63,6 +63,14 @@ CONTEXT=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.s
 PRIORITY=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('priority', 5))" 2>/dev/null || echo "5")
 AGENT_TYPE=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('agent_type') or '')" 2>/dev/null || echo "")
 
+# ── A2A Channel Detection ─────────────────────────────────────────────────────
+PLAN_ID=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('plan_id') or '')" 2>/dev/null || echo "")
+WF_INSTANCE=$(echo "$TASK_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print((d.get('metadata') or {}).get('workflow_instance_id',''))" 2>/dev/null || echo "")
+A2A_CHANNEL=""
+[[ -n "$PLAN_ID" ]] && A2A_CHANNEL="$PLAN_ID"
+[[ -z "$A2A_CHANNEL" && -n "$WF_INSTANCE" ]] && A2A_CHANNEL="$WF_INSTANCE"
+log "A2A channel: ${A2A_CHANNEL:-none}"
+
 # Decomposition gate: block tasks that require decomposition before execution
 REQ_DECOMP=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('requires_decomposition', False))" 2>/dev/null || echo "False")
 DECOMPOSED=$(echo "$TASK_JSON" | python3 -c "import json,sys; print(json.load(sys.stdin).get('decomposed', False))" 2>/dev/null || echo "False")
@@ -507,6 +515,55 @@ if [ -n "$SEMANTIC_BLOCK" ]; then
     FULL_PROMPT="${FULL_PROMPT}
 
 ${SEMANTIC_BLOCK}"
+fi
+
+# ── A2A: Inject peer messaging instructions ──────────────────────────────────
+if [ -n "$A2A_CHANNEL" ]; then
+    # Fetch recent messages (max 10, 200 chars each)
+    A2A_RECENT=$(curl -sf "${API}/a2a/poll?channel_id=${A2A_CHANNEL}&reader_id=${TASK_ID}&limit=10" 2>/dev/null || echo "[]")
+    A2A_MSG_COUNT=$(echo "$A2A_RECENT" | python3 -c "import json,sys; msgs=json.load(sys.stdin); print(len(msgs))" 2>/dev/null || echo "0")
+
+    A2A_BLOCK="
+## Agent-to-Agent Communication (A2A)
+You are part of a multi-agent collaboration. Channel: ${A2A_CHANNEL}
+Your agent ID: ${TASK_ID}
+
+### Send a message to peers:
+\`\`\`bash
+curl -sf -X POST ${API}/a2a/send -H 'Content-Type: application/json' \\
+  -d '{\"channel_id\": \"${A2A_CHANNEL}\", \"sender_id\": \"${TASK_ID}\", \"sender_agent_type\": \"${AGENT_TYPE}\", \"content\": \"YOUR_MESSAGE\", \"message_type\": \"message\"}'
+\`\`\`
+
+### Poll for new messages:
+\`\`\`bash
+curl -sf '${API}/a2a/poll?channel_id=${A2A_CHANNEL}&reader_id=${TASK_ID}&limit=10'
+\`\`\`
+
+### See running peers:
+\`\`\`bash
+curl -sf '${API}/a2a/peers?$([ -n \"$PLAN_ID\" ] && echo \"plan_id=${PLAN_ID}\" || echo \"workflow_instance_id=${WF_INSTANCE}\")'
+\`\`\`"
+
+    if [ "$A2A_MSG_COUNT" -gt 0 ]; then
+        A2A_HISTORY=$(echo "$A2A_RECENT" | python3 -c "
+import json,sys
+msgs=json.load(sys.stdin)
+for m in msgs[-10:]:
+    sender=m.get('sender_agent_type') or m['sender_id'][:8]
+    content=m['content'][:200]
+    mtype=m['message_type']
+    print(f'- [{mtype}] {sender}: {content}')
+" 2>/dev/null || echo "")
+        A2A_BLOCK="${A2A_BLOCK}
+
+### Recent channel messages:
+${A2A_HISTORY}"
+    fi
+
+    FULL_PROMPT="${FULL_PROMPT}
+
+${A2A_BLOCK}"
+    log "A2A block injected (${A2A_MSG_COUNT} recent messages)"
 fi
 
 if [ -n "$CONTEXT" ]; then
