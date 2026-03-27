@@ -16,7 +16,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from .db import get_pool, close_pool
-from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist, articles, contacts, services, live_systems, autoevolve, orders, trading, conclusions, social_calendar, backup, security, email, education, omnisearch, critiques, content, workflows, investors, bankr, crypto, secrets, thought_vault, athena, task_plans, koink, oneon, tusita, sos, submissions, calendar_routes  # noqa
+from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist, articles, contacts, services, live_systems, autoevolve, orders, trading, conclusions, social_calendar, backup, security, email, education, omnisearch, critiques, content, workflows, investors, bankr, crypto, secrets, thought_vault, athena, task_plans, koink, oneon, tusita, sos, submissions, calendar_routes, a2a  # noqa
 from .routes.kernel_routes import router as kernel_router
 from .gateway.routes import router as gateway_router
 from .routes.maintenance import run_maintenance_job
@@ -187,6 +187,21 @@ app.include_router(tusita.router)
 app.include_router(sos.router)
 app.include_router(submissions.router)
 app.include_router(calendar_routes.router)
+app.include_router(a2a.router)
+
+# ── MCP Server (Model Context Protocol) ──────────────────────────────────────
+try:
+    from .mcp_server import mcp as _mcp_server
+    from .mcp_auth import MCPAuthMiddleware
+    from .config import settings as _mcp_settings
+
+    _mcp_app = _mcp_server.sse_app()
+    if _mcp_settings.mcp_token:
+        _mcp_app.add_middleware(MCPAuthMiddleware, token=_mcp_settings.mcp_token)
+    app.mount("/mcp", _mcp_app)
+    logger.info("MCP server mounted at /mcp (SSE transport)")
+except Exception as e:
+    logger.warning(f"MCP server initialization failed (non-fatal): {e}")
 
 
 @app.get("/hello", response_class=HTMLResponse)
