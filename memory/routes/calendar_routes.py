@@ -52,7 +52,7 @@ class ReorderRequest(BaseModel):
 class GenerateRequest(BaseModel):
     date_from: str
     date_to: str
-    strategy: str = "balanced"
+    strategy: str = "balanced"  # Only "balanced" is implemented currently
 
 
 # ── Helpers ─────────────────────────────────────────────────────
@@ -116,14 +116,17 @@ async def list_slots(
     params = []
     idx = 1
 
-    if date_from:
-        conditions.append(f"cs.slot_date >= ${idx}")
-        params.append(date.fromisoformat(date_from))
-        idx += 1
-    if date_to:
-        conditions.append(f"cs.slot_date <= ${idx}")
-        params.append(date.fromisoformat(date_to))
-        idx += 1
+    try:
+        if date_from:
+            conditions.append(f"cs.slot_date >= ${idx}")
+            params.append(date.fromisoformat(date_from))
+            idx += 1
+        if date_to:
+            conditions.append(f"cs.slot_date <= ${idx}")
+            params.append(date.fromisoformat(date_to))
+            idx += 1
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date format — use YYYY-MM-DD")
     if platform:
         platforms = [p.strip() for p in platform.split(",")]
         conditions.append(f"cs.platform = ANY(${idx}::text[])")
@@ -228,14 +231,17 @@ async def get_stats(
     conditions = []
     params = []
     idx = 1
-    if date_from:
-        conditions.append(f"cs.slot_date >= ${idx}")
-        params.append(date.fromisoformat(date_from))
-        idx += 1
-    if date_to:
-        conditions.append(f"cs.slot_date <= ${idx}")
-        params.append(date.fromisoformat(date_to))
-        idx += 1
+    try:
+        if date_from:
+            conditions.append(f"cs.slot_date >= ${idx}")
+            params.append(date.fromisoformat(date_from))
+            idx += 1
+        if date_to:
+            conditions.append(f"cs.slot_date <= ${idx}")
+            params.append(date.fromisoformat(date_to))
+            idx += 1
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date format — use YYYY-MM-DD")
 
     where = ""
     if conditions:
@@ -322,46 +328,57 @@ async def create_slot(body: SlotCreate):
     """Create a calendar slot for a content item."""
     pool = await get_pool()
 
+    # Validate inputs
+    try:
+        content_uuid = UUID(body.content_id)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid content_id — must be a UUID")
+    try:
+        slot_date_obj = date.fromisoformat(body.slot_date)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid slot_date — use YYYY-MM-DD")
+
     # Verify content exists
     content = await pool.fetchrow(
         "SELECT id FROM content WHERE id = $1 AND archived = FALSE",
-        UUID(body.content_id),
+        content_uuid,
     )
     if not content:
         raise HTTPException(status_code=404, detail="Content not found")
 
-    # Auto-compute position if not provided
-    slot_date_obj = date.fromisoformat(body.slot_date)
-    position = body.slot_position
-    if position is None:
-        row = await pool.fetchrow(
-            "SELECT COALESCE(MAX(slot_position), -1) + 1 AS next_pos "
-            "FROM calendar_slots WHERE slot_date = $1",
-            slot_date_obj,
-        )
-        position = row["next_pos"]
+    # Use transaction to prevent TOCTOU race on auto-position
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            position = body.slot_position
+            if position is None:
+                row = await conn.fetchrow(
+                    "SELECT COALESCE(MAX(slot_position), -1) + 1 AS next_pos "
+                    "FROM calendar_slots WHERE slot_date = $1 FOR UPDATE",
+                    slot_date_obj,
+                )
+                position = row["next_pos"]
 
-    try:
-        slot_id = await pool.fetchval(
-            """INSERT INTO calendar_slots
-               (content_id, slot_date, slot_position, platform, action, pinned, notes)
-               VALUES ($1, $2, $3, $4, $5, $6, $7)
-               RETURNING id""",
-            UUID(body.content_id),
-            slot_date_obj,
-            position,
-            body.platform,
-            body.action,
-            body.pinned,
-            body.notes,
-        )
-    except Exception as e:
-        if "unique" in str(e).lower():
-            raise HTTPException(
-                status_code=409,
-                detail="Slot already exists for this content/date/platform",
-            )
-        raise
+            try:
+                slot_id = await conn.fetchval(
+                    """INSERT INTO calendar_slots
+                       (content_id, slot_date, slot_position, platform, action, pinned, notes)
+                       VALUES ($1, $2, $3, $4, $5, $6, $7)
+                       RETURNING id""",
+                    content_uuid,
+                    slot_date_obj,
+                    position,
+                    body.platform,
+                    body.action,
+                    body.pinned,
+                    body.notes,
+                )
+            except Exception as e:
+                if "unique" in str(e).lower():
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Slot already exists for this content/date/platform",
+                    )
+                raise
 
     # Return created slot with content join
     row = await pool.fetchrow(SLOT_QUERY + " AND cs.id = $1", slot_id)
@@ -382,7 +399,10 @@ async def update_slot(slot_id: UUID, body: SlotUpdate):
         if val is not None:
             updates.append(f"{field} = ${idx}")
             if field == "slot_date":
-                params.append(date.fromisoformat(val))
+                try:
+                    params.append(date.fromisoformat(val))
+                except ValueError:
+                    raise HTTPException(status_code=422, detail="Invalid slot_date — use YYYY-MM-DD")
             else:
                 params.append(val)
             idx += 1
@@ -454,8 +474,11 @@ async def generate_schedule(body: GenerateRequest, commit: bool = Query(False)):
     """Auto-generate slots for unscheduled content. Returns preview unless commit=true."""
     pool = await get_pool()
 
-    date_from = date.fromisoformat(body.date_from)
-    date_to = date.fromisoformat(body.date_to)
+    try:
+        date_from = date.fromisoformat(body.date_from)
+        date_to = date.fromisoformat(body.date_to)
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid date format — use YYYY-MM-DD")
 
     # Get unscheduled content (not in any calendar slot)
     rows = await pool.fetch("""
