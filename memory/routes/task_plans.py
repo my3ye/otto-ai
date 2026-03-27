@@ -644,7 +644,7 @@ async def classify_for_plan(user_message: str, otto_reply: str) -> dict | None:
     try:
         from ..composition import find_compositions
         from .skills import SKILL_REGISTRY
-        chains = find_compositions(user_message[:400], registry=SKILL_REGISTRY)
+        chains = find_compositions(user_message[:800], registry=SKILL_REGISTRY)
         if chains:
             hint_lines = []
             for chain in chains[:3]:

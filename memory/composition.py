@@ -60,15 +60,24 @@ class CompositionChain:
     steps: list[CompositionStep] = field(default_factory=list)
     total_relevance: float = 0.0
     reasoning: str = ""
+    incomplete: bool = False  # True when max depth hit with unsatisfied inputs
 
 
 def _infer_output_type(task_description: str) -> str | None:
-    """Infer desired output type from task keywords."""
+    """Infer desired output type from task keywords.
+
+    Scans all matching keywords and picks the longest match (most specific).
+    E.g. "create an article" matches both "create"→code and "article"→content_draft;
+    "article" (7 chars) > "create" (6 chars) → returns content_draft.
+    """
     task_lower = task_description.lower()
+    best_keyword = ""
+    best_output: str | None = None
     for keyword, output_type in _OUTPUT_HINTS.items():
-        if keyword in task_lower:
-            return output_type
-    return None
+        if keyword in task_lower and len(keyword) > len(best_keyword):
+            best_keyword = keyword
+            best_output = output_type
+    return best_output
 
 
 def _agent_produces(agent: dict, output_type: str) -> bool:
@@ -82,19 +91,9 @@ def _agent_needs(agent: dict) -> list[str]:
 
 
 def _score_agent(agent: dict, task_description: str) -> float:
-    """Score agent relevance to task. Reuses skills.py logic inline."""
-    task_lower = task_description.lower()
-    task_words = set(task_lower.split())
-
-    keywords = set(agent.get("keywords", []))
-    overlap = len(task_words & keywords)
-    keyword_score = min(overlap / max(len(keywords) * 0.3, 1), 1.0)
-
-    desc_words = set(agent.get("description", "").lower().split())
-    desc_overlap = len(task_words & desc_words)
-    desc_score = min(desc_overlap / max(len(task_words) * 0.3, 1), 1.0)
-
-    return round(0.6 * keyword_score + 0.4 * desc_score, 3)
+    """Score agent relevance to task. Delegates to skills._score_skill."""
+    from .routes.skills import _score_skill
+    return _score_skill(agent, task_description)
 
 
 def find_compositions(
@@ -160,20 +159,14 @@ def find_compositions(
                 agent_scores.get(s.agent_type, 0) for s in chain_so_far
             )
             if total_rel > relevance_threshold:
-                # Set inputs_from for first step to "user"
                 final_steps = list(chain_so_far)
-                if final_steps:
-                    final_steps[0] = CompositionStep(
-                        agent_type=final_steps[0].agent_type,
-                        role=final_steps[0].role,
-                        inputs_from="user",
-                        output_type=final_steps[0].output_type,
-                    )
+                incomplete = bool(unsatisfied) and depth >= max_chain_length
                 reasoning = " → ".join(s.agent_type for s in final_steps)
                 chains.append(CompositionChain(
                     steps=final_steps,
                     total_relevance=round(total_rel, 3),
                     reasoning=reasoning,
+                    incomplete=incomplete,
                 ))
             return
 

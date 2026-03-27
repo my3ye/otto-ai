@@ -303,6 +303,9 @@ async def suggest_skills(
                 "agent_type": s["agent_type"],
                 "cost": s["cost"],
                 "relevance_score": s["relevance_score"],
+                "inputs": s.get("inputs", []),
+                "outputs": s.get("outputs", []),
+                "capabilities": s.get("capabilities", []),
             }
             for s in top
         ],
@@ -310,7 +313,7 @@ async def suggest_skills(
 
     if compose:
         from ..composition import find_compositions
-        chains = find_compositions(task, registry=SKILL_REGISTRY)
+        chains = find_compositions(task, registry=registry)
         result["compositions"] = [
             {
                 "steps": [
@@ -324,6 +327,7 @@ async def suggest_skills(
                 ],
                 "total_relevance": chain.total_relevance,
                 "reasoning": chain.reasoning,
+                "incomplete": chain.incomplete,
             }
             for chain in chains
         ]
