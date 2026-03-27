@@ -200,8 +200,18 @@ type: project
 - **Status**: draft
 - **What NOT to repeat**: "execution is already running" as the core answer, credentials-come-second framing
 
+## Founder Origin Story
+
+### Core Origin Story Narrative (86bb6d97)
+- **Content type**: note (personal brand copy, not a published article)
+- **Angle covered**: Arc narrative — 15y depth (FE/FS engineering) → Web3 evolution (Supra Oracles, Engineering Lead) → independent execution (built what no company would charter). Key frame: past is context, execution is the qualification.
+- **Status**: draft
+- **~200 words, first-person voice**
+- **What NOT to repeat**: "no company was going to build this" constraint framing, "They are context, not qualification. The qualification is what is already running." as the kicker
+- **Related**: 1a369f23 (answers *why best person*) | this answers *how did you get here*
+
 ## Angles NOT yet taken
-- Personal founder motivation/story (flagged as missing everywhere — different from credentials; this is the *why* not the *what*)
+- Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
 - Solo founder + AI as a *how-to* or *model* article (partially started in rewrite)
 - Otto AI inception article (7b8062fd is a version but may need rewrite)
