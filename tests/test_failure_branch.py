@@ -153,23 +153,25 @@ class TestRootCauseAnalysis(unittest.TestCase):
 
     def test_successful_correction_with_llm(self):
         """LLM returns valid analysis and correction."""
-        mock_response = '{"root_cause": "Missing dependency", "category": "dependency", "correction_strategy": "Install the package first", "corrected_prompt_additions": "Before starting, run: pip install foo"}'
+        parsed = {
+            "root_cause": "Missing dependency",
+            "category": "dependency",
+            "correction_strategy": "Install the package first",
+            "corrected_prompt_additions": "Before starting, run: pip install foo",
+        }
+        mock_llm = MagicMock()
+        mock_llm.llm_chat = AsyncMock(return_value="json_str")
+        mock_llm.extract_json = MagicMock(return_value=parsed)
 
         async def run():
-            with patch("memory.llm.llm_chat", new_callable=AsyncMock, return_value=mock_response):
-                with patch("memory.llm.extract_json", return_value={
-                    "root_cause": "Missing dependency",
-                    "category": "dependency",
-                    "correction_strategy": "Install the package first",
-                    "corrected_prompt_additions": "Before starting, run: pip install foo",
-                }):
-                    result = await analyze_root_cause(
-                        failure_type="dependency",
-                        failure_signal="ModuleNotFoundError: No module named 'foo'",
-                        original_prompt="Build feature X",
-                        task_output="ModuleNotFoundError: No module named 'foo'",
-                    )
-                    return result
+            with patch.dict("sys.modules", {"memory.llm": mock_llm}):
+                result = await analyze_root_cause(
+                    failure_type="dependency",
+                    failure_signal="ModuleNotFoundError: No module named 'foo'",
+                    original_prompt="Build feature X",
+                    task_output="ModuleNotFoundError: No module named 'foo'",
+                )
+                return result
 
         result = asyncio.get_event_loop().run_until_complete(run())
         self.assertEqual(result.root_cause, "Missing dependency")
@@ -179,16 +181,19 @@ class TestRootCauseAnalysis(unittest.TestCase):
 
     def test_fallback_when_llm_fails(self):
         """Falls back to pattern-based correction when LLM returns garbage."""
+        mock_llm = MagicMock()
+        mock_llm.llm_chat = AsyncMock(return_value="not json")
+        mock_llm.extract_json = MagicMock(return_value=None)
+
         async def run():
-            with patch("memory.llm.llm_chat", new_callable=AsyncMock, return_value="not json"):
-                with patch("memory.llm.extract_json", return_value=None):
-                    result = await analyze_root_cause(
-                        failure_type="error",
-                        failure_signal="ValueError: bad input",
-                        original_prompt="Run the task",
-                        task_output="ValueError: bad input",
-                    )
-                    return result
+            with patch.dict("sys.modules", {"memory.llm": mock_llm}):
+                result = await analyze_root_cause(
+                    failure_type="error",
+                    failure_signal="ValueError: bad input",
+                    original_prompt="Run the task",
+                    task_output="ValueError: bad input",
+                )
+                return result
 
         result = asyncio.get_event_loop().run_until_complete(run())
         self.assertIn("error failure", result.root_cause)
@@ -277,6 +282,67 @@ class TestHelpers(unittest.TestCase):
         )
         # Signal should be truncated to 200 chars
         self.assertLessEqual(len(result.split("Previous attempt failed: ")[1].split("\n")[0]), 200)
+
+
+class TestAgentTypeCrossSession(unittest.TestCase):
+    """Test agent_type support for cross-session learning tuple."""
+
+    def test_detect_result_does_not_include_agent_type(self):
+        """Detection result is agent-agnostic — agent_type flows through DB, not DetectionResult."""
+        result = detect_failure(
+            task_output="Traceback (most recent call last):\n  ValueError: bad",
+            exit_code=1,
+        )
+        self.assertTrue(result.detected)
+        # DetectionResult has no agent_type — it's a DB-layer concern
+        self.assertFalse(hasattr(result, "agent_type"))
+
+    def test_models_accept_agent_type(self):
+        """Pydantic models accept agent_type for cross-session learning."""
+        from memory.models import FailureBranchDetectRequest, FailureBranchCorrectRequest, FailureBranchAdaptationOut
+        from datetime import datetime, timezone
+
+        # DetectRequest with agent_type
+        req = FailureBranchDetectRequest(
+            task_id=uuid4(),
+            task_output="error output",
+            agent_type="coder",
+        )
+        self.assertEqual(req.agent_type, "coder")
+
+        # CorrectRequest with agent_type
+        creq = FailureBranchCorrectRequest(
+            task_id=uuid4(),
+            failure_type="error",
+            failure_signal="ValueError",
+            original_prompt="Do work",
+            agent_type="researcher",
+        )
+        self.assertEqual(creq.agent_type, "researcher")
+
+        # AdaptationOut with agent_type
+        out = FailureBranchAdaptationOut(
+            id=uuid4(),
+            task_id=uuid4(),
+            agent_type="debugger",
+            failure_type="error",
+            failure_signal="crash",
+            confidence=0.9,
+            status="detected",
+            attempt_number=1,
+            created_at=datetime.now(timezone.utc),
+        )
+        self.assertEqual(out.agent_type, "debugger")
+
+    def test_models_agent_type_optional(self):
+        """agent_type is optional (backward compat with existing callers)."""
+        from memory.models import FailureBranchDetectRequest
+
+        req = FailureBranchDetectRequest(
+            task_id=uuid4(),
+            task_output="output",
+        )
+        self.assertIsNone(req.agent_type)
 
 
 if __name__ == "__main__":

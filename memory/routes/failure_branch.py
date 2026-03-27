@@ -45,9 +45,10 @@ async def detect(body: FailureBranchDetectRequest):
         pool = await get_pool()
         await pool.execute(
             """INSERT INTO failure_branch_adaptations
-                   (task_id, failure_type, failure_signal, confidence, status)
-               VALUES ($1, $2, $3, $4, 'detected')""",
+                   (task_id, agent_type, failure_type, failure_signal, confidence, status)
+               VALUES ($1, $2, $3, $4, $5, 'detected')""",
             body.task_id,
+            body.agent_type,
             result.failure_type,
             result.failure_signal,
             result.confidence,
@@ -84,11 +85,12 @@ async def correct(body: FailureBranchCorrectRequest):
     if not adaptation_id:
         new_row = await pool.fetchrow(
             """INSERT INTO failure_branch_adaptations
-                   (task_id, failure_type, failure_signal, confidence,
+                   (task_id, agent_type, failure_type, failure_signal, confidence,
                     attempt_number, status)
-               VALUES ($1, $2, $3, 0.5, $4, 'analyzing')
+               VALUES ($1, $2, $3, $4, 0.5, $5, 'analyzing')
                RETURNING id""",
             body.task_id,
+            body.agent_type,
             body.failure_type,
             body.failure_signal,
             body.attempt_number,
@@ -164,7 +166,7 @@ async def retest(body: FailureBranchRetestRequest):
                status = $4,
                resolved_at = CASE WHEN $4 IN ('resolved', 'failed') THEN now() ELSE NULL END
            WHERE id = $1
-           RETURNING id, task_id, failure_type, failure_signal, confidence,
+           RETURNING id, task_id, agent_type, failure_type, failure_signal, confidence,
                      root_cause, root_cause_category, correction_strategy,
                      corrected_prompt, retest_passed, retest_details,
                      status, attempt_number, created_at, resolved_at""",
@@ -204,7 +206,7 @@ async def get_history(
     params.append(limit)
 
     rows = await pool.fetch(
-        f"""SELECT id, task_id, failure_type, failure_signal, confidence,
+        f"""SELECT id, task_id, agent_type, failure_type, failure_signal, confidence,
                    root_cause, root_cause_category, correction_strategy,
                    corrected_prompt, retest_passed, retest_details,
                    status, attempt_number, created_at, resolved_at

@@ -746,6 +746,7 @@ class FailureBranchDetectRequest(BaseModel):
     task_id: UUID
     task_output: str                           # stdout/stderr from task
     exit_code: int = 0
+    agent_type: str | None = None              # which agent type experienced the failure (cross-session learning)
     task_metadata: dict = Field(default_factory=dict)
 
 class FailureBranchDetectResult(BaseModel):
@@ -760,6 +761,7 @@ class FailureBranchCorrectRequest(BaseModel):
     failure_signal: str
     original_prompt: str
     task_output: str = ""
+    agent_type: str | None = None              # cross-session learning tuple
     attempt_number: int = 1
 
 class FailureBranchCorrectResult(BaseModel):
@@ -776,6 +778,7 @@ class FailureBranchRetestRequest(BaseModel):
 class FailureBranchAdaptationOut(BaseModel):
     id: UUID
     task_id: UUID
+    agent_type: str | None = None              # cross-session learning tuple
     failure_type: str
     failure_signal: str
     confidence: float
