@@ -120,6 +120,10 @@ class Settings(BaseSettings):
     # Optional bearer token sent as Authorization: Bearer <token> in webhook POSTs
     gate_webhook_secret: str = ""
 
+    # ── MCP Server ───────────────────────────────────────────────────
+    # Bearer token for external MCP clients. Empty = dev mode (no auth).
+    mcp_token: str = ""
+
     # ── Secrets Vault ─────────────────────────────────────────────────
     # Fernet master key — ONLY secret that must stay in .env.
     # Generate with: python3 -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
