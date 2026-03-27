@@ -739,6 +739,58 @@ class RetryMetrics(BaseModel):
     pending_outcomes: int
 
 
+# ── Failure-Branch Adaptation ─────────────────────────────────────────
+# In-task failure detection and correction within the RL2F feedback loop.
+
+class FailureBranchDetectRequest(BaseModel):
+    task_id: UUID
+    task_output: str                           # stdout/stderr from task
+    exit_code: int = 0
+    task_metadata: dict = Field(default_factory=dict)
+
+class FailureBranchDetectResult(BaseModel):
+    detected: bool
+    failure_type: str | None = None            # timeout, error, quality, approach, dependency
+    failure_signal: str | None = None
+    confidence: float = 0.0
+
+class FailureBranchCorrectRequest(BaseModel):
+    task_id: UUID
+    failure_type: str
+    failure_signal: str
+    original_prompt: str
+    task_output: str = ""
+    attempt_number: int = 1
+
+class FailureBranchCorrectResult(BaseModel):
+    root_cause: str
+    root_cause_category: str                   # prompt, scope, dependency, environment, logic
+    correction_strategy: str
+    corrected_prompt: str
+
+class FailureBranchRetestRequest(BaseModel):
+    adaptation_id: UUID
+    retest_output: str
+    retest_passed: bool
+
+class FailureBranchAdaptationOut(BaseModel):
+    id: UUID
+    task_id: UUID
+    failure_type: str
+    failure_signal: str
+    confidence: float
+    root_cause: str | None = None
+    root_cause_category: str | None = None
+    correction_strategy: str | None = None
+    corrected_prompt: str | None = None
+    retest_passed: bool | None = None
+    retest_details: str | None = None
+    status: str
+    attempt_number: int
+    created_at: datetime
+    resolved_at: datetime | None = None
+
+
 # ── JitRL: Just-In-Time Reinforcement Learning ─────────────────────
 # arXiv:2601.18510 — Yibo Li et al., Jan 2026
 # Non-parametric experience buffer for training-free test-time policy optimization
