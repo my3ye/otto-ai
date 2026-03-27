@@ -131,7 +131,7 @@ Read meta-state and classify this cycle to determine step ordering:
 curl -sf http://localhost:8100/tasks/queue/status | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Queue: pending={d.get(\"pending\",0)} running={d.get(\"running\",0)}')"
 
 # RL2F accuracy
-curl -sf http://localhost:8100/rl2f/accuracy | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'RL2F: {d.get(\"accuracy\",\"?\")}')" 2>/dev/null || echo "RL2F: unavailable"
+curl -sf http://localhost:8100/reasoning/accuracy | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'RL2F: {d.get(\"accuracy_pct\",\"?\")}%')" 2>/dev/null || echo "RL2F: unavailable"
 
 # AutoEvolve generation (stuck at 1 = frozen)
 curl -sf http://localhost:8100/autoevolve/generation | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'AE generation: {d.get(\"current_generation\",\"?\")} (experiments: {d.get(\"total_experiments\",0)})')" 2>/dev/null || echo "AE generation: unavailable"
@@ -423,6 +423,45 @@ curl -sf -X POST http://localhost:8100/semantic/remember \
   -H 'Content-Type: application/json' \
   -d '{"content": "Plan system insight: [observation]", "category": "plan_system", "confidence": 0.8}'
 ```
+
+### 3e. Contributor task protocol enforcement
+
+Every action item assigned to Mev or any other contributor MUST exist as a task on the OMS board — not just in working memory, semantic facts, or chat reminders.
+
+**Audit contributor tasks each reflection cycle:**
+
+```bash
+# Check Mev's board — are all known blockers represented?
+curl -sf 'http://localhost:8100/tasks?owner=mev&status=pending&limit=20' | python3 -c "
+import json, sys
+d = json.load(sys.stdin)
+tasks = d.get('tasks', d) if isinstance(d, dict) else d
+for t in tasks:
+    print(f'[{t["priority"]}] {t["title"]} — {t["status"]}')
+print(f'Total mev tasks: {len(tasks)}')
+"
+```
+
+**What to look for:**
+1. **Blockers in active_mission not on the board** — if working memory lists "waiting on Stripe keys" but there's no `owner=mev` task for it, create one
+2. **Stale board tasks** — if a Mev task has been pending >7 days, check if it's still needed. Update its prompt with a note if it is; complete/archive it if resolved
+3. **Missing context** — if a board task has a vague prompt (no why, no how long), update it
+
+**Create missing contributor tasks immediately:**
+```bash
+curl -s -X POST http://localhost:8100/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "[P#] Actionable description of what contributor needs to do",
+    "prompt": "Context: what, why, where to find info, and how long it should take.",
+    "priority": 9,
+    "owner": "mev",
+    "status": "pending",
+    "created_by": "reflection"
+  }'
+```
+
+**Standing rule (from `otto_core/standing_directives.md` §10):** Do not rely on context or chat alone for contributor work items. Board-first, always.
 
 ### 4. Procedural memory growth
 
@@ -1257,7 +1296,7 @@ Write back cross-cycle causal state atomically (always run — takes <5s):
 
 ```bash
 # Get current RL2F accuracy
-RL2F_NOW=$(curl -sf http://localhost:8100/rl2f/accuracy | python3 -c "import sys,json; print(json.load(sys.stdin).get('accuracy', 0.30))" 2>/dev/null || echo "0.30")
+RL2F_NOW=$(curl -sf http://localhost:8100/reasoning/accuracy | python3 -c "import sys,json; print(json.load(sys.stdin).get('accuracy_pct', 30.0) / 100.0)" 2>/dev/null || echo "0.30")
 # Get autoevolve generation
 AE_GEN=$(curl -sf http://localhost:8100/autoevolve/generation | python3 -c "import sys,json; print(json.load(sys.stdin).get('current_generation', 1))" 2>/dev/null || echo "1")
 # Get active experiment count

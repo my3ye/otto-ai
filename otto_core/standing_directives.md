@@ -1,5 +1,5 @@
 # Standing Directives Reference
-*Last updated: 2026-03-17 — Consolidated from session decisions, Mev directives, and research findings.*
+*Last updated: 2026-03-27 — Consolidated from session decisions, Mev directives, and research findings.*
 
 This document is the ground truth for all standing directional decisions. Agents must adhere to these when relevant. Cross-reference with CONSTITUTION.md for identity/mission boundaries.
 
@@ -168,6 +168,22 @@ When Otto is restored to a new VM or after a system clone, the following service
 - Distributed Otto Architecture: Storage Node section
 
 **Applies to:** ONEON product copy, ONEON roadmap, Otto AI architecture docs, investor materials, any feature touching identity + memory + monetization.
+
+---
+
+## 10. Contributor Task Protocol
+
+**Decision (Mev directive, 2026-03-27):** Any task or action item assigned to Mev or any other contributor MUST be placed on the OMS task board as a formal task. Never rely on memory, semantic facts, or chat reminders alone.
+
+**The rule:**
+- Use `POST /tasks` with `owner=mev` (for Mev) or `owner=<contributor_name>` (for others)
+- Every human-assigned task must include: actionable title, full context in prompt (what + why + how long), correct priority, and `status=pending`
+- Before sending a WhatsApp nudge about a pending action, check if the task already exists: `GET /tasks?owner=mev&status=pending`
+- The OMS board at mev.otto.lk is the **canonical source of truth** for all contributor-facing work items
+
+**Applies to:** heartbeat (blocker surfacing), task creation logic, any agent that identifies work for a human contributor.
+
+**Committed:** `standing_directives.md` update (2026-03-27). Semantic memory ID: `84b236ea`.
 
 ---
 

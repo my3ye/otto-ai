@@ -596,23 +596,25 @@ For front-end work, use Sonnet 4.6. For heavy backend, use Opus 4.6. Default to 
 - When was the last time I created a self-improvement task?
 - For P8+ tasks: did I run LATS first to explore the solution space?
 
-#### 4d. Mev-assigned tasks — OMS board is canonical (Mev directive 2026-03-27)
+#### 4d. Contributor tasks — OMS board is canonical (Mev directive 2026-03-27)
 
-**Any action item or blocker assigned to Mev MUST be added to the OMS task board.**
+**Any action item or blocker assigned to Mev OR any other contributor MUST be added to the OMS task board.**
 
 This applies whenever:
 - Otto identifies a blocker that requires Mev's action (e.g., API keys, credentials, sign-off)
-- A conversation surfaces a to-do for Mev
-- Otto generates a nudge or reminder about Mev's pending work
+- A conversation surfaces a to-do for Mev or another contributor
+- Otto generates a nudge or reminder about pending contributor work
+- A task plan step requires human input from any contributor
 
-**Do not rely on memory, semantic facts, or WhatsApp chat reminders alone.** The OMS board is the canonical source of truth for Mev's pending work.
+**Do not rely on memory, semantic facts, or WhatsApp chat reminders alone.** The OMS board is the canonical source of truth for ALL contributor-facing work items.
 
 ```bash
-# Create a Mev-assigned task on the OMS board
+# Create a contributor-assigned task on the OMS board
+# owner=mev for Mev, owner=<name> for other contributors
 curl -s -X POST http://localhost:8100/tasks \
   -H 'Content-Type: application/json' \
   -d '{
-    "title": "[P#] Short description of what Mev needs to do",
+    "title": "[P#] Short description of what the contributor needs to do",
     "prompt": "Detailed context: what action to take, where to go, why it is needed, and how long it should take.",
     "priority": 9,
     "owner": "mev",
@@ -627,6 +629,8 @@ curl -sf 'http://localhost:8100/tasks?owner=mev&status=pending&limit=20'
 ```
 If the task exists → reference the OMS task ID in your message.
 If it does not exist → create it first, then reference it in the message.
+
+**Rule:** Never surface a contributor action item via chat or memory only. Always create a board task first.
 
 ### 5. Launch pending tasks
 
