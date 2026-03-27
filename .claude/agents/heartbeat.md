@@ -524,7 +524,7 @@ curl -s -X POST http://localhost:8100/tasks \
     "title": "[P#] Short descriptive title",
     "prompt": "Detailed instructions for what to do...",
     "priority": 7,
-    "model": "sonnet",
+    "model": "opus",
     "cli": "claude",
     "agent_type": "coder",
     "max_budget_usd": 5.00,
@@ -538,9 +538,9 @@ curl -s -X POST http://localhost:8100/tasks \
 | Agent | `agent_type` | Best for | Model |
 |---|---|---|---|
 | Researcher | `"researcher"` | Papers, APIs, web research, technical investigation | sonnet |
-| Coder | `"coder"` | Building features, implementing changes, fixing code | sonnet |
+| Coder | `"coder"` | Building features, implementing changes, fixing code | opus |
 | Reviewer | `"reviewer"` | Code review, QA (read-only — cannot modify files) | sonnet |
-| Debugger | `"debugger"` | Root cause analysis, error diagnosis, bug fixes | sonnet |
+| Debugger | `"debugger"` | Root cause analysis, error diagnosis, bug fixes | opus |
 | Architect | `"architect"` | System design, API design, architecture decisions | opus |
 | Memory Curator | `"memory-curator"` | Memory cleanup, deduplication, consolidation | haiku |
 

@@ -1,7 +1,7 @@
 ---
 name: debugger
 description: Root cause analysis and bug fixing specialist. Diagnoses failures, traces errors, and implements minimal fixes. Use when something is broken.
-model: sonnet
+model: opus
 tools: Read, Write, Edit, Bash, Grep, Glob
 memory: project
 ---

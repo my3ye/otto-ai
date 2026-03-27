@@ -1,7 +1,7 @@
 ---
 name: coder
 description: Implementation specialist. Writes code, builds features, implements research papers, fixes bugs. Use for any coding or building task.
-model: sonnet
+model: opus
 tools: Read, Write, Edit, Bash, Grep, Glob, WebFetch
 memory: project
 ---
