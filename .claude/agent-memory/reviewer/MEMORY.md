@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_twitter_threads_review.md](project_twitter_threads_review.md) — MY3YE Twitter threads audience review (2026-03-27, WF Step 2): NEEDS_CHANGES (7.5/10). Critical: duplicate Not-ChatGPT frame in both threads (T5/T4). Warnings: "code is visible" ambiguous, "Verifiable" needs link, VC jargon in Thread 1 T5, fixed project count in #14. Thread 2 killer line ("Compounding, not announcing") is strongest content in calendar.
 - [project_pipi_launch_kit.md](project_pipi_launch_kit.md) — $PIPI Pump.fun full launch kit review (2026-03-26): APPROVED. 2 pre-deploy flags for Mev: (1) koink.fun website field may send Pump.fun visitors to wrong product page; (2) "died once" lore needs confirmation it's not a real prior on-chain launch.
 - [project_panik_launch_review.md](project_panik_launch_review.md) — Panik App launch sign-off review (2026-03-26): NO-GO. Critical: no deployable GitHub remote (ottomev archived, PipiAgent repo doesn't exist); zero SEO meta tags in index.html. Waitlist modal + API fully functional.
 - [project_koink_landing_audit.md](project_koink_landing_audit.md) — Koink.fun landing page full audit (2026-03-26): NEEDS_CHANGES. Critical: "quantum" in H1, weak CTA (X.com only, no email capture), #trojan UX gap, no countdown/urgency. Warnings: anti-whale framing needs update, no og:image, sell taxes undefined.
