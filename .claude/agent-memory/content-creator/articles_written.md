@@ -192,8 +192,16 @@ type: project
 - **Story beat**: The Law + The Mission
 - **What NOT to repeat**: "are they good or evil?" dissolution argument (this piece owns it), founder sunset framing, rotating seat expiry as central mechanism, "the room" framing
 
+## Founder Positioning Copy
+
+### Why I Am the Best Person to Build This (1a369f23)
+- **Content type**: note (not article — it's a copy reference document)
+- **Angle covered**: Execution as the qualification — 15 years eng, Supra Oracles Web3 infra lead, solo-built live AI ecosystem, zero external funding. Three versions: short (30–50w), medium (~100w), long (~280w)
+- **Status**: draft
+- **What NOT to repeat**: "execution is already running" as the core answer, credentials-come-second framing
+
 ## Angles NOT yet taken
-- Personal founder motivation/story (flagged as missing everywhere)
+- Personal founder motivation/story (flagged as missing everywhere — different from credentials; this is the *why* not the *what*)
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
 - Solo founder + AI as a *how-to* or *model* article (partially started in rewrite)
 - Otto AI inception article (7b8062fd is a version but may need rewrite)

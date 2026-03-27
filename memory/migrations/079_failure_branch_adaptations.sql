@@ -1,8 +1,10 @@
 -- Failure-branch adaptation tracking for RL2F
 -- Records in-task failure detection, root-cause analysis, correction attempts, and retest results
+-- Cross-session learning tuple: (task_id, agent_type, failure_type, root_cause_category, correction_strategy, retest_passed)
 CREATE TABLE IF NOT EXISTS failure_branch_adaptations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    task_id UUID NOT NULL,
+    task_id UUID NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+    agent_type VARCHAR(50),                     -- which agent type experienced the failure (cross-session learning)
     -- Detection
     failure_type VARCHAR(50) NOT NULL,          -- timeout, error, quality, approach, dependency
     failure_signal TEXT NOT NULL,                -- what triggered detection
@@ -24,6 +26,7 @@ CREATE TABLE IF NOT EXISTS failure_branch_adaptations (
 );
 
 CREATE INDEX IF NOT EXISTS idx_fba_task_id ON failure_branch_adaptations(task_id);
+CREATE INDEX IF NOT EXISTS idx_fba_agent_type ON failure_branch_adaptations(agent_type);
 CREATE INDEX IF NOT EXISTS idx_fba_status ON failure_branch_adaptations(status);
 CREATE INDEX IF NOT EXISTS idx_fba_failure_type ON failure_branch_adaptations(failure_type);
 CREATE INDEX IF NOT EXISTS idx_fba_created ON failure_branch_adaptations(created_at DESC);
