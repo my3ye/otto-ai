@@ -1,5 +1,17 @@
 # Researcher Agent Memory
 
+## STEM Agent Research (2026-03-27) — VALIDATED (8/10)
+
+DB Note ID: ebac875b | Memory IDs: 0667081c, 72731a66, 0b40a3fa, 1fd66423, ab85fd5e, 6ece3366, c04ca7aa
+
+- **[P1 ACTION]** Caller Profiler: FULL GAP — implement 5-8 dim tracker for Mev (preferred response length, agent types, task categories, time-of-day, comms register). Store in semantic memory, inject into heartbeat context.
+- **[P2 ACTION]** Skills Maturation trigger in reflection agent: detect same agent_type + similar prompt 3+ times → auto-propose workflow template to Mev. Highest compound-growth leverage.
+- **[P3 ACTION]** Failure-branch adaptation in task_runner.sh: on non-zero exit, log failure pattern to semantic memory; retry with alternate agent on known failure classes. Addresses RL2F 32% decline.
+- **[GATE]** Do NOT implement any STEM code until license confirmed at alfredcs/stem-agent GitHub.
+- **[CAUTION]** Pre-print (March 2026), 0 citations. Recency flag on all claims.
+- **[ARCHITECTURE]** 5 STEM layers: Protocol Gateway (A2A/AG-UI/A2UI/UCP/AP2), Tool Management (dynamic), Self-Adaptation (failure-triggered), Agent Comms (pub-sub), Memory (sub-linear).
+- **[GAPS]** Full: Caller Profiler, MCP, Dynamic Tool Composition. Partial: Self-Adaptation (RL2F cross-session only), Protocol gateway (2 vs 5 channels), Memory (not sub-linear verified).
+
 ## Three-Paper Synthesis: HiClaw + TrustGraph + VISTA (2026-03-24) — VALIDATED
 
 DB Note ID: 9dacc65b | Memory IDs: b8caf97a, 892df600, 57c6abad, 6819725c, a2f3d976, de793994, 1cd61702, aabbf1b8
