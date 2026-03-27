@@ -4,6 +4,7 @@ Validates X-MCP-Token header against settings.mcp_token.
 Skips auth if mcp_token is empty (dev mode).
 """
 
+import hmac
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -30,7 +31,7 @@ class MCPAuthMiddleware(BaseHTTPMiddleware):
 
         # Validate token from header
         provided = request.headers.get("X-MCP-Token", "")
-        if provided != self.token:
+        if not hmac.compare_digest(provided, self.token):
             logger.warning(f"MCP auth failed from {request.client.host if request.client else 'unknown'}")
             return JSONResponse({"error": "Invalid or missing MCP token"}, status_code=401)
 

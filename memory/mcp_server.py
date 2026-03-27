@@ -95,13 +95,17 @@ async def graph_search(query: str) -> str:
     import httpx
     from .config import settings
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{settings.graphiti_url}/search",
-            json={"query": query},
-            timeout=30.0,
-        )
-        return resp.text
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{settings.graphiti_url}/search",
+                json={"query": query},
+                timeout=30.0,
+            )
+            return resp.text
+    except Exception as e:
+        logger.warning(f"Graph search failed: {e}")
+        return json.dumps({"error": f"Knowledge graph unavailable: {e}"})
 
 
 @mcp.tool()
@@ -229,13 +233,17 @@ async def whatsapp_send(message: str) -> str:
     import httpx
     from .config import settings
 
-    async with httpx.AsyncClient() as client:
-        resp = await client.post(
-            f"{settings.whatsapp_url}/send",
-            json={"message": message},
-            timeout=15.0,
-        )
-        return resp.text
+    try:
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(
+                f"{settings.whatsapp_url}/send",
+                json={"message": message},
+                timeout=15.0,
+            )
+            return resp.text
+    except Exception as e:
+        logger.warning(f"WhatsApp send failed: {e}")
+        return json.dumps({"error": f"WhatsApp unavailable: {e}"})
 
 
 @mcp.tool()
