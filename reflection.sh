@@ -48,6 +48,11 @@ trap 'rm -f "$LOCK_FILE"' EXIT
 
 echo "$(date -Iseconds) Otto reflection starting..." >> "$LOG_FILE"
 
+# Report start to kernel
+API="http://localhost:8100"
+curl -sf -X POST "${API}/kernel/agents/reflection/started" >> "$LOG_FILE" 2>&1 || \
+    echo "$(date -Iseconds) WARNING: Could not report reflection start to kernel" >> "$LOG_FILE"
+
 # Run Claude Code CLI as Otto's reflection engine
 # Timeout after 10 minutes to prevent hangs from blocking future cycles
 cd "$OTTO_DIR"
@@ -80,6 +85,12 @@ if grep -qiE "429|rate.limit|RateLimitError|overloaded_error|too_many_requests" 
     date +%s > "$RATE_LIMIT_FILE"
     echo "$(date -Iseconds) Rate limit detected — sentinel written to ${RATE_LIMIT_FILE}. Next reflection cycle will be skipped." >> "$LOG_FILE"
 fi
+
+# Report completion to kernel
+REFL_SUCCESS="true"
+[ $EXIT_CODE -ne 0 ] && REFL_SUCCESS="false"
+curl -sf -X POST "${API}/kernel/agents/reflection/completed?success=${REFL_SUCCESS}" >> "$LOG_FILE" 2>&1 || \
+    echo "$(date -Iseconds) WARNING: Could not report reflection completion to kernel" >> "$LOG_FILE"
 
 echo "$(date -Iseconds) Otto reflection completed." >> "$LOG_FILE"
 
