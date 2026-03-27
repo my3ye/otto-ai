@@ -22,6 +22,7 @@ node_modules/
 memory/svc_components.npz
 *.npz
 projects/alpha/research_state.json
+projects/alpha/.solana_tracker_usage.json
 
 # Task progress files (ephemeral, task-specific)
 .otto-progress-*.md
