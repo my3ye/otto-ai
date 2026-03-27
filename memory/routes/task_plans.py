@@ -635,10 +635,36 @@ async def classify_for_plan(user_message: str, otto_reply: str) -> dict | None:
 
     Returns plan spec if multi-task, None if single-task (caller falls through
     to legacy single-dispatch).
+
+    Uses dynamic tool composition to inject capability-aware hints into the
+    LLM prompt, so the classifier knows which agents produce/consume what.
     """
+    # Dynamic tool composition hints (STEM Agent pattern)
+    composition_hints = ""
+    try:
+        from ..composition import find_compositions
+        from .skills import SKILL_REGISTRY
+        chains = find_compositions(user_message[:400], registry=SKILL_REGISTRY)
+        if chains:
+            hint_lines = []
+            for chain in chains[:3]:
+                steps = " → ".join(
+                    f"{s.agent_type}(produces:{s.output_type})"
+                    for s in chain.steps
+                )
+                hint_lines.append(f"  - {steps} [relevance={chain.total_relevance}]")
+            composition_hints = (
+                "\n\nCOMPOSITION HINTS (suggested agent chains based on input/output compatibility):\n"
+                + "\n".join(hint_lines)
+                + "\nUse these as guidance for agent selection and task ordering."
+            )
+    except Exception as e:
+        log.debug(f"Composition hints skipped: {e}")
+
+    system_prompt = _PLAN_CLASSIFIER_SYSTEM + composition_hints
     user_msg = f"Instruction from Mev: {user_message[:800]}\n\nOtto's conversational reply: {otto_reply[:400]}"
     messages = [
-        {"role": "system", "content": _PLAN_CLASSIFIER_SYSTEM},
+        {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_msg},
     ]
 

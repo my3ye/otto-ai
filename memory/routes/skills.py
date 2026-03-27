@@ -18,6 +18,16 @@ router = APIRouter(prefix="/skills", tags=["skills"])
 # Each skill: name, description (semantic routing signal), keywords, skill_type
 # Descriptions are the primary signal for retrieval — write them carefully.
 # skill_type: agent (specialist agent) | tool (code tool) | procedure (learned)
+#
+# Composition fields (STEM Agent dynamic tool composition):
+#   inputs:       type strings this agent accepts (every agent implicitly accepts "question")
+#   outputs:      type strings this agent produces
+#   capabilities: short capability tags for introspection
+#
+# Type vocabulary:
+#   question, topic, url, research_report, findings, architecture_spec, code,
+#   code_review, content_draft, security_report, social_content, growth_strategy,
+#   memory_report, debug_report, error_log, workflow_status, task_spec
 
 SKILL_REGISTRY = [
     {
@@ -27,6 +37,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "researcher",
         "cost": "medium",
+        "inputs": ["question", "topic", "url"],
+        "outputs": ["research_report", "findings"],
+        "capabilities": ["web_search", "paper_analysis", "api_exploration"],
     },
     {
         "name": "coder",
@@ -35,6 +48,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "coder",
         "cost": "medium",
+        "inputs": ["question", "architecture_spec", "task_spec", "code_review"],
+        "outputs": ["code"],
+        "capabilities": ["implementation", "bug_fix", "feature_build"],
     },
     {
         "name": "debugger",
@@ -43,6 +59,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "debugger",
         "cost": "low",
+        "inputs": ["question", "error_log", "code"],
+        "outputs": ["debug_report", "code"],
+        "capabilities": ["root_cause_analysis", "error_tracing", "minimal_fix"],
     },
     {
         "name": "reviewer",
@@ -51,6 +70,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "reviewer",
         "cost": "low",
+        "inputs": ["question", "code"],
+        "outputs": ["code_review"],
+        "capabilities": ["code_review", "quality_check", "security_review"],
     },
     {
         "name": "architect",
@@ -59,6 +81,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "architect",
         "cost": "high",
+        "inputs": ["question", "research_report", "findings"],
+        "outputs": ["architecture_spec", "task_spec"],
+        "capabilities": ["system_design", "api_design", "tradeoff_analysis"],
     },
     {
         "name": "content-creator",
@@ -67,6 +92,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "content-creator",
         "cost": "medium",
+        "inputs": ["question", "topic", "research_report", "findings"],
+        "outputs": ["content_draft"],
+        "capabilities": ["article_writing", "brand_voice", "copywriting"],
     },
     {
         "name": "memory-curator",
@@ -75,6 +103,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "memory-curator",
         "cost": "low",
+        "inputs": ["question"],
+        "outputs": ["memory_report"],
+        "capabilities": ["deduplication", "archival", "memory_maintenance"],
     },
     {
         "name": "twitter-engager",
@@ -83,6 +114,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "twitter-engager",
         "cost": "medium",
+        "inputs": ["question", "content_draft", "topic"],
+        "outputs": ["social_content"],
+        "capabilities": ["tweet_creation", "thread_writing", "engagement"],
     },
     {
         "name": "social-media-strategist",
@@ -91,6 +125,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "social-media-strategist",
         "cost": "medium",
+        "inputs": ["question", "content_draft", "topic"],
+        "outputs": ["social_content", "growth_strategy"],
+        "capabilities": ["content_calendar", "campaign_planning", "audience_growth"],
     },
     {
         "name": "growth-hacker",
@@ -99,6 +136,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "growth-hacker",
         "cost": "medium",
+        "inputs": ["question", "research_report", "findings"],
+        "outputs": ["growth_strategy"],
+        "capabilities": ["growth_analysis", "funnel_optimization", "viral_loops"],
     },
     {
         "name": "landing-page",
@@ -107,6 +147,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "landing-page",
         "cost": "medium",
+        "inputs": ["question", "architecture_spec", "content_draft"],
+        "outputs": ["code"],
+        "capabilities": ["web_page_creation", "frontend_design", "html_css"],
     },
     {
         "name": "security-audit",
@@ -115,6 +158,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "security-audit",
         "cost": "low",
+        "inputs": ["question", "code"],
+        "outputs": ["security_report"],
+        "capabilities": ["vulnerability_scan", "security_review", "hardening"],
     },
     {
         "name": "research-synthesizer",
@@ -123,6 +169,9 @@ SKILL_REGISTRY = [
         "skill_type": "agent",
         "agent_type": "research-synthesizer",
         "cost": "low",
+        "inputs": ["question", "research_report", "findings"],
+        "outputs": ["research_report", "findings"],
+        "capabilities": ["synthesis", "cross_reference", "confidence_scoring"],
     },
     {
         "name": "memory-query",
@@ -131,6 +180,9 @@ SKILL_REGISTRY = [
         "skill_type": "tool",
         "agent_type": None,
         "cost": "low",
+        "inputs": ["question"],
+        "outputs": ["memory_report"],
+        "capabilities": ["memory_search", "knowledge_retrieval"],
     },
     {
         "name": "workflow-operations",
@@ -139,6 +191,9 @@ SKILL_REGISTRY = [
         "skill_type": "tool",
         "agent_type": None,
         "cost": "low",
+        "inputs": ["question", "task_spec"],
+        "outputs": ["workflow_status"],
+        "capabilities": ["workflow_management", "agent_activation"],
     },
     {
         "name": "task-creation",
@@ -147,6 +202,9 @@ SKILL_REGISTRY = [
         "skill_type": "tool",
         "agent_type": None,
         "cost": "low",
+        "inputs": ["question", "task_spec"],
+        "outputs": ["task_spec"],
+        "capabilities": ["task_creation", "queue_management"],
     },
     {
         "name": "api-development",
@@ -155,6 +213,9 @@ SKILL_REGISTRY = [
         "skill_type": "tool",
         "agent_type": None,
         "cost": "low",
+        "inputs": ["question", "architecture_spec"],
+        "outputs": ["code"],
+        "capabilities": ["api_patterns", "fastapi_conventions"],
     },
     {
         "name": "debug-workflow",
@@ -163,6 +224,9 @@ SKILL_REGISTRY = [
         "skill_type": "tool",
         "agent_type": None,
         "cost": "low",
+        "inputs": ["question", "error_log"],
+        "outputs": ["debug_report"],
+        "capabilities": ["service_debugging", "log_analysis"],
     },
     {
         "name": "otto-conventions",
@@ -171,6 +235,9 @@ SKILL_REGISTRY = [
         "skill_type": "tool",
         "agent_type": None,
         "cost": "low",
+        "inputs": ["question"],
+        "outputs": ["findings"],
+        "capabilities": ["convention_lookup", "pattern_reference"],
     },
 ]
 
@@ -202,6 +269,7 @@ async def suggest_skills(
     task: str = Query(..., description="Task description to find relevant skills for"),
     top_n: int = Query(3, ge=1, le=10, description="Number of top skills to return"),
     skill_type: str | None = Query(None, description="Filter by type: agent | tool | procedure"),
+    compose: bool = Query(False, description="Include composition chains (dynamic tool composition)"),
 ):
     """Tool RAG: Semantically retrieve the most relevant skills for a task.
 
@@ -211,6 +279,7 @@ async def suggest_skills(
     selection accuracy as the skill library grows.
 
     Returns top-N skills ranked by relevance, with descriptions and agent_type hints.
+    When compose=true, also returns suggested multi-agent composition chains.
     """
     registry = SKILL_REGISTRY
     if skill_type:
@@ -223,7 +292,7 @@ async def suggest_skills(
     scored.sort(key=lambda x: x["relevance_score"], reverse=True)
     top = scored[:top_n]
 
-    return {
+    result = {
         "task": task,
         "top_n": top_n,
         "skills": [
@@ -239,11 +308,46 @@ async def suggest_skills(
         ],
     }
 
+    if compose:
+        from ..composition import find_compositions
+        chains = find_compositions(task, registry=SKILL_REGISTRY)
+        result["compositions"] = [
+            {
+                "steps": [
+                    {
+                        "agent_type": step.agent_type,
+                        "role": step.role,
+                        "inputs_from": step.inputs_from,
+                        "output_type": step.output_type,
+                    }
+                    for step in chain.steps
+                ],
+                "total_relevance": chain.total_relevance,
+                "reasoning": chain.reasoning,
+            }
+            for chain in chains
+        ]
+
+    return result
+
 
 @router.get("")
 async def list_skills(skill_type: str | None = Query(None)):
-    """List all available skills in the registry."""
+    """List all available skills in the registry.
+
+    Flags entries with incomplete composition declarations for monitoring.
+    """
     registry = SKILL_REGISTRY
     if skill_type:
         registry = [s for s in registry if s["skill_type"] == skill_type]
-    return {"count": len(registry), "skills": registry}
+
+    incomplete = [
+        s["name"] for s in registry
+        if not s.get("inputs") or not s.get("outputs")
+    ]
+
+    return {
+        "count": len(registry),
+        "skills": registry,
+        "incomplete_declarations": incomplete,
+    }
