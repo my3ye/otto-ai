@@ -387,6 +387,12 @@ class HandoffRequest(BaseModel):
     note: str  # context for the new owner
 
 
+class MevTaskUpdate(BaseModel):
+    """State transition for human-owned tasks (owner='mev'). OMS-only endpoint."""
+    status: str  # 'in_progress' | 'done' | 'cancelled'
+    note: str | None = None  # optional note / completion summary
+
+
 class TaskRunResponse(BaseModel):
     id: UUID
     status: str
@@ -564,6 +570,7 @@ class TaskRouteRequest(BaseModel):
     max_turns: int = 50
     timeout_seconds: int = 600
     metadata: dict = Field(default_factory=dict)
+    agent_type: str | None = None  # Used to select model: coding agents → opus, others → sonnet
     apply: bool = False  # If True + task_id given, update task record with recommended params
 
 

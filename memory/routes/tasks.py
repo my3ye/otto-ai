@@ -10,7 +10,7 @@ from uuid import UUID
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 from ..db import get_pool
-from ..models import TaskCreate, TaskOut, TaskComplete, TaskRunResponse, TaskPlanRequest, TaskPlanResponse, ApproachCandidate, TaskRouteRequest, TaskRouteResponse, PlanCacheMatch, PreflectResult, PreflectResultOut, JitRLOptimizeRequest, DecomposeRequest, HandoffRequest
+from ..models import TaskCreate, TaskOut, TaskComplete, TaskRunResponse, MevTaskUpdate, TaskPlanRequest, TaskPlanResponse, ApproachCandidate, TaskRouteRequest, TaskRouteResponse, PlanCacheMatch, PreflectResult, PreflectResultOut, JitRLOptimizeRequest, DecomposeRequest, HandoffRequest
 from ..config import settings
 from ..llm import llm_chat, extract_json, extract_json_array
 
@@ -420,7 +420,7 @@ async def route_task_endpoint(req: TaskRouteRequest):
     if req.task_id:
         row = await pool.fetchrow(
             """SELECT title, prompt, priority, max_budget_usd, max_turns,
-                      timeout_seconds, model, metadata
+                      timeout_seconds, model, metadata, agent_type
                FROM tasks WHERE id = $1""",
             req.task_id,
         )
@@ -443,6 +443,7 @@ async def route_task_endpoint(req: TaskRouteRequest):
             max_turns=row["max_turns"],
             timeout_seconds=row["timeout_seconds"],
             metadata=dict(_meta) if _meta else {},
+            agent_type=row["agent_type"],  # needed for model selection (coding → opus)
             apply=req.apply,
         )
 
@@ -685,12 +686,17 @@ async def run_task(task_id: UUID):
     pool = await get_pool()
 
     row = await pool.fetchrow(
-        """SELECT id, status, title, cli, requires_decomposition, decomposed
+        """SELECT id, status, title, cli, requires_decomposition, decomposed, owner
            FROM tasks WHERE id = $1""",
         task_id,
     )
     if not row:
         raise HTTPException(404, "Task not found")
+    if row["owner"] == "mev":
+        raise HTTPException(
+            400,
+            "Human-owned task — only Mev can progress this task via POST /tasks/{id}/mev-update",
+        )
     if row["status"] != "pending":
         raise HTTPException(409, f"Task is '{row['status']}', must be 'pending' to run")
     # Decomposition gate: block tasks that require decomposition before execution
@@ -1114,8 +1120,19 @@ async def mark_reviewed(task_id: UUID):
 
     If the task completed successfully (exit_code=0), triggers background
     skill extraction via Gemini Flash to auto-populate procedural memory.
+    Human-owned tasks (owner='mev') are auto-reviewed on completion — this
+    endpoint is for Otto-owned tasks only.
     """
     pool = await get_pool()
+    # Guard: block auto-review of human-owned tasks
+    owner_row = await pool.fetchrow("SELECT owner FROM tasks WHERE id = $1", task_id)
+    if not owner_row:
+        raise HTTPException(404, "Task not found")
+    if owner_row["owner"] == "mev":
+        raise HTTPException(
+            400,
+            "Human-owned task — Mev marks these done via POST /tasks/{id}/mev-update (auto-reviewed on completion)",
+        )
     row = await pool.fetchrow(
         f"""UPDATE tasks SET reviewed = TRUE, reviewed_at = now()
             WHERE id = $1 AND status IN ('completed', 'failed')
@@ -1141,6 +1158,109 @@ async def mark_reviewed(task_id: UUID):
     asyncio.create_task(_jitrl_ingest_task(task_id))
 
     return TaskOut(**task_data)
+
+
+@router.post("/{task_id}/mev-update", response_model=TaskOut)
+async def mev_update_task(task_id: UUID, req: MevTaskUpdate):
+    """State-machine endpoint for human-owned tasks. Only Mev/OMS should call this.
+
+    Transitions:
+      pending → in_progress  (Mev starts working)
+      pending | in_progress → done       (Mev finishes — auto-reviewed, fires downstream hooks)
+      pending | in_progress → cancelled
+
+    Agent tasks must use /run + /review instead. Calling this on an agent task returns 400.
+    """
+    pool = await get_pool()
+
+    row = await pool.fetchrow(
+        f"SELECT {TASK_COLUMNS} FROM tasks WHERE id = $1", task_id
+    )
+    if not row:
+        raise HTTPException(404, "Task not found")
+
+    task = dict(row)
+    if not isinstance(task.get("metadata"), dict):
+        try:
+            import json as _json
+            task["metadata"] = _json.loads(task["metadata"]) if task.get("metadata") else {}
+        except Exception:
+            task["metadata"] = {}
+
+    if task["owner"] != "mev":
+        raise HTTPException(
+            400,
+            "Only human-owned tasks (owner='mev') can be updated via this endpoint. "
+            "Agent tasks use POST /tasks/{id}/run and POST /tasks/{id}/review.",
+        )
+
+    current = task["status"]
+    requested = req.status
+    note = req.note
+
+    if requested == "in_progress":
+        if current != "pending":
+            raise HTTPException(
+                409, f"Can only start a 'pending' task; current status is '{current}'"
+            )
+        updated = await pool.fetchrow(
+            f"""UPDATE tasks SET status = 'running', started_at = now(), updated_at = now()
+                WHERE id = $1 RETURNING {TASK_COLUMNS}""",
+            task_id,
+        )
+
+    elif requested == "done":
+        if current not in ("pending", "running"):
+            raise HTTPException(
+                409,
+                f"Can only complete a 'pending' or 'running' task; current status is '{current}'",
+            )
+        updated = await pool.fetchrow(
+            f"""UPDATE tasks
+                SET status = 'completed', exit_code = 0, reviewed = TRUE,
+                    completed_at = now(), updated_at = now(), output = $2
+                WHERE id = $1 RETURNING {TASK_COLUMNS}""",
+            task_id,
+            note or "Completed by Mev",
+        )
+        # Fire downstream hooks identical to complete_task — plans/workflows advance
+        asyncio.create_task(_jitrl_ingest_task(task_id))
+        asyncio.create_task(_fire_task_interrupt(task_id, "completed"))
+        from .workflows import check_workflow_advance
+        asyncio.create_task(check_workflow_advance(pool, task_id, "completed"))
+        from .task_plans import on_plan_task_complete
+        asyncio.create_task(on_plan_task_complete(pool, task_id, "completed"))
+
+    elif requested == "cancelled":
+        if current not in ("pending", "running"):
+            raise HTTPException(
+                409,
+                f"Can only cancel a 'pending' or 'running' task; current status is '{current}'",
+            )
+        updated = await pool.fetchrow(
+            f"""UPDATE tasks SET status = 'cancelled', updated_at = now()
+                WHERE id = $1 RETURNING {TASK_COLUMNS}""",
+            task_id,
+        )
+
+    else:
+        raise HTTPException(
+            400,
+            f"Invalid status '{requested}'. Must be 'in_progress', 'done', or 'cancelled'.",
+        )
+
+    if not updated:
+        raise HTTPException(500, "Update failed")
+
+    result = dict(updated)
+    if not isinstance(result.get("metadata"), dict):
+        try:
+            import json as _json
+            result["metadata"] = _json.loads(result["metadata"]) if result.get("metadata") else {}
+        except Exception:
+            result["metadata"] = {}
+
+    return TaskOut(**result)
 
 
 async def _extract_skill_from_task(task: dict):

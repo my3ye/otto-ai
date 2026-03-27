@@ -269,12 +269,14 @@ Only act if something is broken. Never report healthy status to Mev.
 Check what tasks finished since the last heartbeat:
 
 ```bash
-# Get unreviewed completed tasks
-curl -sf 'http://localhost:8100/tasks?status=completed&reviewed=false'
+# Get unreviewed completed tasks (Otto-owned only — Mev tasks auto-review on completion)
+curl -sf 'http://localhost:8100/tasks?status=completed&reviewed=false&owner=otto'
 
-# Get unreviewed failed tasks
-curl -sf 'http://localhost:8100/tasks?status=failed&reviewed=false'
+# Get unreviewed failed tasks (Otto-owned only)
+curl -sf 'http://localhost:8100/tasks?status=failed&reviewed=false&owner=otto'
 ```
+
+**IMPORTANT:** Never call `POST /tasks/{id}/review` on a task with `owner='mev'`. Human tasks auto-mark reviewed when Mev completes them via the OMS. Calling `/review` on a mev task returns 400.
 
 For each completed/failed task:
 1. **Read the output** — understand what was accomplished or what failed
@@ -635,7 +637,8 @@ Check capacity and run the highest-priority pending tasks:
 curl -sf http://localhost:8100/tasks/queue/status
 
 # If can_run_more is true, get pending tasks and launch them
-curl -sf 'http://localhost:8100/tasks?status=pending&limit=3'
+# IMPORTANT: filter owner=otto — Mev tasks must not be auto-launched by heartbeat
+curl -sf 'http://localhost:8100/tasks?status=pending&owner=otto&limit=3'
 ```
 
 **Before launching each task, check PreFlect risk assessment:**
