@@ -197,7 +197,8 @@
 
 | Item | Needed For | Status | Owner |
 |---|---|---|---|
-| ONEON × ENS 1-pager | ENS Grants | 🔴 NOT BUILT | Otto can draft |
+| ONEON × ENS 1-pager | ENS Grants | ✅ BUILT (2026-03-26) | ~/otto/projects/capital/oneon_ens_1pager.md |
+| ENS full grant application | ENS Grants | ✅ READY (2026-03-27) | ~/otto/projects/capital/ens_grant_application.md — Mev: connect wallet + submit at builder.ensgrants.xyz/large-grant-apply |
 | Deep Funding technical proposal | SingularityNET | 🔴 NOT BUILT | Otto can draft from arch docs |
 | Fetch.ai 5-7 slide deck | Fetch.ai Accelerator | 🔴 NOT BUILT | Otto can draft |
 | YC application narrative | Y Combinator | 🔴 NOT BUILT | Mev primary, Otto supports |
