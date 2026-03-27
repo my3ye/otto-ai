@@ -594,6 +594,38 @@ For front-end work, use Sonnet 4.6. For heavy backend, use Opus 4.6. Default to 
 - When was the last time I created a self-improvement task?
 - For P8+ tasks: did I run LATS first to explore the solution space?
 
+#### 4d. Mev-assigned tasks — OMS board is canonical (Mev directive 2026-03-27)
+
+**Any action item or blocker assigned to Mev MUST be added to the OMS task board.**
+
+This applies whenever:
+- Otto identifies a blocker that requires Mev's action (e.g., API keys, credentials, sign-off)
+- A conversation surfaces a to-do for Mev
+- Otto generates a nudge or reminder about Mev's pending work
+
+**Do not rely on memory, semantic facts, or WhatsApp chat reminders alone.** The OMS board is the canonical source of truth for Mev's pending work.
+
+```bash
+# Create a Mev-assigned task on the OMS board
+curl -s -X POST http://localhost:8100/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "title": "[P#] Short description of what Mev needs to do",
+    "prompt": "Detailed context: what action to take, where to go, why it is needed, and how long it should take.",
+    "priority": 9,
+    "owner": "mev",
+    "status": "pending",
+    "created_by": "heartbeat"
+  }'
+```
+
+**Before sending a WhatsApp nudge about a pending Mev action**, check whether a task already exists for it:
+```bash
+curl -sf 'http://localhost:8100/tasks?owner=mev&status=pending&limit=20'
+```
+If the task exists → reference the OMS task ID in your message.
+If it does not exist → create it first, then reference it in the message.
+
 ### 5. Launch pending tasks
 
 Check capacity and run the highest-priority pending tasks:
@@ -837,7 +869,7 @@ print(json.dumps({
     'heartbeat_type': 'orchestrator',
     'reasoning': '<WHY you made the choices you did this cycle — 1-2 sentences>',
     'decisions': '<WHAT you decided — tasks created, messages sent, reviews done>',
-    'expected': '<WHAT you expect by next cycle — be specific and falsifiable>',
+    'expected': '<WHAT you expect by next cycle — focus on SYSTEM-OBSERVABLE outcomes (task completions, queue state, system health). For Mev-dependent outcomes, use conditional framing: "IF Mev responds, THEN X". Do NOT predict WHAT Mev will say or when — only predict what YOU control.>',
     'metadata': {'idle_cycle': is_idle}
 }))
 ")"
