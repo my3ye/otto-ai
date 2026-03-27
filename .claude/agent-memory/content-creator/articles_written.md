@@ -16,6 +16,14 @@ type: project
 - **DB ID**: 42a3bfae
 - **Angle covered**: Human angle — 121M displaced, access shortage not talent shortage, refuge + education ladder, not charity but physics
 
+### The Base or the Empire ← NEW 2026-03-27
+- **DB ID**: 1b6f0493-5024-4720-a10d-a013f83704c6
+- **Angle covered**: AI empire vs open base framing — for intelligent non-Web3 audience (policy analyst, economist, technologist). Central tension: AI being built as chokepoints/empire vs SOS as open governed base. Ladder metaphor as reveal mechanism: milestones make organizational choices legible without accusation.
+- **File**: /mnt/media/projects/505-systems-web/content/the-base-or-the-empire.mdx
+- **Status**: draft
+- **Story beat**: The Frame + The Law
+- **What NOT to repeat**: AI-as-empire vs open-base tension (this piece owns it), ladder-as-reveal mechanism, "Watch who joins. Watch who doesn't." kicker
+
 ## MY3YE Ecosystem
 
 ### Before the Protocol, the Proof (eaf5395d)
