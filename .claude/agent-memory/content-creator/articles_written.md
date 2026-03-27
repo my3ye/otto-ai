@@ -172,10 +172,20 @@ type: project
 - **File**: /mnt/media/projects/my3ye-web/content/blog/what-the-algorithm-cannot-hear.mdx
 - **Existing article NOT repeated**: 8d15bb5a covers label extraction/royalties/AI tools — this covers discovery + four fronts structure
 
+## MY3YE Manifesto / Lure Piece
+
+### The Last Unfair Advantage ← NEW 2026-03-27
+- **DB ID**: 2bb95205-76e2-4ff7-9d40-c1346313e223
+- **Angle**: Capital was the moat; AI dissolved the coordination tax; clarity is now the only variable. Window argument — most haven't updated their model yet. Proof: one founder, no team, production system running. Invitation to build.
+- **File**: /mnt/media/projects/my3ye-web/content/blog/the-last-unfair-advantage.mdx
+- **Status**: draft
+- **Story beat**: The Law + The Mission + The Dream
+- **What NOT to repeat**: moat → river shift (this piece owns it), "clarity is the variable" frame, "coordination tax dissolved" mechanics, window-closing urgency argument
+
 ## Angles NOT yet taken
 - Personal founder motivation/story (flagged as missing everywhere)
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
 - Solo founder + AI as a *how-to* or *model* article (partially started in rewrite)
-- Otto AI inception article (7b8062df is a version but may need rewrite)
+- Otto AI inception article (7b8062fd is a version but may need rewrite)
 - MEV redistribution model: how anti-MEV protocols return value to LPs (extension of The Block Is a Battleground)
 - Q1 2026 angles remaining: AI+Web3 convergence (deeper), L2 ecosystem maturation, developer credentialing shift
