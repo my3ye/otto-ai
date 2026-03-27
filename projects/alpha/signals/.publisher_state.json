@@ -1,11 +1,12 @@
 {
   "last_published_ts": 1772994604,
-  "total_published": 11,
-  "published_today": 2,
+  "total_published": 12,
+  "published_today": 3,
   "today_date": "2026-03-27",
   "published_tokens_today": [
     "63LfDmNb3MQ8mw9MtZ2To9bEA2M71kZUUGq5tiJxcqj9",
-    "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump"
+    "9BB6NFEcjBCtnNLFko2FqVQBq8HHM13kCyYcdQbgpump",
+    "Hax9LTgsQkze1YFychnBLtFH8gYbQKtKfWKKg2SP6gdD"
   ],
   "convergence_seen": {},
   "published_signal_ids": [
