@@ -17,6 +17,11 @@
       "ts": "2026-03-27T00:00:00Z",
       "change": "Lowered min_quality_score from 0.60 to 0.50; lowered tp1_pct from 5.5% to 1.5%, tp2_pct from 25% to 3.0%",
       "rationale": "Research finding (2 consecutive iterations): direction accuracy 88.9% but only 22.2% reach TP targets — 5.5% TP is 3-4x too aggressive for 90-min window. min_quality_score=0.60 blocking all publication (0 signals/24h). Lowering quality threshold to restore flow; reducing TP targets to match actual 90-min price action."
+    },
+    {
+      "ts": "2026-03-27T07:15:00Z",
+      "change": "Lowered min_buy_usd from 100 to 0 (disabled); lowered volume_spike_min from 1.0 to 0.3",
+      "rationale": "Root cause found: amount_usd is computed as token_quantity*token_price (not SOL_spent*sol_price), so 4-5 SOL trades show amount_usd=0.008-1.02, blocking all signals. Also lowered volume_spike_min to 0.3 — SM_10 (Tier 1, 83% WR) was buying at 0.4x volume (below 1.0x threshold). Smart money buys BEFORE volume spikes; filtering on this is counterproductive for Tier 1."
     }
   ],
   "convergence": {
@@ -26,11 +31,11 @@
   },
   "single_wallet": {
     "min_quality_score": 0.5,
-    "min_buy_usd": 100,
+    "min_buy_usd": 0,
     "noisy_wallets": ["SM_1", "SM_2", "SM_4", "SM_7"],
     "min_market_cap": 500000,
     "min_liquidity": 50000,
-    "volume_spike_min": 1.0,
+    "volume_spike_min": 0.3,
     "max_pump_6h": 40.0,
     "min_token_age_days": 1
   },
