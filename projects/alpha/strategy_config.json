@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated_at": "2026-03-27T00:00:00Z",
+  "updated_at": "2026-03-28T00:00:00Z",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
     {
@@ -22,6 +22,11 @@
       "ts": "2026-03-27T07:15:00Z",
       "change": "Lowered min_buy_usd from 100 to 0 (disabled); lowered volume_spike_min from 1.0 to 0.3",
       "rationale": "Root cause found: amount_usd is computed as token_quantity*token_price (not SOL_spent*sol_price), so 4-5 SOL trades show amount_usd=0.008-1.02, blocking all signals. Also lowered volume_spike_min to 0.3 — SM_10 (Tier 1, 83% WR) was buying at 0.4x volume (below 1.0x threshold). Smart money buys BEFORE volume spikes; filtering on this is counterproductive for Tier 1."
+    },
+    {
+      "ts": "2026-03-28T00:00:00Z",
+      "change": "Reduced TP targets to 0.8%/1.5%/5.0%; tightened SL to 3.0%",
+      "rationale": "Research finding (2 consecutive iterations): signals are profitable (88.9% WR, 5.96% avg PnL) but TP targets structurally unreachable (22.2% TP hit rate). Prices consolidate to 5-6% by expiration rather than spiking to hit 1.5%/3.0% levels — consolidation window mismatch. New TP1=0.8% and TP2=1.5% match the observed price action range. SL tightened from 15% to 3% to cut losing trades faster. SM_10-only allocation already enforced by publisher quality scoring (Tier 1 = 60pts base; other single wallets max 35pts, below 50-point gate)."
     }
   ],
   "convergence": {
@@ -48,10 +53,10 @@
     "min_token_age_days": 7
   },
   "tp_sl": {
-    "tp1_pct": 0.015,
-    "tp2_pct": 0.030,
-    "tp3_pct": 0.50,
-    "sl_pct": 0.15
+    "tp1_pct": 0.008,
+    "tp2_pct": 0.015,
+    "tp3_pct": 0.05,
+    "sl_pct": 0.03
   },
   "auto_update": {
     "enabled": true,
