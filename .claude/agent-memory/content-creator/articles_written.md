@@ -182,6 +182,16 @@ type: project
 - **Story beat**: The Law + The Mission + The Dream
 - **What NOT to repeat**: moat → river shift (this piece owns it), "clarity is the variable" frame, "coordination tax dissolved" mechanics, window-closing urgency argument
 
+## Governance Manifesto — SOS / 505 Systems
+
+### The River Has No King ← NEW 2026-03-27
+- **DB ID**: 5e01b2cb-939a-420f-9487-628b67d837c2
+- **Angle**: Philosophical — the oldest question about power ("are they good or evil?") is made structurally obsolete. Not better leaders but rotating meritocratic councils. The question doesn't get answered, it gets dissolved. Also covers: founder sunset by immutable contract, DPC open path to leadership.
+- **File**: /mnt/media/projects/my3ye-web/content/blog/the-river-has-no-king.mdx
+- **Status**: draft
+- **Story beat**: The Law + The Mission
+- **What NOT to repeat**: "are they good or evil?" dissolution argument (this piece owns it), founder sunset framing, rotating seat expiry as central mechanism, "the room" framing
+
 ## Angles NOT yet taken
 - Personal founder motivation/story (flagged as missing everywhere)
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
