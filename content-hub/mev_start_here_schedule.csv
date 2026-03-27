@@ -1,0 +1,75 @@
+date,type,action,project,title,status,platform,content_length,id
+2026-03-18,social_post,SCHEDULE_THEN_POST,UNASSIGNED,What Is Koink.fun — Telegram Intro,draft,Telegram,post ~282c,ccdab660-8a93-490c-bda4-8f4430a07989
+2026-03-18,social_post,SCHEDULE_THEN_POST,UNASSIGNED,PiPi Origin — The Pig That Refused to Be a Meme,draft,X/Twitter,tweet ~173c,dee405cc-87b5-48dd-8890-9a924fc27222
+2026-03-18,social_post,POST,UNASSIGNED,#1 — The Eye Opens,scheduled,X/Twitter,tweet ~185c,cb8386b3-6676-4b5e-a957-88623fcba9b4
+2026-03-19,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#2 — 14 Projects Teaser,draft,X/Twitter,tweet ~221c,41a9f2b7-4c48-4d97-bbeb-1449bc340c76
+2026-03-19,social_post,SCHEDULE_THEN_POST,UNASSIGNED,Koink.fun Article Drop — Announcement,draft,X/Twitter,tweet ~274c,7d051c2b-57c7-4f00-9b33-4f1e7c0e9a84
+2026-03-20,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#3 — Hot Take: Real AI Agents,draft,X/Twitter,tweet ~261c,5eff6d15-f7b8-4486-b310-40fbc2494d1f
+2026-03-20,social_post,SCHEDULE_THEN_POST,UNASSIGNED,PiPi Lore Thread — What We're Actually Building,draft,X/Twitter,post ~751c,e27e5e58-ac18-4a63-ba1f-9143a16fac1a
+2026-03-21,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#4 — TUSITA Reveal,draft,X/Twitter,tweet ~263c,13eee4e6-b9cf-48e1-8b6a-2c89eb4f8798
+2026-03-22,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#5 — Builder Update: What's Live,draft,X/Twitter,tweet ~276c,635edb99-c026-424e-8f28-21dfd3a097e9
+2026-03-23,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#6 — ONEON Reveal,draft,X/Twitter,tweet ~239c,dc644317-af8c-41f0-8ce8-567a145e1230
+2026-03-24,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#7 — Thread: Coordination Infrastructure,draft,X/Twitter,tweet ~206c,0d9877ae-9cf3-4267-b83b-24550255d374
+2026-03-24,social_post,SCHEDULE_THEN_POST,UNASSIGNED,Every Chain Gets a PiPi,draft,X/Twitter,tweet ~189c,2145cd93-a31e-4c20-b0c6-a216ef71a40e
+2026-03-25,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#8 — KOINK Reveal,draft,X/Twitter,tweet ~260c,0e3604cb-1b22-48b0-b10c-efc30098b7e1
+2026-03-25,social_post,SCHEDULE_THEN_POST,UNASSIGNED,Koink.fun Multi-Chain Roadmap Preview — Telegram,draft,Telegram,tweet ~258c,dcd0d605-f993-4a8b-9a3e-a7677f1c29da
+2026-03-26,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#9 — Otto AI Reveal,draft,X/Twitter,tweet ~245c,3ac04806-da46-4b49-b2f6-7f3e0c73c8b4
+2026-03-26,social_post,SCHEDULE_THEN_POST,UNASSIGNED,What Does a Pig Know About Parachains,draft,X/Twitter,tweet ~203c,bab4cd5e-a3f0-47cd-bde0-bb1f829f07d8
+2026-03-27,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#10 — WebAssist is Live,draft,X/Twitter,tweet ~196c,e9f244e6-352f-4e28-b017-fa0236571ff2
+2026-03-28,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#11 — Hot Take: 95% Speculation,draft,X/Twitter,tweet ~230c,5e5abdd0-23ee-441b-a164-a820bd3449be
+2026-03-29,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#12 — Panik App Reveal,draft,X/Twitter,tweet ~222c,64dd45a6-7930-4437-8e3d-0831d488c23d
+2026-03-30,article,PUBLISH,MY3YE,What Compounds in the Silence,published,Paragraph.xyz,~1377w,3f91edff-d4d4-43be-830a-93d86e6a5373
+2026-03-30,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#13 — Shakrah Reveal,draft,X/Twitter,tweet ~258c,56931ec9-c957-4d3b-89ed-396073a70ca0
+2026-03-31,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#14 — Week 2 Lore Drop,draft,X/Twitter,tweet ~220c,23f6eee4-4cdb-4243-89e5-b0cc57d0999d
+2026-03-31,social_post,SCHEDULE_THEN_POST,UNASSIGNED,Every Chain Deserves a Mascot,draft,X/Twitter,tweet ~187c,20b35248-b1e1-440a-9c08-b4a32805da98
+2026-04-01,article,PUBLISH,MY3YE,What We Are Building,published,Paragraph.xyz,~1420w,474227ce-b0a1-41b8-a712-6e421a74e414
+2026-04-01,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#15 — Thread: What Sovereignty Requires,draft,X/Twitter,tweet ~105c,118f4409-8e63-4d96-a105-1acc30d8317c
+2026-04-01,social_post,SCHEDULE_THEN_POST,UNASSIGNED,Polkadot Culture Gap — Farcaster Thread,draft,Farcaster,post ~593c,59ddba0d-2998-44f8-8c84-5c040b480757
+2026-04-02,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#16 — Tusita Dome Architecture,draft,X/Twitter,post ~292c,1cbcd070-ef38-4c75-b820-0f0395ec9e04
+2026-04-02,social_post,SCHEDULE_THEN_POST,UNASSIGNED,Why PiPi Chose Polkadot — Discord Deep Lore,draft,X/Twitter,post ~1053c,caa335ef-e403-4d22-a937-4327b9d2873a
+2026-04-03,article,DEPLOY_TO_PARAGRAPH,MY3YE,"Before the Protocol, the Proof",ready,Paragraph.xyz,~725w,eaf5395d-7e9b-4d75-ad00-8afa30bd418e
+2026-04-03,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#17 — Hot Take: Web3 Built for Traders,draft,X/Twitter,tweet ~243c,36c6d69e-f0da-4d0d-a7a6-14c31c7ea3ac
+2026-04-03,social_post,SCHEDULE_THEN_POST,UNASSIGNED,PiPi Meme — Polkadot No Mascot,draft,X/Twitter,tweet ~217c,8fa3bd82-7cb5-41e0-b144-3ceeb2f5d960
+2026-04-04,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#18 — Otto Music Reveal,draft,X/Twitter,tweet ~252c,ec57dde6-6336-4dcd-a521-76cef7e951b7
+2026-04-05,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#19 — Builder Update: Autonomous Stats,draft,X/Twitter,tweet ~266c,ddefa07f-4c71-4e83-b373-83226abefe87
+2026-04-06,article,DEPLOY_TO_PARAGRAPH,ONEON,The Line That Cannot Be Cut,ready,Paragraph.xyz,~999w,5d68f52c-9ed0-44cb-bc97-a2ecd64c33df
+2026-04-06,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#20 — Meme Drop: Self-Hiring AI,draft,X/Twitter,tweet ~222c,f1e344ef-dd32-4002-a447-3047052c8a33
+2026-04-07,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#21 — SOS Systems Reveal,draft,X/Twitter,post ~344c,b9f5fd6c-35d5-4a25-9f43-c67c159299cf
+2026-04-07,social_post,SCHEDULE_THEN_POST,UNASSIGNED,$KOIN — Not a Memecoin. A Standard.,draft,X/Twitter,tweet ~266c,510373dd-9776-4315-84ac-8985c2297ed5
+2026-04-08,article,DEPLOY_TO_PARAGRAPH,ONEON,ONEON Network: The Sovereign Layer No One Owns,ready,Paragraph.xyz,~1633w,97f3b219-d657-44c0-bcf0-03880be86eb1
+2026-04-08,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#22 — Thread: Real Autonomous AI Inside,draft,X/Twitter,tweet ~123c,e57942e5-36b0-4f32-8092-25c26c8a9f84
+2026-04-09,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#23 — Hot Take: AI Assistant vs Agent,draft,X/Twitter,tweet ~261c,d573f887-2d65-4d5a-a4d1-c5c47ed41a6b
+2026-04-09,social_post,SCHEDULE_THEN_POST,UNASSIGNED,The $KOINK Standard — What Gets Built,draft,X/Twitter,post ~303c,ad4ae2eb-88d8-4686-b740-98e2b3597389
+2026-04-10,article,DEPLOY_TO_PARAGRAPH,SOS_SYSTEMS,The Answer Cannot Be Nobody,ready,Paragraph.xyz,~2014w,3a0e28e4-e222-447e-a1ea-43c91a15b5c9
+2026-04-10,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#24 — ONEON Layers Deep Dive,draft,X/Twitter,post ~323c,96f2173f-e742-456a-89e7-2faf38066535
+2026-04-10,social_post,SCHEDULE_THEN_POST,UNASSIGNED,PiPi Meme — What PiPi Thinks About Rugs,draft,X/Twitter,tweet ~139c,57536819-2e27-42b8-a494-db49715c5c02
+2026-04-11,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#25 — Distributed Otto Architecture,draft,X/Twitter,tweet ~257c,15260013-37da-4300-84c7-ebf15137e3c4
+2026-04-12,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#26 — Capital Raise Update,draft,X/Twitter,tweet ~273c,ad21dafa-f518-4739-97f8-0574c4fd01b6
+2026-04-13,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#27 — PiPi Drop,draft,X/Twitter,tweet ~221c,aa8f726e-07ed-435e-ad48-514d069b0d69
+2026-04-14,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#28 — Thread: Web3 Intelligence Gap,draft,X/Twitter,tweet ~134c,dc43ec4d-9812-4cc3-88ec-51c7fac6f3dc
+2026-04-14,social_post,SCHEDULE_THEN_POST,UNASSIGNED,PiPi and the Civilization Stack,draft,X/Twitter,post ~380c,f0e8e844-38db-4af8-8244-096cb5f32d7f
+2026-04-15,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#29 — Token Economics Reveal,draft,X/Twitter,post ~290c,2e1510cc-2755-4921-8333-5a888c088bab
+2026-04-16,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#30 — PiPi Mascot Reveal,draft,X/Twitter,tweet ~250c,a6a9958d-6f5c-4f21-8215-2acee2d44219
+2026-04-16,social_post,SCHEDULE_THEN_POST,UNASSIGNED,SOS Systems — PiPi Knows About Refugees,draft,X/Twitter,post ~286c,37a8d9f2-89a4-41f2-9adb-5d69b024cd95
+2026-04-17,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#31 — Koink Chain Agnostic Deep Dive,draft,X/Twitter,post ~286c,0afbb5be-a864-4832-bf8a-9b3daa9137a8
+2026-04-18,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#32 — Hot Take: Meme Coins Are Honest,draft,X/Twitter,tweet ~264c,1a42db46-c3e2-43a7-93ad-16bc56626389
+2026-04-19,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#33 — OttoSignals Telegram Live,draft,X/Twitter,tweet ~153c,d20bf991-f31f-4d33-bd6a-1cc620e7f7a4
+2026-04-20,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#34 — Otto Travel Reveal,draft,X/Twitter,tweet ~254c,3ab97e91-5e47-4b71-9c32-584629278735
+2026-04-21,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#35 — Tusita as Proof of Concept,draft,X/Twitter,tweet ~222c,eb1a38da-7808-48fc-be48-75a083237ae2
+2026-04-22,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#36 — Thread: ONEON vs Existing Protocols,draft,X/Twitter,tweet ~133c,f8778550-8c1b-47ea-93b0-1b45778fa445
+2026-04-23,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#37 — Otto Market Reveal,draft,X/Twitter,tweet ~261c,d559826a-cfd8-46d9-a6ac-40f6b87c00c8
+2026-04-24,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#38 — Hot Take: AI for Corporations vs People,draft,X/Twitter,post ~296c,af02467d-1912-4da8-8e9f-743ea1769d5e
+2026-04-25,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#39 — OMS is Live,draft,X/Twitter,post ~304c,60dd113f-9a38-40de-a7f3-9e1e8d071fbf
+2026-04-26,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#40 — Otto Properties Reveal,draft,X/Twitter,tweet ~211c,110037d2-7997-4231-bc1d-5924c312970c
+2026-04-27,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#41 — The Lore (Year by Year),draft,X/Twitter,tweet ~260c,6274b6b2-b99c-4492-b1dc-203f49609d0e
+2026-04-28,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#42 — Thread: Memory vs Advertising Infrastructure,draft,X/Twitter,tweet ~194c,f43518bf-7108-478a-bf52-3a3ef7ef9c02
+2026-04-29,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#43 — 90 Days Autonomous Stats,draft,X/Twitter,tweet ~253c,d9495184-7f48-4552-84ed-5e6c38b32f9d
+2026-04-30,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#44 — Hot Take: Who Does the Intelligence Work For,draft,X/Twitter,tweet ~276c,bbaabd12-e24e-48c3-8ce5-e0439f3ea47f
+2026-05-01,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#45 — Otto UI Reveal,draft,X/Twitter,tweet ~206c,b421fc8e-5894-41f3-a999-ea3695da8c0c
+2026-05-02,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#46 — Minimal Lore Drop,draft,X/Twitter,tweet ~54c,4f816e14-b4cd-4ae5-9ee6-95e5205b7be8
+2026-05-03,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#47 — 90-Day Shipping List,draft,X/Twitter,post ~285c,9fe20abf-49c4-4492-8d9b-de6c7b8b5ac9
+2026-05-04,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#48 — Why Build a Civilization,draft,X/Twitter,tweet ~207c,96527fc9-8ba0-41f4-8d62-e301abea660d
+2026-05-05,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#49 — Thread: Obvious Infrastructure,draft,X/Twitter,tweet ~169c,f468837c-54cc-42aa-95c6-41bac811eed3
+2026-05-06,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#50 — Opening the Stack,draft,X/Twitter,tweet ~247c,2c10e979-bfff-48a9-b3ac-3ebe5332231b
+2026-05-07,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#51 — The Architecture Must Enable Bottom-Up,draft,X/Twitter,tweet ~257c,b2bca3f2-bd31-43aa-8ccd-f2d12c2f13d1
+2026-05-08,social_post,SCHEDULE_THEN_POST,UNASSIGNED,#52 — Phase 2 Targets,draft,X/Twitter,tweet ~263c,cd9a6466-8884-420e-8d00-f456c47dfae6
