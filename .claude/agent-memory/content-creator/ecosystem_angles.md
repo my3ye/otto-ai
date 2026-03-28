@@ -4,6 +4,14 @@ description: Per-project angle tracking — what has been covered and what remai
 type: project
 ---
 
+## Campaign Framework (Cross-Ecosystem)
+
+**Covered (2026-03-28):**
+- "Will you support the open system or the empire?" — Campaign Messaging Bible (50ebad1d). Defines THE EMPIRE (closed AI labs, platform incumbents — named architecturally not personally) and THE OPEN SYSTEM (MY3YE, SOS Systems, ONEON, Otto AI, builders). 5 variations + companion lines + vocabulary rules + usage guide.
+- NOTE: "The Base or the Empire" article (1b6f0493) owns the AI-empire-vs-open-base THESIS for SOS Systems. The messaging bible owns the CAMPAIGN FRAME around the question. Don't conflate.
+
+**Open:** Full campaign execution — social posts, article series, pitch deck copy — all feed from this bible.
+
 ## SOS Systems / 505 Systems
 
 **Covered:**

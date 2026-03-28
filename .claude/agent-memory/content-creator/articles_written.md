@@ -257,6 +257,16 @@ type: project
 - **What NOT to repeat**: 3-phase sequencing with exact milestone tables, RaaS framing as institutional preference, Lemnos as P0, Kembara as Phase 3, "Capital cannot make this real. Contribution does." kicker sentiment
 - **Critical unknowns documented**: EIC Sri Lanka eligibility (unverified), EIB geographic mandate (unverified)
 
+## Campaign Reference Documents
+
+### Campaign Messaging Bible — Open System vs Empire ← NEW 2026-03-28
+- **DB ID**: 50ebad1d-af8f-4592-886a-52111c3deb4e
+- **Content type**: plan (strategic reference, feeds all downstream content)
+- **Core line**: "Will you support the open system or the empire?"
+- **What it defines**: Two sides (empire = closed AI/platform incumbents, open system = MY3YE ecosystem); 5 variations for Twitter/X, long-form, investor pitch, community onboarding, editorial/press; companion lines; vocabulary rules; usage guide
+- **Key rule**: Do not name the empire as evil — the architecture is the argument, not the founders. Do not paraphrase the question.
+- **What NOT to repeat**: The question's analytical explanation (defined here — articles just USE the question, not explain it)
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
