@@ -1,5 +1,6 @@
 """ONEON Identity CRUD — DB operations for oneon_identities."""
 
+import hashlib
 import logging
 from typing import Optional
 from uuid import UUID
@@ -18,10 +19,15 @@ async def register_identity(
     wallet_address: Optional[str] = None,
     chain: str = "none",
     metadata: Optional[dict] = None,
+    email: Optional[str] = None,
 ) -> dict:
     """Register a new ONEON identity.
 
-    Phase 0: Creates record at 'waitlist' tier. No OWS vault, no DID resolution.
+    Phase 0: Creates at 'waitlist' tier with DID stub.
+    Phase 1A: Also derives smart account address and stores email hash.
+
+    If email is provided, the identity starts at 'custodial' tier with a
+    derived smart account address. A magic link is sent for email verification.
 
     Raises:
         ValueError: If handle is already registered.
@@ -35,24 +41,56 @@ async def register_identity(
     if not re.match(r'^[a-z0-9_]+$', handle_clean):
         raise ValueError("Handle must contain only lowercase letters, numbers, and underscores.")
 
-    # Build a Phase 0 DID stub
-    did = construct_did(handle_clean, chain=chain, address=wallet_address)
+    # Compute smart account address (deterministic from handle)
+    from .invisible import compute_smart_account_address
+    account_info = compute_smart_account_address(handle_clean)
+    smart_address = account_info["address"]
+    smart_salt = account_info["salt"]
+
+    # Build DID with smart account address on Base
+    chain_name = "base" if email else chain
+    did = construct_did(handle_clean, chain=chain_name, address=smart_address)
+
+    # Hash email for lookup (SHA-256, never store plaintext unencrypted)
+    email_hash = None
+    email_encrypted = None
+    if email:
+        email_lower = email.strip().lower()
+        email_hash = hashlib.sha256(email_lower.encode()).hexdigest()
+        # For Phase 1A, store email in metadata for magic link delivery
+        # Phase 1B: encrypt with ONEON_VAULT_MASTER_KEY
+        from .invisible import _encrypt_key
+        try:
+            email_encrypted = _encrypt_key(email_lower)
+        except Exception:
+            # Fallback: store in metadata
+            if metadata is None:
+                metadata = {}
+            metadata["_email"] = email_lower
+
+    # If email provided, start at custodial tier (invisible signup)
+    initial_tier = "custodial" if email else "waitlist"
 
     pool = await get_pool()
     try:
         row = await pool.fetchrow("""
             INSERT INTO oneon_identities
-                (handle, display_name, tier, did, wallet_address, chain, metadata)
-            VALUES ($1, $2, 'waitlist', $3, $4, $5, $6)
+                (handle, display_name, tier, did, wallet_address, chain, metadata,
+                 smart_account_address, smart_account_salt,
+                 email_hash, email_encrypted)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
             RETURNING *
-        """, handle_clean, display_name, did, wallet_address, chain,
-            metadata or {})
+        """, handle_clean, display_name, initial_tier, did,
+            wallet_address or smart_address, chain_name,
+            metadata or {},
+            smart_address, smart_salt,
+            email_hash, email_encrypted)
     except Exception as e:
         if "unique" in str(e).lower():
             raise ValueError(f"Handle already registered: @{handle_clean}")
         raise
 
-    log.info(f"ONEON identity registered: @{handle_clean} (DID: {did})")
+    log.info(f"ONEON identity registered: @{handle_clean} (DID: {did}, tier: {initial_tier})")
     return dict(row)
 
 

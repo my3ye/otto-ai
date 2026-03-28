@@ -3,8 +3,9 @@
 Feature-flagged via settings.oneon_enabled.
 
 Phase 0: DB/API only — identity registry, governance proposals, DID stubs.
-Phase 1: OWS custodial vault, on-chain DID anchoring.
-Phase 2: Self-sovereign, Polkadot People Chain.
+Phase 1A: Invisible signup, magic link auth, session keys, credentials, action queueing.
+Phase 1B: Smart contracts, on-chain deployment, bundler integration.
+Phase 2: Self-sovereign, mesh network.
 """
 
 from .spec import ONEON_SPEC, ONEON_TIERS, DID_METHOD
@@ -33,6 +34,31 @@ from .did import (
     did_document_stub,
 )
 
+from .auth import (
+    send_magic_link,
+    verify_magic_link,
+    create_session_token,
+    verify_session_token,
+    invalidate_session,
+)
+
+from .invisible import (
+    compute_smart_account_address,
+    create_session_key,
+    get_active_session_key,
+    revoke_session_key,
+    execute_action,
+    get_actions,
+)
+
+from .credentials import (
+    issue_credential,
+    list_achievements,
+    list_raw_credentials,
+    revoke_credential,
+    get_credential,
+)
+
 __all__ = [
     # Spec
     "ONEON_SPEC",
@@ -56,4 +82,23 @@ __all__ = [
     "construct_did",
     "parse_did",
     "did_document_stub",
+    # Auth (Phase 1A)
+    "send_magic_link",
+    "verify_magic_link",
+    "create_session_token",
+    "verify_session_token",
+    "invalidate_session",
+    # Invisible Layer (Phase 1A)
+    "compute_smart_account_address",
+    "create_session_key",
+    "get_active_session_key",
+    "revoke_session_key",
+    "execute_action",
+    "get_actions",
+    # Credentials (Phase 1A)
+    "issue_credential",
+    "list_achievements",
+    "list_raw_credentials",
+    "revoke_credential",
+    "get_credential",
 ]
