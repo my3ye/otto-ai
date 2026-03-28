@@ -267,6 +267,18 @@ type: project
 - **Key rule**: Do not name the empire as evil — the architecture is the argument, not the founders. Do not paraphrase the question.
 - **What NOT to repeat**: The question's analytical explanation (defined here — articles just USE the question, not explain it)
 
+## Investor Letter
+
+### To the Investor Who Is Still Asking the Right Questions ← NEW 2026-03-28
+- **DB ID**: dc1548f5-5afa-433c-bcd0-e55c513bf4b3
+- **File**: ~/otto/docs/investor-letter.md
+- **Content type**: article (founder letter / investor document)
+- **Angle covered**: Full investor letter using empire framing as opening hook. Thesis: open systems win structurally (river vs lake metaphor throughout). Entities section: Ottolabs (open physical layer), Tusita (the address), full ecosystem reference. Capital paths: Phase 1 ($75K-$200K grants+revenue, no dilution), Phase 2 ($500K-$2M hardware VC + UNDP + PPP, Month 6-18), Phase 3 ($5M-$20M infrastructure fund, Month 18-36). Anti-extraction architecture: milestone gates on-chain, CET labor equity, 30% agent tax, governance non-concentration. Closes with the question.
+- **Register**: Variation 3 from messaging bible (investor/analytical) + founder letter warmth — not a deck, not a consultant memo
+- **Story beat**: The Frame + The Mission
+- **Word count**: 2166
+- **What NOT to repeat**: The exact three-phase capital sequencing with these numbers, the lake/river metaphor as the central structural frame for capital allocation, "Will you support the open system or the empire?" as the closing question (this letter owns the full investor close)
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
