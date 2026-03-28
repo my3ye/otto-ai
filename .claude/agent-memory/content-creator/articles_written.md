@@ -221,6 +221,17 @@ type: project
 - **All undeployed features qualified as**: "designed/not deployed" (DPC, Memory Capsules) or "planned" (invisible onboarding Phase 1, LoRa Phase 2)
 - **What NOT to repeat**: 4-primitive matrix as core argument, Bluesky 40M vs Web3 45K contrast, "the gap no protocol occupies" frame, $240M raised / <100K DAU as the verdict
 
+## PiPi (continued)
+
+### Polkadot Forum — The chain that saw it first still has no face ← NEW 2026-03-28
+- **DB ID**: 8a96c772-60e3-4105-8e84-3bc08aa4f17f
+- **Content type**: social_post (forum post for forum.polkadot.network)
+- **Angle covered**: Community discussion post — Polkadot's culture gap, prophet archetype fits DOT's real history (built multi-chain before buzzword, OpenGov before anyone else), PiPi as a built character with that narrative. Invites genuine discussion, not a formal pitch.
+- **Tone**: First-person as Mev, community member raising a question
+- **Status**: draft
+- **Story beat**: The Frame
+- **What NOT to repeat**: "chain that saw it first has no face" framing, prophet-archetype-fits-history argument, five-layer PI meaning intro
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
