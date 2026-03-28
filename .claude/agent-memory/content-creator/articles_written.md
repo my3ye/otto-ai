@@ -57,6 +57,19 @@ type: project
 - **Font fix**: CTA H2 bumped from `lg:text-4xl` → `lg:text-5xl` for consistency with Mechanism/Protocols H2s.
 - **What NOT to repeat**: watching/seeing distinction as hero frame, "Decentralized Eye" as section title, "The Core Principle" as Proof of Grit callout eyebrow.
 
+## MY3YE Landing Page — Scroll Copy v3 (2026-03-28, per Mev directive)
+- **DB ID**: 0e1b9c85-d8b5-4de3-baa0-9e106f99ed85
+- **Commit**: 1fd6d30
+- **Angle**: Sparse axioms. Old angle told a story (narrative arc). New angle states facts.
+- **Hero**: "Earn your weight." / "Nothing else buys in." — river metaphor removed from hero entirely; it lives in articles/whitepaper now.
+- **Sub**: "No snapshot. No founder's share. / Contribution compounds. Capital does not."
+- **Manifesto title**: "Nothing Is Given." (was "The River Does Not Ask Permission")
+- **Manifesto sub**: "The protocol runs whether or not you are watching."
+- **Stanzas**: 7 (was 12). ~40 words total (was ~75). No narrative arc — each stanza is a standalone fact.
+- **Arc**: Entry → Accounting → Law → Mechanism → Design → Builders → Close
+- **Outro**: "We built it for us." (stripped from longer original)
+- **What NOT to repeat**: narrative arc across stanzas, river metaphor in hero, "watching/seeing" frame, "Every platform/governance/committee..." triptych pattern
+
 ## ONEON
 ### Identity Is the First Layer (e071b473)
 - **Angle**: Identity as infrastructure — sovereign identity before network
