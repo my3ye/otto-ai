@@ -1,5 +1,18 @@
 # Researcher Agent Memory
 
+## Ottolabs + Tusita Capital Landscape (2026-03-28) — VALIDATED
+
+DB Note ID: 00d9c114 | Memory IDs: 14ca3ced, d21a6f47, c330fd92, 21c10c78, 1e2a2060
+Output doc: ~/otto/docs/ottolabs-capital-synthesis-2026-03-28.md
+
+- **Ottolabs P0 VC:** Lemnos Labs ($500K-$3M seed, hardware specialist, agri/logistics/industrial) — not in existing capital docs, confirmed gap
+- **Framing:** Sovereign manufacturing + RaaS model = strongest narrative. Lead with these, NOT "hardware startup."
+- **Grants (pre-MVP):** EU EIC €300M STEP Scale Up — requires mfg LOI + customer LOI + 40% path-to-market. EIC eligibility for Sri Lanka **UNVERIFIED** — check eic.ec.europa.eu before writing.
+- **Tusita P0:** UNDP Sri Lanka Green Bond Framework (UN-backed, live 2026, 12 instruments). Frame as PPP-eligible sovereign eco-community.
+- **Tusita market:** $248B→$945B ecotourism by 2034 (14.31% CAGR). ESG premium 15-20%.
+- **Blocker:** Ottolabs pre-prototype — no VC closes pre-MVP. Grants only until prototype exists (~12-18mo).
+- **Separation required:** Ottolabs (hardware VC + EU grants) vs Tusita (green bonds/PPPs) are SEPARATE strategies.
+
 ## STEM Agent Research (2026-03-27) — VALIDATED (8/10)
 
 DB Note ID: ebac875b | Memory IDs: 0667081c, 72731a66, 0b40a3fa, 1fd66423, ab85fd5e, 6ece3366, c04ca7aa
