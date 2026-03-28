@@ -23,6 +23,7 @@
    - 4.4 Task Execution Engine
    - 4.5 Heartbeat Agents (Autonomous Loops)
    - 4.6 Communication Interfaces
+   - 4.7 Specialist Agents
 5. [Full Feature Status](#5-full-feature-status)
 6. [Deployment Topology](#6-deployment-topology)
 7. [Key Engineering Learnings](#7-key-engineering-learnings)
@@ -49,16 +50,16 @@ Otto serves as Mev's (Admin) operational intelligence layer: mapping work, track
 | Active semantic memories | 205+ |
 | Active agents | 21 (+ 138 available in catalog) |
 | DB migrations | 80+ |
-| Systemd units | 17 |
+| Systemd units | 17+ service groups (~23 total units) |
 | API routes | 80+ across 25+ route modules |
 | Uptime | Running 24/7 since Feb 2026 |
 | Learning accuracy (RL2F) | 40% (target: 70%+ on active workload) |
 | AutoEvolve generation | Gen 3 |
-| Research papers implemented | 24+ |
+| Research papers implemented | 24+ (16 fully documented — see Appendix B) |
 
 **Two defining moats:**
-1. **Memory Depth** — 6-layer memory architecture (semantic + episodic + procedural + working + knowledge graph + agent-specific) with 5-strategy retrieval. No external AI agent framework has more than one memory layer.
-2. **Self-Improvement** — RL2F + AutoEvolve + MARS + JiTRL + workflow evolution. Otto is the only AI agent system that autonomously improves itself. All other frameworks require human developer intervention.
+1. **Memory Depth** — 6-layer memory architecture (semantic + episodic + procedural + working + knowledge graph + agent-specific) with 5-strategy retrieval. No external AI agent framework in our comparison set has more than one memory layer.
+2. **Self-Improvement** — RL2F + AutoEvolve + MARS + JiTRL + workflow evolution. No AI agent system in our comparison set has autonomous self-improvement capability — all nine frameworks compared require human developer intervention. *(Note: RL2F accuracy at 40% and AutoEvolve Gen 2→3 advancement (+12pp) were measured partly during idle periods; active-workload validation is ongoing — see §7 and §13.)*
 
 **One critical open gap:** OpenTelemetry (OTel) — all Tier-1 frameworks ship native OTel; Otto has log-file observability only. This is the confirmed top infrastructure priority.
 
@@ -199,7 +200,7 @@ The kernel is Otto's central processing unit. All inputs — regardless of sourc
 
 ### 4.3 Learning & Self-Improvement
 
-This is Otto's second moat. No external AI agent framework has any automated self-improvement capability.
+This is Otto's second moat. No external AI agent framework in our comparison set has any automated self-improvement capability.
 
 **Five learning systems:**
 
@@ -208,7 +209,7 @@ This is Otto's second moat. No external AI agent framework has any automated sel
 | RL2F Layer 1 | `routes/rl2f.py` (413 lines) | Heartbeat predictions scored against actuals; lessons extracted from misses | 40% accuracy, improving |
 | RL2F Layer 2 | `routes/rl2f.py` | QA rejection feedback injected into task retry prompts | Active |
 | JiTRL | `routes/jitrl.py` (335 lines) | kNN similarity finds past experiences; ranked hints injected at task creation | Active |
-| AutoEvolve | `routes/autoevolve.py` (507 lines) | Hypothesis → mutation → N-cycle eval → keep/discard | Gen 3, State Delta patch +12pp |
+| AutoEvolve | `routes/autoevolve.py` (507 lines) | Hypothesis → mutation → N-cycle eval → keep/discard | Gen 3, State Delta patch +12pp *(measured partly during idle period — see §13)* |
 | MARS | `kernel/ric.py` + reflection agent | Dual-adversarial: initial conclusions → critic → synthesis per cycle | Active |
 
 Additional learning mechanisms:
@@ -336,7 +337,7 @@ Orchestrator, Reflection, Alpha, Researcher, Research-Synthesizer, Architect, Co
 | :3001 | WhatsApp bridge (Baileys) | Primary Mev communication |
 | :3002 | Athena WhatsApp | Athena agent channel |
 
-**17 systemd units** (services + timers): otto-memory, whatsapp, athena-whatsapp, otto-heartbeat(.timer), otto-reflection(.timer), otto-task-dispatcher, otto-alpha-watcher(.timer), otto-signals(.timer), otto-maintenance(.timer), otto-research-pipeline(.timer), otto-security-audit(.timer), otto-vuln-sync(.timer), otto-weekly-improve(.timer), service-monitor.
+**17+ systemd units** (service groups; counting .service and .timer files separately yields ~23 total units): otto-memory, whatsapp, athena-whatsapp, otto-heartbeat(.timer), otto-reflection(.timer), otto-task-dispatcher, otto-alpha-watcher(.timer), otto-signals(.timer), otto-maintenance(.timer), otto-research-pipeline(.timer), otto-security-audit(.timer), otto-vuln-sync(.timer), otto-weekly-improve(.timer), service-monitor.
 
 **External dependencies:**
 - Claude API (Anthropic) — primary LLM for all tasks
@@ -462,6 +463,8 @@ Frameworks compared: LangGraph, CrewAI, AutoGen/AG2, OpenAI Agents SDK, Google A
 
 ### Summary Matrix
 
+*Ratings reflect qualitative assessment against nine frameworks (LangGraph, CrewAI, AutoGen/AG2, OpenAI Agents SDK, Google ADK, Mastra, Strands, Pydantic AI, Semantic Kernel). Stars are relative within the comparison set — not absolute capability measurements. Methodology: each dimension rated by documented feature presence, depth, and production usage evidence from official docs and arXiv papers.*
+
 | Dimension | Otto | Best External |
 |---|---|---|
 | Memory (Persistent) | ★★★★★ | ★★★☆☆ (Mastra) |
@@ -479,12 +482,12 @@ Frameworks compared: LangGraph, CrewAI, AutoGen/AG2, OpenAI Agents SDK, Google A
 
 | Advantage | Detail |
 |---|---|
-| Memory stack depth | 6 layers + 5-strategy retrieval — no competitor has >1 layer |
-| Self-improvement | 5 systems (RL2F, AutoEvolve, MARS, JiTRL, workflow evolution) — absent in all frameworks |
+| Memory stack depth | 6 layers + 5-strategy retrieval — no framework in our comparison set has >1 layer |
+| Self-improvement | 5 systems (RL2F, AutoEvolve, MARS, JiTRL, workflow evolution) — absent in all nine frameworks compared |
 | Orchestration depth | 3-tier (tasks + plans/DAG + workflows) + agent auto-employment + plan decomposition from NL |
 | Autonomous operation | Dual heartbeat, self-healing timers, drift detection — 24/7 without human intervention |
 | Cost discipline | Per-task budgets, concurrency limits, cross-model QA gate |
-| Research depth | 24+ papers adapted and implemented |
+| Research depth | 24+ papers adapted; 16 fully documented in Appendix B |
 
 ### Otto's Confirmed Gaps
 
@@ -527,7 +530,7 @@ Otto is not an agent framework — it's an **agent operating system**. The disti
 
 No other system is both an operating system AND self-improving. This positioning means Otto doesn't compete directly with frameworks — it competes with the concept of a static agent system.
 
-**One-line summary:** Otto is the only AI agent system that remembers, learns, and improves autonomously — turning the gap between static frameworks and self-improving intelligence into a widening competitive moat.
+**One-line summary:** Among all frameworks in our comparison set, Otto is the only AI agent system that remembers, learns, and improves autonomously — turning the gap between static frameworks and self-improving intelligence into a widening competitive moat.
 
 ---
 
@@ -605,7 +608,7 @@ Full API surface: 80+ routes across 25+ modules on Memory API (:8100).
 
 ## Appendix B: Research Papers Implemented
 
-24+ papers adapted and deployed in Otto. Key implementations:
+Implementations drawn from 24+ research papers. The 16 below are fully documented; remaining implementations are partial adaptations or informally incorporated concepts.
 
 | Paper / Concept | Implementation | Status |
 |---|---|---|
