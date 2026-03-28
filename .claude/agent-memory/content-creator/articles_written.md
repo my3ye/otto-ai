@@ -245,6 +245,18 @@ type: project
 - **Story beat**: The Frame
 - **What NOT to repeat**: "chain that saw it first has no face" framing, prophet-archetype-fits-history argument, five-layer PI meaning intro
 
+## OTTOLABS Capital Strategy (continued)
+
+### Ottolabs Capital Raise Strategy & Pitch Narrative (1915511d)
+- **DB ID**: 1915511d-a504-4861-9764-2f0b801093d3
+- **Content type**: plan (strategic reference document, not a public article)
+- **Angle covered**: Full 3-phase capital raise strategy: Phase 1 (grants + WebAssist + $KOIN, $75K-$200K, no dilution), Phase 2 (Lemnos P0 hardware VC + UNDP Tusita green bond, $500K-$2M), Phase 3 (Kembara + ADB + PPP, $5M-$20M). Pitch narratives for three audiences: hardware investors, development finance, Web3/DePIN.
+- **Status**: draft — Mev review required
+- **Story beat**: The Mission
+- **Status qualifier applied**: All Ottolabs hardware/devices/contracts = PLANNED (pre-prototype). WebAssist = live. Otto AI = operational on one VM. No deployed contracts stated as fact.
+- **What NOT to repeat**: 3-phase sequencing with exact milestone tables, RaaS framing as institutional preference, Lemnos as P0, Kembara as Phase 3, "Capital cannot make this real. Contribution does." kicker sentiment
+- **Critical unknowns documented**: EIC Sri Lanka eligibility (unverified), EIB geographic mandate (unverified)
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
