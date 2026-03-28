@@ -14,6 +14,33 @@ DB Note ID: 161c9b5a | Memory IDs: a19be2a5, d2e54828
 - **Skeptic view:** Bittensor subsidy-masked revenue, $5.8B rug pulls since Jan 2025, x402 "demand is essentially zero," Virtuals aGDP is market cap of agent tokens NOT actual revenue.
 - **Origin narrative:** Truth Terminal → $50K Marc Andreessen donation → GOAT meme coin $300M mktcap → AI16Z $250M → entire sector spawned.
 
+## Sri Lanka Economic & Political Readiness (2026-03-29) — VALIDATED
+
+DB Note ID: b704b223 | Memory IDs: e5378dd6, 7b2bf835, 9e77f8f1, c4e603e5, 89a157b4, 14f096a1, bff4dcc1, 5ce3a52f
+
+- **Verdict: POSITIVE with prerequisites.** Best political window in SL history for tech-sovereign proposal.
+- **Port City Colombo SEZ:** First 2 crypto licenses issued 2024. Legal sandbox for crypto ops TODAY. Resolves Stripe exclusion.
+- **Dissanayake admin:** Chairs Ministry of Digital Economy personally. $98M 2026 digital budget. SL-UDI (blockchain identity) live. 200K AI/fintech training target.
+- **Economic recovery:** GDP 5% (2024), reserves $6.1B→$9B+ (2025), IMF 4th review July 2025. Fragile: 24.5% poverty, 3.5% projected 2026.
+- **Green Bond Framework:** UNDP-backed, 12 instruments, $11.26B sovereign target 2030. Private sector eligible NOW.
+- **Crypto direction:** Gray zone → VASP regulation (not ban). VASP/AML timeline unconfirmed.
+- **CRITICAL BLOCKER:** No legal entity = zero access to any capital instrument. BOI registration is step 0.
+- **Order of ops:** (1) Register BOI entity → (2) Engage Ministry of Digital Economy → (3) Structure via Port City SEZ → (4) UNDP Green Bond / ADB.
+- **Patched facts (Step 2 validation):** GDP 4.5%→5%, reserves $5.9B→$6.1B, IMF 3 reviews→4th review July 2025.
+
+## Nation-State Crypto Adoption Blueprints — SL Application (2026-03-29) — VALIDATED 8/10
+
+DB Note ID: 0e8ad530 | Correction Memory: f17fc237
+
+- **Winning frame:** Bhutan (sovereign reserve) + UAE (regulatory hub) + SOS (governance) = Digital Economic Development Zone. IMF-compatible. NOT El Salvador.
+- **Failed model:** El Salvador mandatory legal tender → 92% non-usage → IMF reversal Jan 2025. Dead. Do not repeat.
+- **Reserve model:** US ~198K BTC at EO signing (NOT 328K — includes seizures); Bhutan $374M; voluntary hold only.
+- **Hub model:** UAE VARA zero tax, Singapore licensing, Switzerland DLT Act = tax clarity + licensing + govt blockchain = capital/talent magnet.
+- **SL window:** BOI FDI open; $11.26B UNDP green bond LIVE; CBSL AML/CFT guidelines status UNCONFIRMED (may have hardened by March 2026 — verify before engagement).
+- **IMF line:** Infrastructure/reserve = compatible. Legal tender = blocked (El Salvador proves it).
+- **Prerequisite chain:** (1) SL legal entity → (2) CBSL/BOI engagement (verify window first) → (3) Proposal doc as architect not applicant.
+- **PATCHED:** 23-nations BTC claim → 4-5 intentional reserves only. US figure → ~198K not 328K.
+
 ## Ottolabs + Tusita Capital Landscape (2026-03-28) — VALIDATED
 
 DB Note ID: 00d9c114 | Memory IDs: 14ca3ced, d21a6f47, c330fd92, 21c10c78, 1e2a2060
