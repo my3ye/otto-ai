@@ -527,7 +527,7 @@ Otto is not an agent framework — it's an **agent operating system**. The disti
 
 | Aspect | Agent Frameworks | Otto |
 |---|---|---|
-| Usage model | Library imported into your app | Autonomous system running 24/7 on its own |
+| Usage model | Library imported into your app | Autonomous system running near-continuously on its own |
 | State model | Per-request or per-session | Continuous across months of operation |
 | Memory | Plugin/feature (basic) | First-class OS subsystem (6-layer, 5-strategy) |
 | Learning | None | 5 learning systems |
