@@ -1,5 +1,19 @@
 # Researcher Agent Memory
 
+## Agent-on-Chain Money Narrative (2026-03-29) — VALIDATED
+
+DB Note ID: 161c9b5a | Memory IDs: a19be2a5, d2e54828
+- **Virtuals Protocol (Base):** 18K+ agents, $477M aGDP, $64.73M cumulative fees, $2.63M/month. ACP = first full lifecycle agent-to-agent commerce standard, distributes $1M/month to top agents.
+- **OLAS/Polystrat:** 4,200+ Polymarket trades in first month (launched Feb 2026), peak single-trade return 376%, 37% of agents profitable. CoinDesk Mar 15 2026.
+- **Bittensor:** $43M Q1 2026 organic revenue BUT $52M in subsidies — genuine external rev only $3-15M. Subnet Chutes $22K/day.
+- **elizaOS (AI16Z):** Migrated Feb 4 2026 from meme fund. 50K+ agents managing $20B+ claimed. Token -38% post-migration.
+- **AIXBT:** Peaked $500M mktcap. Token-gated access (600K token threshold). x402 removed subscription need.
+- **Bankr Bot (Base/Solana):** 1.2% swap fee, 57% to creators. BNKR ATH $0.00122 Feb 10 2026. $57M weekly volume.
+- **Chains:** Solana = 65% of agentic payments. Base = ACP + x402 infrastructure hub. BSC = official standards push.
+- **Infrastructure gaps:** Agent authorization/spending policies, dispute resolution, agent identity (ERC-8004 early), service atomicity, interoperability between ecosystems. x402 = only $28K/day (near zero demand).
+- **Skeptic view:** Bittensor subsidy-masked revenue, $5.8B rug pulls since Jan 2025, x402 "demand is essentially zero," Virtuals aGDP is market cap of agent tokens NOT actual revenue.
+- **Origin narrative:** Truth Terminal → $50K Marc Andreessen donation → GOAT meme coin $300M mktcap → AI16Z $250M → entire sector spawned.
+
 ## Ottolabs + Tusita Capital Landscape (2026-03-28) — VALIDATED
 
 DB Note ID: 00d9c114 | Memory IDs: 14ca3ced, d21a6f47, c330fd92, 21c10c78, 1e2a2060
