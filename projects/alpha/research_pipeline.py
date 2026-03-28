@@ -43,7 +43,10 @@ CLAUDE_CLI  = Path.home() / ".local" / "bin" / "claude"
 
 # Import implementation executor (DexScreener-based, no API key required)
 try:
-    from pipeline_executor import run_implementation_cycle, compute_backtest_metrics, apply_strategy_updates
+    from pipeline_executor import (
+        run_implementation_cycle, compute_backtest_metrics,
+        apply_strategy_updates, apply_config_patch,
+    )
     HAS_EXECUTOR = True
 except ImportError:
     HAS_EXECUTOR = False
@@ -52,11 +55,46 @@ MAX_HYPOTHESES  = 8        # Prune to this after each cycle
 MAX_ACTION_ITEMS = 3       # Keep only 3 most recent/relevant action items
 MAX_FINDINGS    = 15       # Cap stored findings
 
-# TP/SL thresholds (match signal publisher)
-TP1_PCT = 0.055  # +5.5% (Iter 28: 10% unattainable within 2h window, avg max reach ~5.5%)
-TP2_PCT = 0.25   # +25%
-TP3_PCT = 0.50   # +50%
-SL_PCT  = -0.15  # -15%
+
+def _load_tp_sl_from_config() -> tuple[float, float, float, float]:
+    """Load TP/SL thresholds from strategy_config.json (live config, single source of truth).
+    Falls back to conservative defaults if config missing."""
+    config_path = ALPHA_DIR / "strategy_config.json"
+    if config_path.exists():
+        try:
+            cfg = json.loads(config_path.read_text())
+            tp_sl = cfg.get("tp_sl", {})
+            return (
+                tp_sl.get("tp1_pct", 0.008),
+                tp_sl.get("tp2_pct", 0.015),
+                tp_sl.get("tp3_pct", 0.05),
+                -abs(tp_sl.get("sl_pct", 0.03)),  # Ensure negative for SL
+            )
+        except Exception:
+            pass
+    return (0.008, 0.015, 0.05, -0.03)
+
+
+# TP/SL thresholds — loaded from strategy_config.json (not hardcoded)
+# These are re-read at the start of each pipeline run via _load_tp_sl_from_config()
+TP1_PCT, TP2_PCT, TP3_PCT, SL_PCT = _load_tp_sl_from_config()
+
+
+def _load_observation_window_hours() -> float:
+    """Load observation window from strategy_config.json (in minutes), return as hours.
+    Default: 300 min (5h). Signals older than this are closed as expired."""
+    config_path = ALPHA_DIR / "strategy_config.json"
+    if config_path.exists():
+        try:
+            cfg = json.loads(config_path.read_text())
+            minutes = cfg.get("observation_window_minutes", 300)
+            return minutes / 60.0
+        except Exception:
+            pass
+    return 5.0  # 300 min default
+
+
+OBSERVATION_WINDOW_HOURS = _load_observation_window_hours()
 
 
 # ── Logging ──────────────────────────────────────────────────────────────────
@@ -272,8 +310,8 @@ def update_signal_performance() -> dict:
         sig["min_price_since_entry"] = round(min_low, 8)
         sig["current_price"] = round(current_close, 8)
 
-        # Determine final outcome (if signal is old enough: >48h)
-        if age_hours >= 48:
+        # Determine final outcome (signal older than observation window)
+        if age_hours >= OBSERVATION_WINDOW_HOURS:
             if sl_hit and not tp1_hit:
                 sig["status"] = "closed_sl"
                 sig["final_pnl"] = round(SL_PCT * 100, 1)  # -15%
@@ -476,16 +514,18 @@ def build_research_prompt(state: dict, signal_stats: dict, perf_stats: dict) -> 
         "top_wallets_24h": signal_stats.get("top_wallets_24h", []),
     }, indent=2)
 
-    # Load current strategy config for Claude context
+    # Load current strategy config for Claude context (full relevant sections)
     config_path = ALPHA_DIR / "strategy_config.json"
     current_config_summary = {}
     if config_path.exists():
         try:
             cfg = json.loads(config_path.read_text())
             current_config_summary = {
-                "min_quality_score": cfg.get("single_wallet", {}).get("min_quality_score", 0.6),
-                "max_pump_1h": cfg.get("quality_filters", {}).get("max_pump_1h", 10.0),
-                "min_token_age_days": cfg.get("quality_filters", {}).get("min_token_age_days", 7),
+                "tp_sl": cfg.get("tp_sl", {}),
+                "single_wallet": {k: v for k, v in cfg.get("single_wallet", {}).items()
+                                  if k in ("min_quality_score", "min_buy_usd", "volume_spike_min", "noisy_wallets")},
+                "quality_filters": {k: v for k, v in cfg.get("quality_filters", {}).items()
+                                    if k in ("min_market_cap", "max_market_cap", "min_liquidity", "max_pump_1h")},
                 "last_auto_change": cfg.get("changes_log", [{}])[-1].get("change", "none") if cfg.get("changes_log") else "none",
             }
         except Exception:
@@ -541,9 +581,16 @@ Reference specific numbers from the performance stats.
   ],
   "new_hypotheses": ["hypothesis 1 (max 2)"],
   "top_action": "Single best config change to make right now — specific and executable",
+  "config_patch": {{
+    "tp_sl": {{"tp1_pct": 0.008, "tp2_pct": 0.015, "tp3_pct": 0.05, "sl_pct": 0.03}},
+    "single_wallet": {{"min_quality_score": 0.5}},
+    "quality_filters": {{}}
+  }},
+  "config_patch_rationale": "Why these specific values — reference data. ONLY include fields that should CHANGE. Omit unchanged sections entirely. Set a section to {{}} or omit it to leave it unchanged.",
   "additional_observations": ["obs 1 (max 2)"]
 }}
 ```
+IMPORTANT for config_patch: Only include config keys that your analysis shows NEED to change. If TP/SL targets are working, do NOT include tp_sl. Current live config values are shown above — do not re-recommend values that are already set.
 Output ONLY the JSON block, no prose before or after.
 """
 
@@ -644,6 +691,11 @@ def spawn_fix_task(finding: str, top_action: str, repeat_count: int) -> bool:
 # ── Main ─────────────────────────────────────────────────────────────────────
 def main():
     log("=== Research Pipeline v2 Starting ===")
+
+    # Reload TP/SL from live config each run (module-level values may be stale)
+    global TP1_PCT, TP2_PCT, TP3_PCT, SL_PCT
+    TP1_PCT, TP2_PCT, TP3_PCT, SL_PCT = _load_tp_sl_from_config()
+    log(f"TP/SL from config: TP1={TP1_PCT:.3f} TP2={TP2_PCT:.3f} TP3={TP3_PCT:.3f} SL={SL_PCT:.3f}")
 
     state = load_state()
     iteration = state["iteration"] + 1
@@ -759,6 +811,25 @@ def main():
             top_action = findings.get("top_action", "")
             if top_action and top_action not in state["action_items"]:
                 state["action_items"].append(top_action)
+
+            # APPLY CONFIG PATCH: Write research findings directly to strategy_config.json.
+            # This is the critical step that was missing — findings were stored in state
+            # but never persisted to the live config that signal_publisher reads.
+            config_patch = findings.get("config_patch")
+            patch_rationale = findings.get("config_patch_rationale", "")
+            if config_patch and HAS_EXECUTOR:
+                patch_changes = apply_config_patch(config_patch, patch_rationale)
+                if patch_changes:
+                    log(f"Applied {len(patch_changes)} config change(s) from research findings")
+                    state["findings"][-1]["config_applied"] = True
+                    state["findings"][-1]["config_changes"] = [
+                        c.get("change", "") for c in patch_changes
+                    ]
+                    # Reload TP/SL globals to match newly-written config
+                    # (global declaration is at top of main())
+                    TP1_PCT, TP2_PCT, TP3_PCT, SL_PCT = _load_tp_sl_from_config()
+            elif config_patch and not HAS_EXECUTOR:
+                log("CONFIG PATCH: pipeline_executor not available — cannot apply")
 
             # REPEAT SAFEGUARD: If same top_action seen 2+ iters without fix, spawn a task.
             # This prevents research findings from being reported indefinitely without action.

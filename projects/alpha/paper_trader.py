@@ -15,7 +15,7 @@ Configuration:
   POSITION_SIZE_USDC = $50 per signal (conservative paper trading)
   STOP_LOSS_PCT = 8% (tighter: cut losses fast)
   TAKE_PROFIT_PCT = 20% (achievable for meme tokens in 2h)
-  HOLD_HORIZON_HOURS = 2 (meme pumps resolve in 15-60min)
+  HOLD_HORIZON_HOURS = 5 (extended from 2h — signals need more time to develop)
 """
 
 import os
@@ -42,7 +42,7 @@ POSITION_SIZE_USDC = 50.0
 SLIPPAGE = 0.003        # 0.3% per side
 STOP_LOSS_PCT = 0.06    # -6% (tightened from 8% — meme dumps are sharp, exit sooner)
 TAKE_PROFIT_PCT = 0.20  # +20% (achievable for meme tokens in 2h window)
-HOLD_HORIZON_HOURS = 2  # 2h (meme pumps resolve in 15-60min; 4h was riding the dump)
+HOLD_HORIZON_HOURS = 5  # 5h (300min) — extended from 2h per research finding: 88.9% WR but 89% expire in 2h window
 
 # Token tier config: meme/small-cap only for paper trading
 # Large-cap tokens (BTC wraps, major DeFi protocols) are stable — +25% in 4h is unrealistic
@@ -56,7 +56,7 @@ MEMORY_API = "http://localhost:8100"
 # ── Signal-timestamp dedup (daemon mode) ─────────────────────────────────────
 # FIX: was an in-memory dict that was wiped on every restart, allowing the same signal
 # event to reopen a position after a restart. Now file-backed for cross-restart persistence.
-_SIGNAL_TS_DEDUP_HOURS = 4.0  # Matches hold horizon + buffer
+_SIGNAL_TS_DEDUP_HOURS = 7.0  # Matches hold horizon (5h) + 2h buffer
 _PROCESSED_SIGNALS_PATH = os.path.join(os.path.dirname(__file__), "processed_signals.jsonl")
 
 

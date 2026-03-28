@@ -1,43 +1,57 @@
 {
   "version": 2,
-  "updated_at": "2026-03-28T00:00:00Z",
+  "updated_at": "2026-03-28T17:00:00Z",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
     {
       "ts": "2026-03-10T00:00:00Z",
-      "change": "Initial config — baseline values from Week 1 fix v2",
+      "change": "Initial config \u2014 baseline values from Week 1 fix v2",
       "rationale": "Seeding from manually-tuned values after Week 1 signal quality fix"
     },
     {
       "ts": "2026-03-12T12:40:00Z",
       "change": "Lowered TP1_TARGET from 10.0% to 5.5%",
-      "rationale": "Research Iter 28: TP1=10% is mathematically unattainable within 2h window — 90.9% expiry rate despite 81.8% win rate. Tokens reach only ~5.5% avg PnL. Lowering TP1 to 5.5% to match actual price action."
+      "rationale": "Research Iter 28: TP1=10% is mathematically unattainable within 2h window \u2014 90.9% expiry rate despite 81.8% win rate. Tokens reach only ~5.5% avg PnL. Lowering TP1 to 5.5% to match actual price action."
     },
     {
       "ts": "2026-03-27T00:00:00Z",
       "change": "Lowered min_quality_score from 0.60 to 0.50; lowered tp1_pct from 5.5% to 1.5%, tp2_pct from 25% to 3.0%",
-      "rationale": "Research finding (2 consecutive iterations): direction accuracy 88.9% but only 22.2% reach TP targets — 5.5% TP is 3-4x too aggressive for 90-min window. min_quality_score=0.60 blocking all publication (0 signals/24h). Lowering quality threshold to restore flow; reducing TP targets to match actual 90-min price action."
+      "rationale": "Research finding (2 consecutive iterations): direction accuracy 88.9% but only 22.2% reach TP targets \u2014 5.5% TP is 3-4x too aggressive for 90-min window. min_quality_score=0.60 blocking all publication (0 signals/24h). Lowering quality threshold to restore flow; reducing TP targets to match actual 90-min price action."
     },
     {
       "ts": "2026-03-27T07:15:00Z",
       "change": "Lowered min_buy_usd from 100 to 0 (disabled); lowered volume_spike_min from 1.0 to 0.3",
-      "rationale": "Root cause found: amount_usd is computed as token_quantity*token_price (not SOL_spent*sol_price), so 4-5 SOL trades show amount_usd=0.008-1.02, blocking all signals. Also lowered volume_spike_min to 0.3 — SM_10 (Tier 1, 83% WR) was buying at 0.4x volume (below 1.0x threshold). Smart money buys BEFORE volume spikes; filtering on this is counterproductive for Tier 1."
+      "rationale": "Root cause found: amount_usd is computed as token_quantity*token_price (not SOL_spent*sol_price), so 4-5 SOL trades show amount_usd=0.008-1.02, blocking all signals. Also lowered volume_spike_min to 0.3 \u2014 SM_10 (Tier 1, 83% WR) was buying at 0.4x volume (below 1.0x threshold). Smart money buys BEFORE volume spikes; filtering on this is counterproductive for Tier 1."
     },
     {
       "ts": "2026-03-28T00:00:00Z",
       "change": "Reduced TP targets to 0.8%/1.5%/5.0%; tightened SL to 3.0%",
-      "rationale": "Research finding (2 consecutive iterations): signals are profitable (88.9% WR, 5.96% avg PnL) but TP targets structurally unreachable (22.2% TP hit rate). Prices consolidate to 5-6% by expiration rather than spiking to hit 1.5%/3.0% levels — consolidation window mismatch. New TP1=0.8% and TP2=1.5% match the observed price action range. SL tightened from 15% to 3% to cut losing trades faster. SM_10-only allocation already enforced by publisher quality scoring (Tier 1 = 60pts base; other single wallets max 35pts, below 50-point gate)."
+      "rationale": "Research finding (2 consecutive iterations): signals are profitable (88.9% WR, 5.96% avg PnL) but TP targets structurally unreachable (22.2% TP hit rate). Prices consolidate to 5-6% by expiration rather than spiking to hit 1.5%/3.0% levels \u2014 consolidation window mismatch. New TP1=0.8% and TP2=1.5% match the observed price action range. SL tightened from 15% to 3% to cut losing trades faster. SM_10-only allocation already enforced by publisher quality scoring (Tier 1 = 60pts base; other single wallets max 35pts, below 50-point gate)."
+    },
+    {
+      "ts": "2026-03-28T17:00:00Z",
+      "change": "Added observation_window_minutes: 300 (5h). Extended from implicit 120min.",
+      "rationale": "Research pipeline recommended observation_window_minutes 120->240+ across 14+ iterations. Signals have 88.9% directional accuracy but 89% expire without hitting TP/SL — 2h hold window too short for price action to develop. Extending to 300min (5h) gives tokens time to reach TP1=0.8% targets."
     }
   ],
+  "observation_window_minutes": 300,
   "convergence": {
     "min_wallet_count": 4,
     "min_total_usd": 1000,
-    "confidence_levels": ["ULTRA", "HIGH"]
+    "confidence_levels": [
+      "ULTRA",
+      "HIGH"
+    ]
   },
   "single_wallet": {
     "min_quality_score": 0.5,
     "min_buy_usd": 0,
-    "noisy_wallets": ["SM_1", "SM_2", "SM_4", "SM_7"],
+    "noisy_wallets": [
+      "SM_1",
+      "SM_2",
+      "SM_4",
+      "SM_7"
+    ],
     "min_market_cap": 500000,
     "min_liquidity": 50000,
     "volume_spike_min": 0.3,
@@ -61,11 +75,11 @@
   "auto_update": {
     "enabled": true,
     "min_closed_signals": 5,
-    "win_rate_tighten_threshold": 0.40,
+    "win_rate_tighten_threshold": 0.4,
     "win_rate_relax_threshold": 0.65,
     "quality_score_step": 0.05,
-    "quality_score_min": 0.50,
-    "quality_score_max": 0.80,
+    "quality_score_min": 0.5,
+    "quality_score_max": 0.8,
     "max_changes_per_cycle": 2
   }
 }

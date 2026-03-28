@@ -390,6 +390,109 @@ def apply_strategy_updates(metrics: dict) -> list[dict]:
     return changes
 
 
+# ── Step 4: Apply Research Config Patch ──────────────────────────────────────
+
+# Allowed config sections and keys that research findings can modify.
+# This whitelist prevents the research agent from changing arbitrary config.
+PATCHABLE_KEYS = {
+    "tp_sl": {"tp1_pct", "tp2_pct", "tp3_pct", "sl_pct"},
+    "single_wallet": {"min_quality_score", "min_buy_usd", "volume_spike_min",
+                       "min_market_cap", "min_liquidity", "max_pump_6h", "min_token_age_days"},
+    "quality_filters": {"min_market_cap", "max_market_cap", "min_liquidity",
+                         "volume_spike_min", "max_pump_1h", "min_token_age_days"},
+}
+
+# Bounds to prevent obviously wrong values
+VALUE_BOUNDS = {
+    "tp1_pct":  (0.001, 0.20),   # 0.1% to 20%
+    "tp2_pct":  (0.005, 0.50),   # 0.5% to 50%
+    "tp3_pct":  (0.01,  1.0),    # 1% to 100%
+    "sl_pct":   (0.005, 0.30),   # 0.5% to 30%
+    "min_quality_score": (0.30, 0.95),
+    "min_buy_usd": (0, 10000),
+    "volume_spike_min": (0.0, 10.0),
+}
+
+
+def apply_config_patch(patch: dict, rationale: str = "") -> list[dict]:
+    """Apply a structured config patch from research findings to strategy_config.json.
+
+    Args:
+        patch: dict like {"tp_sl": {"tp1_pct": 0.008}, "single_wallet": {"min_quality_score": 0.5}}
+        rationale: why these changes are being made
+
+    Returns:
+        list of change records (empty if nothing changed)
+    """
+    if not patch or not isinstance(patch, dict):
+        return []
+
+    config = load_config()
+    changes = []
+    now_iso = datetime.now(timezone.utc).isoformat()
+
+    for section, section_patch in patch.items():
+        if section not in PATCHABLE_KEYS:
+            log(f"CONFIG PATCH: Skipping non-patchable section '{section}'")
+            continue
+        if not isinstance(section_patch, dict) or not section_patch:
+            continue
+
+        allowed_keys = PATCHABLE_KEYS[section]
+        config.setdefault(section, {})
+
+        for key, new_value in section_patch.items():
+            if key not in allowed_keys:
+                log(f"CONFIG PATCH: Skipping non-patchable key '{section}.{key}'")
+                continue
+
+            # Validate value type (must be numeric for all patchable keys)
+            if not isinstance(new_value, (int, float)):
+                log(f"CONFIG PATCH: Skipping non-numeric value for '{section}.{key}': {new_value}")
+                continue
+
+            # Apply bounds check
+            if key in VALUE_BOUNDS:
+                lo, hi = VALUE_BOUNDS[key]
+                if not (lo <= new_value <= hi):
+                    log(f"CONFIG PATCH: Value {new_value} for '{section}.{key}' out of bounds [{lo}, {hi}] — clamping")
+                    new_value = max(lo, min(hi, new_value))
+
+            old_value = config[section].get(key)
+            if old_value == new_value:
+                continue  # No change needed
+
+            config[section][key] = new_value
+            change = {
+                "ts": now_iso,
+                "field": f"{section}.{key}",
+                "old": old_value,
+                "new": new_value,
+                "change": f"Research patch: {section}.{key} {old_value} → {new_value}",
+                "rationale": rationale[:300] if rationale else "Applied from research findings config_patch",
+                "source": "research_pipeline",
+            }
+            changes.append(change)
+            log(f"CONFIG PATCH: {change['change']}")
+
+    if changes:
+        config.setdefault("changes_log", [])
+        config["changes_log"].extend(changes)
+        config["changes_log"] = config["changes_log"][-50:]
+        save_config(config)
+
+        # Also log to pipeline_changes.jsonl
+        with open(CHANGES_LOG, "a") as f:
+            for c in changes:
+                f.write(json.dumps(c) + "\n")
+
+        log(f"CONFIG PATCH: Applied {len(changes)} research finding(s) to strategy_config.json")
+    else:
+        log("CONFIG PATCH: No actionable changes in patch (all values same or invalid)")
+
+    return changes
+
+
 # ── Full execution ────────────────────────────────────────────────────────────
 
 def run_implementation_cycle() -> dict:
