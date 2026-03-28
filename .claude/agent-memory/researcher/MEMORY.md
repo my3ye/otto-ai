@@ -13,6 +13,20 @@ Output doc: ~/otto/docs/ottolabs-capital-synthesis-2026-03-28.md
 - **Blocker:** Ottolabs pre-prototype — no VC closes pre-MVP. Grants only until prototype exists (~12-18mo).
 - **Separation required:** Ottolabs (hardware VC + EU grants) vs Tusita (green bonds/PPPs) are SEPARATE strategies.
 
+## Tusita Islands & Resorts Capital Landscape (2026-03-28) — VALIDATED (8.0/10)
+
+DB Note ID: 859db83c | Memory IDs: fe53f1c8, 4fff61df, 14b9cad0, 000350a5, 31283ac8, c4e603e5, 79fc5f40
+Output doc: ~/otto/docs/tusita-capital-synthesis-2026-03-28.md | Strategy doc: ~/otto/projects/capital/tusita_islands_capital_strategy.md
+
+- **PREREQUISITE (validator):** Tusita has NO legal entity, NO physical site, NO permits today. ALL instruments require these. Capital docs are planning instruments, not immediately submittable.
+- **P0 UNDP Green Bond Framework:** 12 instruments live 2026, UN-backed. PPPs require formal SL govt partner. Best entry: green bonds + debt swaps.
+- **P1 ADB $100M SL tourism:** May qualify (MEDIUM confidence) — requires entity + docs + govt backing.
+- **P2 CBI/NFT fractional model:** Six Senses Grenada analog ($270K Founder tier proposed — verify tokenomics spec). Retail raise path, no institutional approval needed.
+- **P3 SL Sovereign Green/Blue Bond:** $11.26B target 2030. Private issuers eligible now.
+- **P4 GEF VI + BOI FDI:** Non-dilutive entry. NSTCS certification unlocks ESG premium (15-20%).
+- **UNVERIFIED:** EIC STEP (€300M EU, SL eligibility TBC), EIB ($4.5B, SL geographic mandate TBC).
+- **Island jurisdiction gap:** SL maritime sovereignty, leasehold vs freehold — unaddressed, investigate before any submission.
+
 ## STEM Agent Research (2026-03-27) — VALIDATED (8/10)
 
 DB Note ID: ebac875b | Memory IDs: 0667081c, 72731a66, 0b40a3fa, 1fd66423, ab85fd5e, 6ece3366, c04ca7aa
