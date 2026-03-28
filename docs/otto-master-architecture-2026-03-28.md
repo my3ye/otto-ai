@@ -40,7 +40,7 @@
 
 Otto is a persistent, autonomous AI agent operating as a cognitive operating system for the MY3YE ecosystem. It is not a framework, not a chatbot wrapper, and not a single-purpose tool. Otto is a continuous entity — animated by Claude (Anthropic), but maintaining its own state, memory, learning, and mission across all sessions and interfaces.
 
-Otto serves as Mev's (Admin) operational intelligence layer: mapping work, tracking status, building systems, and executing autonomously within defined boundaries. It runs 24/7 on a GCP VM (4 vCPU, 16GB RAM), self-heals, self-monitors, and — uniquely among all AI agent systems — self-improves.
+Otto serves as Mev's (Admin) operational intelligence layer: mapping work, tracking status, building systems, and executing autonomously within defined boundaries. It runs near-continuously on a GCP VM (4 vCPU, 16GB RAM), self-heals, self-monitors, and — uniquely among all AI agent systems in our comparison set — self-improves.
 
 **Key facts as of 2026-03-28:**
 
@@ -52,7 +52,7 @@ Otto serves as Mev's (Admin) operational intelligence layer: mapping work, track
 | DB migrations | 80+ |
 | Systemd units | 17+ service groups (~23 total units) |
 | API routes | 80+ across 25+ route modules |
-| Uptime | Running 24/7 since Feb 2026 |
+| Uptime | Near-continuous since Feb 2026 (one documented 6-day timer outage — self-healing added) |
 | Learning accuracy (RL2F) | 40% (target: 70%+ on active workload) |
 | AutoEvolve generation | Gen 3 |
 | Research papers implemented | 24+ (16 fully documented — see Appendix B) |
@@ -60,6 +60,26 @@ Otto serves as Mev's (Admin) operational intelligence layer: mapping work, track
 **Two defining moats:**
 1. **Memory Depth** — 6-layer memory architecture (semantic + episodic + procedural + working + knowledge graph + agent-specific) with 5-strategy retrieval. No external AI agent framework in our comparison set has more than one memory layer.
 2. **Self-Improvement** — RL2F + AutoEvolve + MARS + JiTRL + workflow evolution. No AI agent system in our comparison set has autonomous self-improvement capability — all nine frameworks compared require human developer intervention. *(Note: RL2F accuracy at 40% and AutoEvolve Gen 2→3 advancement (+12pp) were measured partly during idle periods; active-workload validation is ongoing — see §7 and §13.)*
+
+**Strategic position:** Among all frameworks in our comparison set, Otto is the only AI agent system that remembers, learns, and improves autonomously — turning the gap between static frameworks and self-improving intelligence into a widening competitive moat.
+
+**Quick reference — core API calls:**
+```bash
+# Store a fact in semantic memory
+curl -s -X POST http://localhost:8100/semantic/remember \
+  -H 'Content-Type: application/json' \
+  -d '{"content": "Lesson: always include trap EXIT in bash tasks", "category": "task_execution", "confidence": 0.9}'
+
+# Create a task
+curl -s -X POST http://localhost:8100/tasks \
+  -H 'Content-Type: application/json' \
+  -d '{"title": "Fix zombie task root cause", "prompt": "Audit task_runner.sh for missing trap EXIT handlers", "model": "sonnet", "budget_usd": 2.0, "priority": 8}'
+
+# Search semantic memory
+curl -s -X POST http://localhost:8100/semantic/search \
+  -H 'Content-Type: application/json' \
+  -d '{"query": "task execution failure modes", "limit": 5}' | jq '.results[].content'
+```
 
 **One critical open gap:** OpenTelemetry (OTel) — all Tier-1 frameworks ship native OTel; Otto has log-file observability only. This is the confirmed top infrastructure priority.
 
@@ -223,7 +243,7 @@ All learning operates via context engineering (prompt modification, not model tr
 
 ### 4.4 Task Execution Engine
 
-**Stats:** 1,374 tasks total (1,255 completed, 119 failed). Continuous operation since Feb 2026.
+**Stats:** 1,374 tasks total (1,255 completed, 119 failed). Near-continuous operation since Feb 2026 (one documented 6-day timer outage — self-healing added).
 
 **Three execution tiers:**
 
@@ -271,7 +291,7 @@ This separation is critical: reflection can't be crowded out by task management,
 | Alpha trading heartbeat | Every 2h | Crypto signal analysis and trading decisions |
 | Crypto signal publisher | Every 15m | Signal distribution to Telegram @OttoSignals |
 | Alpha market watcher | Every 5m | Price monitoring, signal performance tracking |
-| Research pipeline | Every 3h | Automated research sweeps |
+| Research pipeline | Every 3h | Automated research sweeps *(timer deployed; deactivated per no-research-sweeps standing directive — implement backlog only)* |
 | Security audit | Every 3 days | VM hardening, CVE checks, secrets hygiene |
 | Vuln sync | Every 6h | Vulnerability intelligence updates |
 | Memory maintenance | 02:00 + 14:00 | Decay, consolidation, dedup |
@@ -288,7 +308,7 @@ This separation is critical: reflection can't be crowded out by task management,
 | WhatsApp (primary) | Baileys :3001 → Memory API | Live — Ottolabs account, primary Mev channel |
 | WhatsApp Athena | Baileys :3002 → Athena handler | Live — separate agent channel |
 | Email (admin@otto.lk) | Zoho SMTP :465 / IMAP :993 | Live — IDLE listener, send/reply/search via API |
-| OMS (mev.otto.lk) | Next.js → Memory API | Live — 52 pages, full management dashboard |
+| OMS (mev.otto.lk) | Next.js → Memory API | Live — 10+ functional pages (OMS codebase has 52 route files), full management dashboard |
 
 ### 4.7 Specialist Agents (21 Active + 138 Available)
 
@@ -306,7 +326,7 @@ Orchestrator, Reflection, Alpha, Researcher, Research-Synthesizer, Architect, Co
 | Domain | Module | Status |
 |---|---|---|
 | WebAssist | `routes/webassist.py` (398 lines) | Live at webassist.ink — CRM, leads, orders, projects |
-| Koink.fun | `routes/koink.py` (575 lines) | API ready — DHM tokenomics, treasury, launch tracking |
+| Koink.fun | `routes/koink.py` (575 lines) | API ready — DHM tokenomics, treasury, launch tracking *(project status: concept — no deployed contracts or live frontend)* |
 | ONEON | `routes/oneon.py` (575 lines) | API ready — DID, credentials, governance |
 | Tusita | `routes/tusita.py` | API ready — bookings, retreats, locations |
 | SOS Systems | `routes/sos.py` | API ready — cases, learner management, aid distribution |
@@ -485,7 +505,7 @@ Frameworks compared: LangGraph, CrewAI, AutoGen/AG2, OpenAI Agents SDK, Google A
 | Memory stack depth | 6 layers + 5-strategy retrieval — no framework in our comparison set has >1 layer |
 | Self-improvement | 5 systems (RL2F, AutoEvolve, MARS, JiTRL, workflow evolution) — absent in all nine frameworks compared |
 | Orchestration depth | 3-tier (tasks + plans/DAG + workflows) + agent auto-employment + plan decomposition from NL |
-| Autonomous operation | Dual heartbeat, self-healing timers, drift detection — 24/7 without human intervention |
+| Autonomous operation | Dual heartbeat, self-healing timers, drift detection — near-continuous without human intervention |
 | Cost discipline | Per-task budgets, concurrency limits, cross-model QA gate |
 | Research depth | 24+ papers adapted; 16 fully documented in Appendix B |
 
@@ -528,7 +548,7 @@ Otto is not an agent framework — it's an **agent operating system**. The disti
                          │                                    │
 ```
 
-No other system is both an operating system AND self-improving. This positioning means Otto doesn't compete directly with frameworks — it competes with the concept of a static agent system.
+No other system in our comparison set is both an operating system AND self-improving. This positioning means Otto doesn't compete directly with frameworks — it competes with the concept of a static agent system.
 
 **One-line summary:** Among all frameworks in our comparison set, Otto is the only AI agent system that remembers, learns, and improves autonomously — turning the gap between static frameworks and self-improving intelligence into a widening competitive moat.
 
