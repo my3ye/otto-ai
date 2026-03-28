@@ -596,7 +596,7 @@ async def list_tasks(
     status: str | None = Query(default=None),
     reviewed: bool | None = Query(default=None),
     owner: str | None = Query(default=None, description="Filter by owner: 'otto' or 'mev'"),
-    limit: int = Query(default=20, le=100),
+    limit: int = Query(default=20, le=200),
     offset: int | None = Query(default=None, ge=0),
 ):
     """List tasks with optional filters. Returns paginated response when offset is provided."""
@@ -640,12 +640,13 @@ async def list_tasks(
     rows = await pool.fetch(
         f"""SELECT {TASK_COLUMNS} FROM tasks {where}
             ORDER BY
-                CASE status
-                    WHEN 'running' THEN 0
-                    WHEN 'pending' THEN 1
-                    WHEN 'completed' THEN 2
-                    WHEN 'failed' THEN 3
-                    ELSE 4
+                CASE
+                    WHEN status = 'running' THEN 0
+                    WHEN status = 'pending' THEN 1
+                    WHEN status = 'completed' AND reviewed = FALSE THEN 2
+                    WHEN status = 'completed' AND reviewed = TRUE THEN 3
+                    WHEN status = 'failed' THEN 4
+                    ELSE 5
                 END,
                 created_at DESC
             LIMIT ${limit_idx} OFFSET ${offset_idx}""",
@@ -1823,4 +1824,122 @@ async def set_dependency_score(task_id: UUID, score: float = 0.0):
         "title": d["title"],
         "dependency_score": d["dependency_score"],
         "computed_score": computed_score,
+    }
+
+
+@router.get("/queue/reconcile")
+async def reconcile_task_queue():
+    """Reconciliation check: find tasks that completed but may be invisible in OMS.
+
+    Flags:
+    - Zombie tasks: status=running but no live process (stale > 30 min)
+    - Unreviewed completed tasks older than 2 hours
+    - Tasks with output but still marked running (callback missed)
+    """
+    pool = await get_pool()
+
+    # Zombie tasks: running but started > 30 min ago
+    zombies = await pool.fetch(
+        """SELECT id, title, started_at, pid
+           FROM tasks
+           WHERE status = 'running'
+             AND started_at < now() - interval '30 minutes'
+           ORDER BY started_at ASC"""
+    )
+
+    # Unreviewed completed tasks older than 2 hours
+    stale_unreviewed = await pool.fetch(
+        """SELECT id, title, completed_at, agent_type, owner
+           FROM tasks
+           WHERE status = 'completed'
+             AND reviewed = FALSE
+             AND completed_at < now() - interval '2 hours'
+           ORDER BY completed_at DESC
+           LIMIT 50"""
+    )
+
+    # Tasks with output/exit_code set but still marked running (missed callback)
+    missed_callbacks = await pool.fetch(
+        """SELECT id, title, exit_code, started_at
+           FROM tasks
+           WHERE status = 'running'
+             AND exit_code IS NOT NULL
+           ORDER BY started_at ASC"""
+    )
+
+    return {
+        "zombies": [
+            {"id": str(r["id"]), "title": r["title"],
+             "started_at": r["started_at"].isoformat() if r["started_at"] else None,
+             "pid": r["pid"]}
+            for r in zombies
+        ],
+        "stale_unreviewed": [
+            {"id": str(r["id"]), "title": r["title"],
+             "completed_at": r["completed_at"].isoformat() if r["completed_at"] else None,
+             "agent_type": r["agent_type"], "owner": r["owner"]}
+            for r in stale_unreviewed
+        ],
+        "missed_callbacks": [
+            {"id": str(r["id"]), "title": r["title"],
+             "exit_code": r["exit_code"],
+             "started_at": r["started_at"].isoformat() if r["started_at"] else None}
+            for r in missed_callbacks
+        ],
+        "healthy": len(zombies) == 0 and len(stale_unreviewed) == 0 and len(missed_callbacks) == 0,
+    }
+
+
+@router.post("/queue/reconcile")
+async def reconcile_and_fix():
+    """Auto-fix zombie tasks and missed callbacks.
+
+    - Zombies (running + no live PID + started >30min ago) → marked failed
+    - Missed callbacks (running + exit_code set) → marked completed/failed based on exit_code
+    Returns counts of fixes applied.
+    """
+    pool = await get_pool()
+    fixed_zombies = 0
+    fixed_callbacks = 0
+
+    # Fix zombies: running with no live process
+    zombies = await pool.fetch(
+        """SELECT id, pid FROM tasks
+           WHERE status = 'running'
+             AND started_at < now() - interval '30 minutes'"""
+    )
+    for z in zombies:
+        pid = z["pid"]
+        if pid and _pid_alive(pid):
+            continue  # actually still running
+        await pool.execute(
+            """UPDATE tasks SET status = 'failed',
+                   error = 'Zombie: no live process found after 30min (auto-reconciled)',
+                   completed_at = now(), updated_at = now()
+               WHERE id = $1 AND status = 'running'""",
+            z["id"],
+        )
+        fixed_zombies += 1
+        log.info(f"Reconciled zombie task {z['id']}")
+
+    # Fix missed callbacks: running but has exit_code
+    missed = await pool.fetch(
+        """SELECT id, exit_code FROM tasks
+           WHERE status = 'running' AND exit_code IS NOT NULL"""
+    )
+    for m in missed:
+        new_status = "completed" if m["exit_code"] == 0 else "failed"
+        await pool.execute(
+            """UPDATE tasks SET status = $1, completed_at = COALESCE(completed_at, now()),
+                   updated_at = now()
+               WHERE id = $2 AND status = 'running'""",
+            new_status, m["id"],
+        )
+        fixed_callbacks += 1
+        log.info(f"Reconciled missed callback task {m['id']} → {new_status}")
+
+    return {
+        "fixed_zombies": fixed_zombies,
+        "fixed_callbacks": fixed_callbacks,
+        "total_fixed": fixed_zombies + fixed_callbacks,
     }
