@@ -106,6 +106,11 @@ class Settings(BaseSettings):
 
     # ── ONEON Identity Network ─────────────────────────────────────────
     oneon_enabled: bool = False        # Master feature flag — Phase 0 available now
+    oneon_vault_master_key: str = ""   # AES-256-GCM key for session key encryption (Fernet-compatible)
+    oneon_base_rpc_url: str = "https://mainnet.base.org"  # Base L2 RPC (Phase 1B)
+    oneon_factory_address: str = ""    # Smart account factory contract (Phase 1B)
+    oneon_paymaster_address: str = ""  # Paymaster contract (Phase 1B)
+    oneon_magic_link_base_url: str = "https://oneon.ink/auth/verify"  # Magic link redirect
 
     # ── Tusita Community Locations ─────────────────────────────────────
     tusita_enabled: bool = False       # Master feature flag — Phase 0 available now
