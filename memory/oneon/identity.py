@@ -26,11 +26,14 @@ async def register_identity(
     Raises:
         ValueError: If handle is already registered.
     """
+    import re
     handle_clean = handle.lstrip("@").lower().strip()
     if not handle_clean:
         raise ValueError("Handle cannot be empty.")
     if len(handle_clean) < 2 or len(handle_clean) > 32:
         raise ValueError("Handle must be 2–32 characters.")
+    if not re.match(r'^[a-z0-9_]+$', handle_clean):
+        raise ValueError("Handle must contain only lowercase letters, numbers, and underscores.")
 
     # Build a Phase 0 DID stub
     did = construct_did(handle_clean, chain=chain, address=wallet_address)

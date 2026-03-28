@@ -108,8 +108,8 @@ Tier 3: "I AM THE NETWORK"      (sovereign — full autonomy)
 │  │               │  │ Sponsors gas │  │ Aggregates       │  │
 │  │ Creates       │  │ for Tier 1   │  │ UserOps          │  │
 │  │ account on    │  │ users        │  │                  │  │
-│  │ first action  │  │              │  │ Submits to       │  │
-│  │ (lazy)        │  │ Budget caps  │  │ chain            │  │
+│  │ signup        │  │              │  │ Submits to       │  │
+│  │ (eager)       │  │ Budget caps  │  │ chain            │  │
 │  └──────────────┘  └──────────────┘  └──────────────────┘  │
 │                                                             │
 │  Session Keys: pre-authorized action types (vote, post,     │
@@ -356,9 +356,12 @@ oneon/
 │
 ├── invisible.py               — NEW: Core invisible layer
 │   Classes:
-│     InvisibleSigner          — auto-sign for Tier 1, passkey for Tier 2+
+│     InvisibleSigner          — auto-sign for Tier 1 (decrypt session key from vault,
+│                                 sign UserOp, discard plaintext), passkey for Tier 2+
 │     ActionExecutor           — construct + submit UserOps
-│     CounterfactualAccount    — deterministic address derivation
+│                                 MUST check email_verified before executing any action
+│                                 MUST check gas_used_today_usd < gas_budget_daily_usd
+│     AccountDeployer          — eager deployment on signup (~$0.001 on Base L2)
 │
 ├── paymaster.py               — NEW: Gas sponsorship logic
 │   Functions:
@@ -434,7 +437,7 @@ CREATE INDEX idx_oneon_actions_status ON oneon_actions(status);
 CREATE TABLE IF NOT EXISTS oneon_credentials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     subject_id UUID NOT NULL REFERENCES oneon_identities(id) ON DELETE CASCADE,
-    issuer_id UUID REFERENCES oneon_identities(id) ON DELETE SET NULL,
+    issuer_id UUID REFERENCES oneon_identities(id) ON DELETE SET NULL,  -- Intentional: orphaned credentials remain valid but non-revocable. Revocation requires issuer_id; document this in credential lifecycle docs.
     credential_type TEXT NOT NULL,   -- community_builder, first_vote, mentor, etc.
     claims JSONB NOT NULL DEFAULT '{}',
     vc_jwt TEXT,                     -- full W3C VC JWT (off-chain)
@@ -465,11 +468,14 @@ CREATE INDEX idx_oneon_auth_tokens_hash ON oneon_auth_tokens(token_hash);
 ALTER TABLE oneon_identities
     ADD COLUMN IF NOT EXISTS smart_account_address TEXT,
     ADD COLUMN IF NOT EXISTS smart_account_deployed BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN IF NOT EXISTS smart_account_salt TEXT,
+    ADD COLUMN IF NOT EXISTS smart_account_salt CHAR(66),  -- bytes32 as 0x-prefixed hex (e.g. 0xabcd...1234)
     ADD COLUMN IF NOT EXISTS passkey_credential_id TEXT,
-    ADD COLUMN IF NOT EXISTS email TEXT,
+    ADD COLUMN IF NOT EXISTS email_hash TEXT,              -- SHA-256 hash of email (for lookup, not reversible)
+    ADD COLUMN IF NOT EXISTS email_encrypted TEXT,         -- AES-256-GCM encrypted email (for sending magic links, decryptable with vault key)
     ADD COLUMN IF NOT EXISTS email_verified BOOLEAN NOT NULL DEFAULT FALSE,
-    ADD COLUMN IF NOT EXISTS gas_budget_daily_usd NUMERIC(10,4) NOT NULL DEFAULT 0.10;
+    ADD COLUMN IF NOT EXISTS gas_budget_daily_usd NUMERIC(10,4) NOT NULL DEFAULT 0.10,
+    ADD COLUMN IF NOT EXISTS gas_used_today_usd NUMERIC(10,4) NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS gas_day_reset_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
 ```
 
 ---
@@ -494,7 +500,7 @@ ALTER TABLE oneon_identities
 
 #### Phase 1C: Messaging + Frontend (~$5-7, 2-3 tasks)
 
-11. **messaging.py** — XMTP SDK integration (Node.js subprocess or XMTP HTTP API)
+11. **messaging.py** — XMTP SDK integration (Node.js subprocess or XMTP HTTP API). **PREREQUISITE**: Prototype XMTP Node.js subprocess approach before creating this task — subprocess-based XMTP adds latency, complexity, and a second process to manage. Validate feasibility first.
 12. **ONEON frontend** — update oneon-web: signup flow (handle + email), dashboard (achievements, messages, governance), identity export
 13. **Passkey auth** — WebAuthn registration + verification for Tier 2 users
 

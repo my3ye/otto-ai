@@ -58,9 +58,14 @@ def _require_enabled():
 
 
 def _require_admin():
-    """Placeholder admin auth guard. Phase 1: wire in real token/session check.
-    Currently raises 501 to make the absence of auth explicit rather than silent.
-    Replace with a proper dependency (e.g. OAuth2 bearer) before enabling ONEON.
+    """Placeholder admin auth guard — MUST be replaced before Phase 1 ships.
+
+    WARNING: This function unconditionally raises 501, making all admin endpoints
+    permanently inaccessible. Any new endpoint requiring admin protection (e.g.
+    /oneon/credentials/issue) will also be blocked. Phase 1A auth.py must implement
+    real session-based auth and replace this with a FastAPI Depends() guard.
+
+    See: architecture-2026-03-28.md, Phase 1A step 2 (auth.py).
     """
     raise HTTPException(
         status_code=501,
@@ -97,7 +102,7 @@ class CreateProposalRequest(BaseModel):
 class CastVoteRequest(BaseModel):
     voter_id: UUID
     vote: str    # for | against | abstain
-    weight: int = Field(default=1, ge=1, le=100)
+    weight: int = Field(default=1, ge=1, le=1)  # Capped to 1 until auth + weight policy implemented (Phase 1)
 
 
 class UpdateStatusRequest(BaseModel):
