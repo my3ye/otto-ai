@@ -1,0 +1,754 @@
+{
+  "manifest_version": "1.0",
+  "generated_at": "2026-03-28",
+  "system": "Otto — Autonomous AI Agent (AgentOS, arXiv 2602.20934v1)",
+  "host": "otto-machine (GCP VM, Debian 12, 4 vCPUs, 16GB RAM)",
+  "git_branch": "master",
+  "summary": "Otto is a persistent AI entity running as a cognitive operating system. Core infrastructure is a FastAPI Memory API (:8100) backed by PostgreSQL+pgvector and Neo4j. An AgentOS Kernel processes all inputs as interrupts through a priority queue. Dual heartbeat rhythm (orchestrator :00, reflection :30) drives autonomous execution. 80+ API route modules, 20 kernel/gateway files, 21 specialist Claude sub-agents, 16 systemd units, and domain modules for Koink/ONEON/Tusita/SOS.",
+
+  "components": {
+
+    "core_shell_scripts": {
+      "purpose": "Entry-point runners and lifecycle managers for Otto's autonomous loops",
+      "files": [
+        {
+          "path": "~/otto/heartbeat.sh",
+          "lines": 231,
+          "purpose": "Orchestrator heartbeat runner. Checks rate limits, spawns Claude Code CLI with heartbeat.md agent in --print mode, captures output, scores RL2F. Runs hourly via otto-heartbeat.timer.",
+          "key_functions": ["rate_limit_check", "claude_cli_spawn", "log_capture", "rl2f_scoring"],
+          "triggers": "otto-heartbeat.timer (hourly, :00)"
+        },
+        {
+          "path": "~/otto/reflection.sh",
+          "lines": 98,
+          "purpose": "Self-improvement heartbeat runner. Spawns Claude Code CLI with reflection.md agent. Handles memory consolidation, AutoEvolve evaluation, MARS dual-reflection. Runs at :30 via otto-reflection.timer.",
+          "key_functions": ["reflection_agent_spawn", "log_capture"],
+          "triggers": "otto-reflection.timer (hourly, :30)"
+        },
+        {
+          "path": "~/otto/task_runner.sh",
+          "lines": 1507,
+          "purpose": "Detached task executor. Runs individual tasks as isolated Claude Code CLI sessions. Handles pre-flight (git status), QA gating, budget management, SIGPIPE guards, completion reporting, artifact path storage (HiClaw GAP-2), JiTRL ingestion, failure-branch detection.",
+          "key_functions": ["preflight_checks", "budget_management", "qa_gate", "completion_api_report", "artifact_path_write", "jitrl_ingest", "failure_branch_detect"],
+          "triggers": "POST /tasks/{id}/run via Memory API"
+        },
+        {
+          "path": "~/otto/qa_runner.sh",
+          "lines": 1212,
+          "purpose": "QA gate for task outputs. Runs Gemini CLI review of task diffs. Supports auto-approve for verified research/content tasks. Stores RL2F feedback on rejection. Per-file diffs for large changesets.",
+          "key_functions": ["diff_capture", "gemini_review", "auto_approve_logic", "rl2f_feedback_store"],
+          "triggers": "Called by task_runner.sh after task completion"
+        },
+        {
+          "path": "~/otto/session_helper.py",
+          "lines": 148,
+          "purpose": "CLI tool for manual session start/end. Calls Memory API /sessions endpoints, stores session ID in /tmp/otto-session-id.",
+          "key_functions": ["start_session", "end_session"],
+          "triggers": "Manual or via .claude/hooks/"
+        },
+        {
+          "path": "~/otto/task_dispatcher.py",
+          "lines": null,
+          "purpose": "Continuous task dispatcher. Polls task queue, launches ready tasks respecting concurrency limits (max 5: claude=3, gemini=1, kimi=1). Runs as otto-task-dispatcher.service.",
+          "key_functions": ["poll_queue", "launch_task", "concurrency_gate"],
+          "triggers": "otto-task-dispatcher.service (always-on daemon)"
+        },
+        {
+          "path": "~/otto/service_monitor.sh",
+          "purpose": "Service health monitor. Checks sibling timers and services are alive. Self-healing: restarts downed services.",
+          "triggers": "service-monitor.timer"
+        },
+        {
+          "path": "~/otto/security-audit.sh",
+          "purpose": "Periodic security audit. VM hardening, secrets hygiene, Docker surface, CVE scanning. Logs to memory.",
+          "triggers": "otto-security-audit.timer (every 3 days at 03:00 UTC)"
+        },
+        {
+          "path": "~/otto/weekly_improve.sh",
+          "purpose": "Weekly live system auto-improvement cycle. Triggers improvement loop for all registered live systems.",
+          "triggers": "otto-weekly-improve.timer"
+        },
+        {
+          "path": "~/otto/otto-backup.sh",
+          "purpose": "One-command full Otto state backup. Captures DB dumps, config, memory state for VM clone/restore."
+        },
+        {
+          "path": "~/otto/otto-restore.sh",
+          "purpose": "Restore Otto from backup snapshot on a new VM."
+        }
+      ]
+    },
+
+    "agentOS_kernel": {
+      "purpose": "Cognitive operating system implementing arXiv 2602.20934v1. All inputs (WhatsApp, web, scheduler) route through a single interrupt-driven processing loop.",
+      "reference": "arXiv 2602.20934v1 — AgentOS: A Cognitive Operating System for LLM Agents",
+      "base_path": "~/otto/memory/kernel/",
+      "files": [
+        {
+          "file": "reasoning_kernel.py",
+          "lines": 40,
+          "purpose": "Thin wrapper/facade. Exposes start_kernel_loop(), stop_kernel_loop(), ensure_kernel_running(), is_kernel_running(). Delegates to CognitiveScheduler. Preserves legacy API for api.py and kernel_routes.py.",
+          "data_flow": "api.py lifespan → ensure_kernel_running() → scheduler.start()"
+        },
+        {
+          "file": "scheduler.py",
+          "lines": 134,
+          "purpose": "CognitiveScheduler — async event loop for interrupt processing. Dequeues from IVT, passes to RIC, handles retry/backoff. Single instance per agent.",
+          "data_flow": "IVT.dequeue() → RIC.process_interrupt() → post_process hooks"
+        },
+        {
+          "file": "ric.py",
+          "lines": 1063,
+          "purpose": "Request-Interrupt-Cycle (RIC) — core processing logic. Routes interrupts by type (admin_message, heartbeat, maintenance, task_event, sync_drift). Builds LLM system prompt via S-MMU context. Executes 8 post-process hooks. Handles stop commands, reactive dispatch, plan classification.",
+          "key_functions": [
+            "process_interrupt", "_handle_admin_message", "_build_system_prompt",
+            "_handle_stop_command", "_reactive_dispatch",
+            "_hook_episodic_log", "_hook_persist_messages", "_hook_graphiti_ingest",
+            "_hook_pending_match", "_hook_directive_extract", "_hook_reactive_dispatch",
+            "_hook_drift_measure", "_hook_thought_vault_capture"
+          ],
+          "data_flow": "interrupt → S-MMU.assemble_context() → LLM call → 8 post-hooks → IVT.complete()"
+        },
+        {
+          "file": "ivt.py",
+          "lines": 300,
+          "purpose": "Interrupt Vector Table — priority queue backed by PostgreSQL interrupts table. Manages enqueue/dequeue/complete/fail lifecycle. Multi-agent scoped (agent_id). Fires asyncio Events on enqueue for fast wakeup.",
+          "key_functions": ["enqueue", "dequeue", "complete", "fail", "queue_depth", "recent_interrupts"],
+          "data_flow": "peripherals/whatsapp → ivt.enqueue() → scheduler.dequeue() → ric.process()"
+        },
+        {
+          "file": "smmu.py",
+          "lines": 524,
+          "purpose": "Semantic Memory Management Unit — 3-level memory hierarchy. L1: 12K token in-memory cache (always-resident purpose/priorities + dynamic message-relevant slices). L2: pgvector warm storage (HyMem+ARAG retrieval). L3: Neo4j cold storage. Integrates HyMem dual-granularity, ARAG blended retrieval, FadeMem importance decay.",
+          "key_functions": [
+            "assemble_context", "load_l1", "evict_l1", "page_in_from_l2",
+            "page_out_to_l2", "save_state", "restore_state"
+          ],
+          "data_flow": "RIC calls assemble_context() → HyMem/ARAG L2 search → L1 assembly → inject at context START"
+        },
+        {
+          "file": "slicing.py",
+          "lines": 295,
+          "purpose": "CID-based semantic segmentation. Splits documents into semantic slices with Content IDs (hash-based). Enables S-MMU to page individual topic chunks rather than entire documents.",
+          "key_functions": ["slice_document", "get_slice_by_cid", "rebuild_slices"],
+          "data_flow": "Documents → slicing → semantic_slices table → S-MMU L2"
+        },
+        {
+          "file": "drift.py",
+          "lines": 164,
+          "purpose": "Cognitive Drift Detection (Δψ). Measures cosine distance between L1 centroid embedding and ground-truth (purpose+priorities) embedding. Fires SIG_SYNC_DRIFT interrupt when Δψ > threshold. Per-agent thresholds.",
+          "key_functions": ["measure_drift", "check_drift_threshold"],
+          "data_flow": "Every 5 interrupts → drift.measure_drift() → if Δψ > 0.3 → ivt.enqueue(SIG_SYNC_DRIFT)"
+        },
+        {
+          "file": "sync.py",
+          "lines": 311,
+          "purpose": "Cognitive Sync Pulses — state reconciliation triggered by drift, schedule, or manual call. Multi-agent aware. Re-loads always-resident slices, refreshes L1, archives stale state.",
+          "key_functions": ["trigger_sync_pulse", "run_single_agent_sync", "run_multi_agent_sync"],
+          "data_flow": "SIG_SYNC_DRIFT or POST /kernel/sync → sync pulse → S-MMU.rebuild_l1()"
+        },
+        {
+          "file": "perception.py",
+          "lines": 136,
+          "purpose": "LLM output validation. Checks responses for hallucinations, format violations, harmful content. Fires SIG_PERCEPTION_ERROR interrupt on failure.",
+          "key_functions": ["validate_output", "check_format", "check_content_policy"],
+          "data_flow": "RIC post-LLM → perception.validate() → pass or SIG_PERCEPTION_ERROR"
+        },
+        {
+          "file": "provider.py",
+          "lines": 597,
+          "purpose": "Pluggable LLM backends. Supports Claude (Anthropic), Gemini (Google), Kimi. Load-balances by capability. Tracks provider health. Per-agent model config.",
+          "key_functions": ["load_providers", "provider_chat", "get_provider_for_agent"],
+          "data_flow": "RIC → provider.provider_chat() → routes to best available LLM"
+        },
+        {
+          "file": "agents.py",
+          "lines": 178,
+          "purpose": "Agent registry. Loads agent configs from DB, maps agent_id to interrupt_types and provider preferences. Supports multi-agent routing.",
+          "key_functions": ["load_agents", "get_agent_config", "register_agent"]
+        },
+        {
+          "file": "state.py",
+          "lines": 105,
+          "purpose": "CognitiveState model. Snapshots L1 state (slice_ids, token_count, drift_value) to PostgreSQL for crash recovery and cross-session continuity."
+        },
+        {
+          "file": "types.py",
+          "lines": 107,
+          "purpose": "Interrupt type definitions and priority constants. Defines InterruptType enum (admin_message, heartbeat, maintenance, etc.), InterruptStatus, and INTERRUPT_PRIORITIES dict."
+        },
+        {
+          "file": "masking.py",
+          "lines": 54,
+          "purpose": "Privacy masking. Strips PII (real names, credentials) from context before LLM injection."
+        },
+        {
+          "file": "hooks.py",
+          "lines": 75,
+          "purpose": "Hook registry. Allows registering post-process callbacks keyed by interrupt type."
+        }
+      ]
+    },
+
+    "gateway": {
+      "purpose": "Message ingestion and pre-processing layer. Handles incoming WhatsApp/web messages before kernel routing.",
+      "base_path": "~/otto/memory/gateway/",
+      "files": [
+        {
+          "file": "handler.py",
+          "lines": 187,
+          "purpose": "Main gateway handler. Decides kernel vs legacy path (kernel_enabled flag). Assembles interrupt payload, submits to IVT."
+        },
+        {
+          "file": "classifiers.py",
+          "lines": 452,
+          "purpose": "LLM-based message classifiers. Detects: stop commands, multi-task instructions (plan classifier), workflow triggers, agent dispatch type. Also contains legacy needs_claude_help() for fallback path.",
+          "key_functions": ["classify_stop", "classify_for_dispatch", "classify_for_plan", "classify_workflow"]
+        },
+        {
+          "file": "prompt_builder.py",
+          "lines": 94,
+          "purpose": "Builds system prompt injected into gateway LLM calls. Uses context briefing + memory slices."
+        },
+        {
+          "file": "persistence.py",
+          "lines": 262,
+          "purpose": "Persists incoming/outgoing messages to cross_brain_messages table. Also writes to Graphiti for graph ingestion."
+        },
+        {
+          "file": "athena_handler.py",
+          "lines": 463,
+          "purpose": "Handles Athena (second WhatsApp instance, :3002). Prospect routing, CRM updates, outreach state machine for WebAssist lead qualification."
+        },
+        {
+          "file": "contact_handler.py",
+          "lines": 274,
+          "purpose": "Contact management integration. Looks up/creates contacts in DB based on WhatsApp sender ID."
+        },
+        {
+          "file": "location_pricing.py",
+          "lines": 234,
+          "purpose": "Geo-pricing hook. Detects visitor country via api.country.is, adjusts WebAssist pricing response for location-based tiers."
+        },
+        {
+          "file": "models.py",
+          "lines": 20,
+          "purpose": "Pydantic models for gateway payloads (IncomingMessage, GatewayResponse)."
+        },
+        {
+          "file": "routes.py",
+          "lines": 222,
+          "purpose": "Gateway FastAPI router. Exposes /gateway/message and /gateway/stream endpoints consumed by WhatsApp interface."
+        }
+      ]
+    },
+
+    "memory_api": {
+      "purpose": "Central FastAPI service (:8100) — Otto's brain API. 80+ route modules covering all memory layers, task management, domain modules, and infrastructure.",
+      "entrypoint": "~/otto/memory/api.py (365 lines)",
+      "base_path": "~/otto/memory/",
+      "core_files": [
+        {"file": "config.py", "purpose": "Settings (pydantic-settings). PostgreSQL, OpenAI, Gemini, Kimi, Graphiti, Neo4j, WhatsApp, Stripe, SVC, AgentOS kernel flags, S-MMU L1 capacity."},
+        {"file": "db.py", "purpose": "asyncpg connection pool. get_pool() singleton."},
+        {"file": "models.py", "purpose": "Pydantic models for all API entities (tasks, memories, sessions, workflows, etc.)."},
+        {"file": "embeddings.py", "purpose": "OpenAI text-embedding-3-small wrapper with SVC bias-direction removal (sweep #13)."},
+        {"file": "llm.py", "purpose": "LLM chat helpers. llm_chat() and provider_chat() wrappers. Routes to Kimi/Gemini/Claude."},
+        {"file": "graphiti.py", "purpose": "Graphiti HTTP client. graphiti_search(), graphiti_ingest_message()."},
+        {"file": "context_builder.py", "purpose": "Assembles multi-source context briefing. Calls HyMem, episodic, procedural, graph."},
+        {"file": "simplemem.py", "purpose": "SimpleMem 3-stage semantic compression (DEDUP+SUMMARIZE+RANK+TRIM, arXiv 2601.02553). No LLM calls."},
+        {"file": "graph_bridge.py", "purpose": "G2CP structured kernel communication (arXiv 2602.13370). Writes typed graph nodes (directive, decision, task_state, context) to cross_brain_graph + Graphiti."},
+        {"file": "composition.py", "purpose": "Memory composition utilities. Merges context layers for injection."},
+        {"file": "vault.py", "purpose": "Secrets vault. Encrypted storage for API keys and credentials."},
+        {"file": "wallet_adapter.py", "purpose": "Web3 wallet abstraction. Interfaces to CDP AgentKit and Solana wallet."},
+        {"file": "failure_branch.py", "purpose": "Failure branch detection logic (standalone module, used by routes/failure_branch.py)."},
+        {"file": "gate_notifier.py", "purpose": "Workflow gate notification dispatcher. Sends WhatsApp/email alerts on gate triggers."},
+        {"file": "dao_module.py", "purpose": "DAO governance helpers. Proposal creation, voting, quorum checks."},
+        {"file": "mcp_server.py", "purpose": "MCP (Model Context Protocol) server. Exposes Otto tools as MCP endpoints for external agent consumption."},
+        {"file": "mcp_auth.py", "purpose": "MCP authentication middleware."}
+      ]
+    },
+
+    "api_routes": {
+      "purpose": "80+ FastAPI router modules forming the full Otto API surface.",
+      "base_path": "~/otto/memory/routes/",
+      "categories": {
+        "memory_core": {
+          "description": "Core memory storage and retrieval",
+          "routes": [
+            {"file": "semantic.py", "lines": 1450, "prefix": "/semantic", "purpose": "Semantic memory store and retrieval. HyMem dual-granularity (full+summary), ARAG 3-strategy retrieval, A-MEM memory graph linking (arXiv 2502.12110), BMAM blended ranking, SVC bias removal, FadeMem decay, importance scoring. Key endpoints: remember, search, search_with_links, arag_search, hymem_briefing_facts, forget."},
+            {"file": "episodic.py", "prefix": "/episodic", "purpose": "Episodic event logging and timeline queries. Events with salience scoring, consolidation to narratives."},
+            {"file": "procedural.py", "prefix": "/procedural", "purpose": "Procedural memory (skill/procedure storage). Trust score tracking, outcome recording."},
+            {"file": "consolidation.py", "lines": 387, "prefix": "/memory", "purpose": "Memory maintenance: semantic dedup (cosine > 0.92), episodic summarization (7-day window), stale detection. run_maintenance_job() called by otto-maintenance.timer."},
+            {"file": "working.py", "prefix": "/working", "purpose": "Working memory slots. PUT /working/memory/{slot} for fast key-value state injection."},
+            {"file": "maintenance.py", "lines": 1731, "prefix": "/memory/maintenance", "purpose": "Full maintenance suite: salience decay (FadeMem), dedup, episodic consolidation, schema health checks."},
+            {"file": "context.py", "lines": 613, "prefix": "/context", "purpose": "Context briefing aggregation (/briefing). Multi-source assembly: sessions + semantic + episodic + procedural + graph. Context injection (/inject) used by session hook."},
+            {"file": "reasoning.py", "lines": 536, "prefix": "/reasoning", "purpose": "Heartbeat reasoning chain persistence. WHY/DECIDED/EXPECTED per cycle. RL2F Layer 2: outcome_match tracking (matched/partial/miss). extract_lessons on misses. pre_decision_brief surfaces lessons."}
+          ]
+        },
+        "learning": {
+          "description": "Self-improvement and learning systems",
+          "routes": [
+            {"file": "rl2f.py", "lines": 413, "prefix": "/rl2f", "purpose": "Reinforcement Learning from Teacher Feedback (two layers). Layer 1: heartbeat-level critiques. Layer 2: task retry feedback chain (QA rejection → structured feedback → retry → outcome). Training pipeline support via untrained endpoint."},
+            {"file": "jitrl.py", "lines": 335, "prefix": "/jitrl", "purpose": "Just-In-Time RL (arXiv 2601.18510). Experience replay: store (state, action, reward, outcome) tuples, optimize via k-NN retrieval + advantage computation. No gradient updates. Ingest tasks as experiences."},
+            {"file": "autoevolve.py", "lines": 507, "prefix": "/autoevolve", "purpose": "AutoEvolve experiment tracker (karpathy/autoresearch-inspired). Hypothesis → targeted file mutation → N-cycle evaluation → keep/discard. Generation counter. Reflection versions with veto/rollback. Insights endpoint for reflection agent."},
+            {"file": "eval.py", "lines": 427, "prefix": "/eval", "purpose": "Benchmark-gated self-modification evaluation. Stores eval results, trend analysis, metacognitive gap detection."},
+            {"file": "evaluator.py", "prefix": "/evaluator", "purpose": "Workflow and task auto-evaluation scoring. Rates quality/relevance/efficiency post-completion."},
+            {"file": "failure_branch.py", "prefix": "/failure-branch", "purpose": "Failure-Branch Adaptation (STEM-inspired). Detect failure signals in task output, LLM root-cause analysis, correction generation, retest validation. History and stats."},
+            {"file": "principles.py", "prefix": "/principles", "purpose": "Learned principles store. Behavioral rules extracted from RL2F misses. Trust-scored and decay-weighted."},
+            {"file": "conclusions.py", "prefix": "/conclusions", "purpose": "Reasoning conclusions tracking. Stores and queries derived insights from MARS reflection."}
+          ]
+        },
+        "task_execution": {
+          "description": "Task queue, plans, and workflow engine",
+          "routes": [
+            {"file": "tasks.py", "lines": 1826, "prefix": "/tasks", "purpose": "Full task lifecycle: create, run, complete, cancel, stop, review, QA status. Plan decomposition, LATS-style preflect, JiTRL hint injection, A2A completion signals, artifact path storage (HiClaw GAP-2), hindsight analysis. Max 5 concurrent (claude=3, gemini=1, kimi=1)."},
+            {"file": "task_plans.py", "lines": 836, "prefix": "/task-plans", "purpose": "DAG task orchestration. Decomposes instructions into N tasks with dependency edges. Topology detection (parallel/sequential/hybrid). Agent auto-employment from agency-agents/. Dependency output injection. Plan finalization on completion."},
+            {"file": "workflows.py", "lines": 2242, "prefix": "/workflows", "purpose": "Multi-agent pipeline engine. Template-based sequential step execution. Auto-eval + mutation evolution (fitness tracking). Gate system (human_approval, code_review, security_audit). Artifact path resolution. Step output interpolation. Evolution history."}
+          ]
+        },
+        "kernel_api": [
+          {"file": "kernel_routes.py", "lines": 514, "prefix": "/kernel", "purpose": "Kernel control panel. /status, /interrupt, /process, /sync, /l1, /drift, /slices, /providers. Maps HTTP to kernel module functions."}
+        ],
+        "sessions_graph": [
+          {"file": "sessions.py", "prefix": "/sessions", "purpose": "Session CRUD, last session retrieval."},
+          {"file": "graph.py", "prefix": "/graph", "purpose": "Graph proxy to Graphiti API. /messages, /search."},
+          {"file": "graph_nodes.py", "prefix": "/graph-nodes", "purpose": "Cross-brain graph node CRUD (G2CP). Typed nodes: directive, decision, task_state, context."}
+        ],
+        "communication": [
+          {"file": "whatsapp.py", "prefix": "/whatsapp", "purpose": "WhatsApp incoming message handler. Routes to kernel gateway."},
+          {"file": "email.py", "lines": 480, "prefix": "/email", "purpose": "Email via Zoho SMTP/IMAP. Send, inbox, reply, threads, search, status."},
+          {"file": "a2a.py", "prefix": "/a2a", "purpose": "Agent-to-Agent messaging. Channel-scoped PostgreSQL mailbox. send, poll, peers endpoints for inter-agent coordination within plans/workflows."},
+          {"file": "notify.py", "prefix": "/notify", "purpose": "Notification dispatch. WhatsApp send, scheduled notifications."},
+          {"file": "broadcast.py", "prefix": "/broadcast", "purpose": "Multi-channel broadcast system (MVP). X/Twitter + Telegram + WhatsApp. Awaiting credentials."}
+        ],
+        "domain_modules": {
+          "koink": {"file": "koink.py", "lines": 575, "prefix": "/koink", "purpose": "Koink.fun meme tokenomics API. DHM (Decay-Halving Mechanism), standard logic, treasury management, launch tracking."},
+          "oneon": {"file": "oneon.py", "lines": 575, "prefix": "/oneon", "purpose": "ONEON identity network. DID, credentials, governance, invisible web3 layer, identity management."},
+          "tusita": {"file": "tusita.py", "prefix": "/tusita", "purpose": "Tusita community platform. Bookings, locations, retreat management."},
+          "sos": {"file": "sos.py", "prefix": "/sos", "purpose": "SOS Systems. Emergency cases, learner management, aid distribution tracking."},
+          "crypto": {"file": "crypto.py", "lines": 530, "prefix": "/crypto", "purpose": "Crypto trading and monitoring. Signals, portfolio, price feed, NLP trade parsing."},
+          "bankr": {"file": "bankr.py", "lines": 642, "prefix": "/bankr", "purpose": "Bankr.bot integration. Trading via Bankr Agent API, signals, Farcaster posting."},
+          "webassist": {"file": "webassist.py", "lines": 398, "prefix": "/webassist", "purpose": "WebAssist CRM integration. Supabase-backed leads, orders, projects, client management."}
+        },
+        "product_services": [
+          {"file": "leads.py", "lines": 435, "prefix": "/leads", "purpose": "Lead management. WebAssist lead qualification pipeline, scoring, assignment."},
+          {"file": "outreach.py", "lines": 401, "prefix": "/outreach", "purpose": "Outreach queue management. Staged messages, approval flow, send tracking."},
+          {"file": "commerce.py", "lines": 520, "prefix": "/commerce", "purpose": "Commerce/payments. Stripe integration, product catalog, order management."},
+          {"file": "orders.py", "prefix": "/orders", "purpose": "Order lifecycle. Status tracking, fulfillment pipeline."},
+          {"file": "investors.py", "prefix": "/investors", "purpose": "Investor relationship management. Pitch deck versioning, meeting notes, pipeline."},
+          {"file": "contacts.py", "prefix": "/contacts", "purpose": "Contact book. Cross-channel identity resolution (WhatsApp JID, email, wallet)."},
+          {"file": "services.py", "prefix": "/services", "purpose": "Service registry. Tracks external services Otto integrates with."},
+          {"file": "live_systems.py", "lines": 626, "prefix": "/live-systems", "purpose": "Live system registry + weekly improvement cycle. Distinct from tasks: never done. Health monitoring, improvement history."},
+          {"file": "athena.py", "prefix": "/athena", "purpose": "Athena (WebAssist outreach agent) API. Prospect management, conversation state, stage progression."},
+          {"file": "trading.py", "prefix": "/trading", "purpose": "Trading signal management. Signal lifecycle, performance tracking, publisher state."}
+        ],
+        "content_research": [
+          {"file": "articles.py", "lines": 582, "prefix": "/articles", "purpose": "Article CMS. Content versioning, diff-based editing, publication tracking across Paragraph/X."},
+          {"file": "content.py", "lines": 984, "prefix": "/content", "purpose": "Content pipeline. Multi-stage creation (draft→review→publish). Version labels, workflow integration."},
+          {"file": "research.py", "prefix": "/research", "purpose": "Research notes and paper tracking. Implementation status, action items, importance scoring."},
+          {"file": "thought_vault.py", "lines": 388, "prefix": "/thought-vault", "purpose": "Idea capture system. Captures fleeting thoughts from conversations via hook. Tagged, searchable."},
+          {"file": "omnisearch.py", "lines": 727, "prefix": "/omnisearch", "purpose": "Unified search across all Otto data. Queries semantic, episodic, tasks, articles, contacts simultaneously."},
+          {"file": "critiques.py", "lines": 882, "prefix": "/critiques", "purpose": "MARS dual-reflection system. Adversarial critiques, self-critique scores, MARS synthesis. Per-cycle storage."}
+        ],
+        "infrastructure": [
+          {"file": "universe.py", "lines": 677, "prefix": "/universe", "purpose": "Universe registry. YAML-backed project/persona registry at ~/otto/universe/. CRUD + LLM conversational edit + versioned changelog. 15 projects + 3 personas."},
+          {"file": "backup.py", "prefix": "/backup", "purpose": "Backup management API. Trigger/status for VM state backups."},
+          {"file": "security.py", "prefix": "/security", "purpose": "Security audit findings. CVE tracking, vulnerability intelligence (NVD, DeFiHackLabs, MITRE ATLAS)."},
+          {"file": "secrets.py", "prefix": "/secrets", "purpose": "Encrypted secrets vault. API key storage, retrieval with audit log."},
+          {"file": "files.py", "prefix": "/files", "purpose": "File management. Upload, retrieval, artifact path registry."},
+          {"file": "metrics.py", "prefix": "/metrics", "purpose": "System metrics. Task stats, RL2F accuracy, memory counts, service health."},
+          {"file": "skills.py", "prefix": "/skills", "purpose": "Skill registry. Maps skill names to agent types. 20+ registered skills."},
+          {"file": "agents.py", "lines": 411, "prefix": "/agents", "purpose": "Active agent registry + agency-agents browser. Lists 139 available unemployed agents."},
+          {"file": "workspace.py", "prefix": "/workspace", "purpose": "Workspace management. Working directory scoping for multi-project tasks."},
+          {"file": "plans.py", "prefix": "/plans", "purpose": "Strategic plans store. Long-horizon planning docs, milestone tracking."},
+          {"file": "routing.py", "prefix": "/routing", "purpose": "Message routing decisions log. Tracks dispatch classifier decisions for analysis."},
+          {"file": "pending.py", "prefix": "/pending", "purpose": "Pending questions tracker. /ask registers questions Otto is waiting on, /open returns unresolved."},
+          {"file": "intake.py", "prefix": "/intake", "purpose": "General intake handler. Catches miscellaneous input types."}
+        ],
+        "calendar_social": [
+          {"file": "social_calendar.py", "prefix": "/social-calendar", "purpose": "Social media calendar. MY3YE and PiPi content scheduling, slot management."},
+          {"file": "calendar_routes.py", "lines": 585, "prefix": "/calendar", "purpose": "Unified calendar system (arXiv 2026-03-27 architecture). Slots, bookings, availability."},
+          {"file": "education.py", "prefix": "/education", "purpose": "SOS education module. Learner paths, curriculum, contribution-to-advancement system."},
+          {"file": "submissions.py", "prefix": "/submissions", "purpose": "Grant/application submissions tracker."}
+        ]
+      }
+    },
+
+    "domain_modules_lib": {
+      "purpose": "Standalone Python modules implementing domain logic",
+      "base_path": "~/otto/memory/",
+      "modules": [
+        {"path": "koink/", "files": ["dhm.py", "launch.py", "standard.py", "treasury.py"], "purpose": "Koink.fun tokenomics engine. DHM decay algorithm, chain-agnostic launch logic, $KOINK Standard."},
+        {"path": "oneon/", "files": ["auth.py", "credentials.py", "did.py", "governance.py", "identity.py", "invisible.py", "spec.py"], "purpose": "ONEON identity network. DID generation, verifiable credentials, on-chain governance, invisible web3 layer (seamless Web2 UX over Web3 rails)."},
+        {"path": "tusita/", "files": ["bookings.py", "locations.py"], "purpose": "Tusita community platform modules."},
+        {"path": "sos/", "files": ["cases.py", "learners.py"], "purpose": "SOS Systems modules. Emergency case management, learner tracking."},
+        {"path": "crypto/", "files": ["executor.py", "launch.py", "monitors.py", "nlparser.py", "portfolio.py", "price_feed.py", "signals.py"], "purpose": "Crypto trading engine. Signal generation, execution, portfolio management, NLP trade parsing."},
+        {"path": "bankr/", "files": ["client.py", "signals.py"], "purpose": "Bankr.bot HTTP client. REST integration with bankr.bot Agent API for trading."},
+        {"path": "security/", "files": ["vuln_collector.py"], "purpose": "Vulnerability intelligence database. NVD API v2, DeFiHackLabs, MITRE ATLAS ingestion."}
+      ]
+    },
+
+    "interfaces": {
+      "purpose": "Communication channel implementations",
+      "channels": [
+        {
+          "name": "WhatsApp Primary (Ottolabs)",
+          "path": "~/otto/interfaces/whatsapp/",
+          "files": ["service.mjs", "login.mjs", "package.json"],
+          "port": 3001,
+          "technology": "Baileys (Node.js), WhatsApp Web protocol",
+          "purpose": "Primary Mev↔Otto communication channel. Receives messages → POSTs to Memory API /whatsapp/incoming → kernel gateway. Outbound via POST /send.",
+          "data_flow": "WhatsApp → service.mjs → POST /whatsapp/incoming → gateway → IVT → RIC → LLM → WhatsApp"
+        },
+        {
+          "name": "WhatsApp Athena (WebAssist outreach)",
+          "path": "~/otto/interfaces/athena-whatsapp/",
+          "files": ["service.mjs", "login.mjs", "package.json"],
+          "port": 3002,
+          "technology": "Baileys (Node.js)",
+          "purpose": "Second WhatsApp instance for WebAssist prospect outreach. Handled by gateway/athena_handler.py."
+        },
+        {
+          "name": "OMS (Otto Management System)",
+          "path": "~/otto/interfaces/web-next/",
+          "technology": "Next.js 15 (TypeScript), shadcn/ui (thegridcn-ui), pnpm",
+          "deployment": "mev.otto.lk (Vercel, ottomev GitHub account)",
+          "purpose": "Full management UI for Mev. 52 pages covering all Otto systems.",
+          "pages": [
+            "/", "/tasks", "/tasks/detail", "/plans", "/workflows", "/workflows/detail",
+            "/agents", "/memory", "/reasoning", "/context-history", "/kernel",
+            "/webassist", "/webassist/leads", "/webassist/orders", "/webassist/outreach",
+            "/webassist/projects", "/webassist/prospects", "/webassist/athena",
+            "/research", "/articles", "/content-hub", "/content-calendar",
+            "/social-calendar", "/social-calendar/my3ye", "/social-calendar/pipi",
+            "/universe", "/ecosystem", "/roadmap", "/capital",
+            "/koink", "/crypto", "/trading",
+            "/chat", "/inbox", "/whatsapp",
+            "/contacts", "/investors", "/outreach",
+            "/memory", "/decisions", "/thought-vault", "/critiques",
+            "/services", "/live-systems", "/environment", "/environment/architecture",
+            "/security", "/secrets", "/backup", "/files",
+            "/education", "/submissions",
+            "/settings", "/urls", "/whiteboard"
+          ]
+        },
+        {
+          "name": "Email (Zoho)",
+          "path": "~/otto/interfaces/email/",
+          "files": ["email_service.py", "imap_idle.py", "setup.sh"],
+          "address": "admin@otto.lk",
+          "servers": "SMTP: smtppro.zoho.com:465, IMAP: imappro.zoho.com:993",
+          "purpose": "Secondary channel. External contacts, formal comms, OTP auth. IMAP IDLE listener runs as otto-email-listener.service."
+        }
+      ]
+    },
+
+    "heartbeat_agents": {
+      "purpose": "Claude Code sub-agents defining autonomous behavior",
+      "base_path": "~/otto/.claude/agents/",
+      "active_agents": [
+        {"file": "heartbeat.md", "role": "Orchestrator", "purpose": "Primary autonomous loop. Mission execution: review tasks, process cross-brain notes, create/launch tasks, message Mev. Budget $1.00, Sonnet. Runs hourly."},
+        {"file": "reflection.md", "role": "Self-Improvement", "purpose": "Reflection heartbeat. Memory consolidation, AutoEvolve evaluation, MARS dual-reflection, RL2F scoring, performance analysis. Budget $1.00, Sonnet. Runs at :30."},
+        {"file": "alpha_heartbeat.md", "role": "Alpha Trading", "purpose": "Alpha project specialized heartbeat. Crypto signal scanning, trading decisions. Runs every 2h via otto-alpha-heartbeat.timer."},
+        {"file": "researcher.md", "role": "Research Specialist", "purpose": "Deep research agent. Multi-source retrieval (web+semantic+graph+codebase). Pipeline Step 0+3 (retrieval and storage)."},
+        {"file": "research-synthesizer.md", "role": "Synthesis", "purpose": "Pipeline Step 1. Receives raw multi-source findings, compresses to structured intelligence. Synthesis-only, no new retrieval."},
+        {"file": "architect.md", "role": "System Design", "purpose": "Architecture decisions, API design, integration planning, trade-off evaluation."},
+        {"file": "coder.md", "role": "Implementation", "purpose": "Writes code, builds features, implements research papers, fixes bugs."},
+        {"file": "reviewer.md", "role": "Code Review", "purpose": "Read-only code review. Quality, correctness, security, consistency. Does not modify code."},
+        {"file": "debugger.md", "role": "Root Cause Analysis", "purpose": "Diagnoses failures, traces errors, implements minimal fixes."},
+        {"file": "content-creator.md", "role": "Content", "purpose": "All MY3YE ecosystem content. Articles, manifestos, landing copy, X threads. Calm authority brand voice."},
+        {"file": "memory-curator.md", "role": "Memory Maintenance", "purpose": "Memory consolidation, dedup, archive, merge. Called during reflection cycles."},
+        {"file": "outbound-strategist.md", "role": "Outreach", "purpose": "Signal-based outbound sequences, ICP definition, WebAssist prospecting."},
+        {"file": "growth-hacker.md", "role": "Growth", "purpose": "Viral loops, conversion funnels, acquisition channels."},
+        {"file": "social-media-strategist.md", "role": "Social Media", "purpose": "Cross-platform social campaigns, community management."},
+        {"file": "twitter-engager.md", "role": "Twitter/X", "purpose": "Real-time engagement, thread creation, thought leadership."},
+        {"file": "landing-page.md", "role": "Landing Pages", "purpose": "Build and optimize landing pages."},
+        {"file": "security-audit.md", "role": "Security", "purpose": "Recurring security sweeps, threat intel, CVE scanning, hardening."},
+        {"file": "reality-checker.md", "role": "QA Gate", "purpose": "Evidence-based production readiness certification. Strict default NEEDS_WORK."},
+        {"file": "solidity-smart-contract-engineer.md", "role": "Smart Contracts", "purpose": "EVM Solidity development, gas optimization, DeFi protocols."},
+        {"file": "blockchain-security-auditor.md", "role": "Smart Contract Audit", "purpose": "Vulnerability detection, formal verification, audit reports."},
+        {"file": "sprint-prioritizer.md", "role": "Sprint Planning", "purpose": "Feature prioritization, velocity optimization."}
+      ]
+    },
+
+    "agent_memories": {
+      "purpose": "Persistent file-based memory for each specialist agent type",
+      "base_path": "~/otto/.claude/agent-memory/",
+      "agents_with_memory": [
+        "architect (30 memory files — A2A, Bankr, EMRS, HiClaw, Koink, ONEON, OMS, workflow gating, etc.)",
+        "coder",
+        "content-creator (3 files — articles written, ecosystem angles, voice decisions)",
+        "debugger (7 files — known bugs: athena routing, baileys race, SMMU threshold, task runner exit)",
+        "heartbeat",
+        "outbound-strategist (3 files — Mev personal outbound, WebAssist strategy/product)",
+        "reflection",
+        "research-synthesizer (1 file — synthesis patterns)",
+        "researcher (12 files — AutoResearchClaw, Bankr, Claude UI, community, context engineering, etc.)",
+        "reviewer (40+ files — project reviews across all MY3YE domains)"
+      ]
+    },
+
+    "skills": {
+      "purpose": "Reusable skill definitions loaded by Claude Code on demand",
+      "base_path": "~/otto/.claude/skills/",
+      "skills": [
+        {"name": "api-development", "purpose": "Memory API development patterns. Route creation, DB access, Pydantic models."},
+        {"name": "debug-workflow", "purpose": "Structured debugging workflow for Otto services."},
+        {"name": "memory-query", "purpose": "Query and store knowledge in Otto's memory system."},
+        {"name": "otto-conventions", "purpose": "Codebase conventions, project structure, development patterns."},
+        {"name": "task-creation", "purpose": "Create well-formed tasks in the task queue."},
+        {"name": "whatsapp-update", "purpose": "Send WhatsApp updates to Mev."},
+        {"name": "workflow-operations", "purpose": "Interact with workflow engine (start, approve, monitor)."}
+      ]
+    },
+
+    "systemd_units": {
+      "purpose": "Systemd services and timers managing Otto's autonomous operations",
+      "services": [
+        {"unit": "otto-memory.service", "purpose": "Memory API (FastAPI :8100). Core service — everything depends on this."},
+        {"unit": "otto-task-dispatcher.service", "purpose": "Continuous task dispatcher daemon. Polls queue, launches ready tasks."},
+        {"unit": "otto-email-listener.service", "purpose": "IMAP IDLE listener for admin@otto.lk inbox."},
+        {"unit": "otto-alpha.service", "purpose": "Alpha Dashboard (Next.js :3100)."},
+        {"unit": "otto-alpha-dashboard.service", "purpose": "Alpha Dashboard (port 8200)."}
+      ],
+      "timers": [
+        {"unit": "otto-heartbeat.timer", "schedule": "hourly (:00)", "purpose": "Orchestrator heartbeat — mission execution."},
+        {"unit": "otto-reflection.timer", "schedule": "hourly (:30)", "purpose": "Self-improvement heartbeat."},
+        {"unit": "otto-maintenance.timer", "schedule": "02:00 + 14:00 LKT daily", "purpose": "Memory maintenance (dedup, decay, consolidation)."},
+        {"unit": "otto-signals.timer", "schedule": "every 15 minutes", "purpose": "Crypto signal publisher."},
+        {"unit": "otto-alpha-heartbeat.timer", "schedule": "every 2 hours", "purpose": "Alpha trading heartbeat."},
+        {"unit": "otto-alpha-watcher.timer", "schedule": "every 5 minutes", "purpose": "Alpha live market watcher."},
+        {"unit": "otto-research-pipeline.timer", "schedule": "every 3 hours", "purpose": "Automated research pipeline execution."},
+        {"unit": "otto-security-audit.timer", "schedule": "every 3 days at 03:00 UTC", "purpose": "Security audit sweep."},
+        {"unit": "otto-vuln-sync.timer", "schedule": "every 6 hours", "purpose": "Vulnerability intelligence sync."},
+        {"unit": "otto-weekly-improve.timer", "schedule": "weekly", "purpose": "Live system auto-improvement cycle."},
+        {"unit": "otto-x-scheduler.timer", "schedule": "every 15 minutes", "purpose": "X/Twitter auto-scheduler."},
+        {"unit": "service-monitor.timer", "purpose": "Service health monitor (self-healing)."}
+      ]
+    },
+
+    "database_schema": {
+      "purpose": "PostgreSQL (pgvector) schema — 86 migrations defining all persistent state",
+      "host": "localhost:5432, DB: memory, User: otto",
+      "migrations_range": "001 through 080",
+      "key_tables": [
+        "sessions — session tracking",
+        "episodic_events — event log with salience",
+        "semantic_memories — pgvector embeddings, HyMem summaries, A-MEM links",
+        "procedural_memories — skill procedures with trust scores",
+        "tasks — task queue with QA status, artifact paths, JiTRL hints",
+        "task_retry_feedback — RL2F Layer 2 feedback chains",
+        "task_plans — DAG orchestration plans",
+        "workflow_templates — pipeline templates with evolution history",
+        "workflow_instances — running pipeline state",
+        "workflow_gates — human/automated approval checkpoints",
+        "autoevolve_experiments — self-improvement experiment log",
+        "rl2f_feedback — Layer 1 heartbeat critiques",
+        "jitrl_experiences — experience replay tuples",
+        "reasoning_entries — WHY/DECIDED/EXPECTED/ACTUAL chain",
+        "principles — learned behavioral rules",
+        "interrupts — IVT interrupt queue",
+        "agents — agent registry",
+        "semantic_slices — CID-based document slices",
+        "cognitive_states — L1 snapshots",
+        "cross_brain_messages — persisted messages",
+        "cross_brain_graph — G2CP typed graph nodes",
+        "leads — WebAssist lead pipeline",
+        "outreach_queue — outreach staging",
+        "contacts — cross-channel identity",
+        "live_systems — service registry",
+        "workflow_evolution_experiments — template mutation history",
+        "secrets_vault — encrypted credentials",
+        "thought_vault — captured ideas",
+        "failure_branch_adaptations — failure correction history",
+        "a2a_messages — agent-to-agent channel messages",
+        "koink_* — Koink tokenomics tables",
+        "oneon_* — ONEON identity tables",
+        "tusita_* — Tusita booking/location tables",
+        "sos_* — SOS Systems tables"
+      ]
+    },
+
+    "docker_services": {
+      "purpose": "Memory infrastructure — all persistent Docker services",
+      "compose_file": "~/memory/docker-compose.yml",
+      "services": [
+        {"name": "postgres", "image": "PostgreSQL 17 + pgvector 0.8.1", "port": 5432, "purpose": "Primary data store. All structured data + vector embeddings."},
+        {"name": "neo4j", "image": "Neo4j 5.26.2", "ports": ["7474 (HTTP)", "7687 (Bolt)"], "purpose": "Knowledge graph. Entity relationships, temporal graph."},
+        {"name": "graphiti", "image": "Graphiti latest", "port": 8000, "purpose": "Temporal knowledge graph API over Neo4j. NLP entity/relationship extraction."}
+      ]
+    },
+
+    "tools": {
+      "purpose": "CLI tools and automation scripts in ~/otto/tools/",
+      "key_tools": [
+        {"file": "whatsapp_send.sh", "purpose": "Send WhatsApp message to Mev via :3001 service."},
+        {"file": "web_fetch.sh", "purpose": "Fetch web URLs for research tasks."},
+        {"file": "web_search.sh", "purpose": "Web search wrapper."},
+        {"file": "lead_scraper.py", "purpose": "Lead discovery scraper (currently disabled)."},
+        {"file": "outreach_sender.py", "purpose": "Approved outreach message sender."},
+        {"file": "self_patch.py", "purpose": "Self-modification utility for Otto system files."},
+        {"file": "eval_harness.py", "purpose": "Evaluation harness — runs benchmark tasks, stores results to /eval."},
+        {"file": "git_identity_enforcer.sh", "purpose": "Enforces my3ye git identity on commits."},
+        {"file": "create_workflow_templates.py", "purpose": "Seeds workflow templates into DB."},
+        {"file": "solana_launcher.py", "purpose": "Solana token launch utility ($KOINK)."},
+        {"file": "x_add_account.py", "purpose": "Add X/Twitter account for broadcasting."}
+      ]
+    },
+
+    "universe_registry": {
+      "purpose": "YAML-backed project and persona registry for MY3YE ecosystem",
+      "base_path": "~/otto/universe/",
+      "files": ["registry.yaml", "canonical_urls.yaml", "personas/", "projects/", "roadmaps/", "loader.py"],
+      "projects_count": 15,
+      "personas_count": 3,
+      "api": "/universe/* (CRUD + LLM conversational edit + versioned changelog)"
+    },
+
+    "otto_core": {
+      "purpose": "Identity documents and constitutional ground truth",
+      "base_path": "~/otto/otto_core/",
+      "files": [
+        {"file": "CONSTITUTION.md (~/otto/)", "purpose": "Ground truth. Mission, boundaries, Admin relationship, autonomy limits."},
+        {"file": "personality.md", "purpose": "Voice, tone, language patterns. Defines Otto's communication style."},
+        {"file": "system_prompt.md", "purpose": "Template for constructing system prompts across interfaces."},
+        {"file": "standing_directives.md", "purpose": "9 consolidated standing directional decisions (advertising philosophy, device lineup, auth checklist, etc.)."},
+        {"file": "governance_finalization_plan.md", "purpose": "DAO governance finalization roadmap."},
+        {"file": "oms_architecture.md", "purpose": "OMS architecture reference."},
+        {"file": "task_hierarchy_architecture.md", "purpose": "Task/plan/workflow hierarchy design."}
+      ]
+    },
+
+    "alpha_project": {
+      "purpose": "Crypto trading signal system (deprioritized but operational)",
+      "base_path": "~/otto/projects/alpha/",
+      "signals_modules": [
+        "cross_dex_divergence.py — cross-DEX price divergence detector",
+        "momentum_divergence.py — price momentum divergence signals",
+        "sentiment_proxy.py — social sentiment proxy signals",
+        "volume_anomaly.py — unusual volume detection",
+        "whale_convergence.py — whale wallet tracking",
+        "signal_publisher.py — Telegram (@OttoSignals) publisher",
+        "signal_performance.py — signal backtesting and performance tracking"
+      ],
+      "tools": ["paper_trader.py", "live_watcher.py", "pipeline_executor.py", "cdp_agentkit.py"],
+      "status": "Operational but deprioritized. Signals published to Telegram @OttoSignals."
+    },
+
+    "hooks": {
+      "purpose": "Claude Code session lifecycle hooks",
+      "base_path": "~/otto/.claude/hooks/",
+      "files": [
+        {"file": "session_start.sh", "purpose": "Fires on session start/resume/compaction. Creates session, fetches context briefing (/context/inject), injects identity+memory+events into Claude context."},
+        {"file": "session_stop.sh", "purpose": "Fires when Claude stops responding. Ends session via /sessions/{id}/end."}
+      ]
+    },
+
+    "docs_catalogue": {
+      "purpose": "Architecture documents and research artifacts",
+      "base_path": "~/otto/docs/",
+      "count": "80+ documents",
+      "categories": [
+        "Architecture designs (A2A, MCP, dynamic tool composition, EMRS, etc.)",
+        "Grant applications (ENS, Gitcoin, Polkadot, W3F)",
+        "HiClaw/STEM/TrustGraph research integration docs",
+        "Capital strategy and investor materials",
+        "Ecosystem roadmaps (Koink, ONEON, Tusita, SOS, Music, Otto AI)",
+        "Security audits (OttoVault, annotation royalty)",
+        "Content strategy (Twitter threads, social campaigns)"
+      ]
+    }
+  },
+
+  "data_flows": {
+    "mev_message_to_otto": [
+      "1. Mev sends WhatsApp → Baileys service.mjs receives",
+      "2. POST to Memory API /whatsapp/incoming",
+      "3. gateway/handler.py routes to IVT (kernel_enabled=True)",
+      "4. IVT enqueues admin_message interrupt, signals asyncio Event",
+      "5. CognitiveScheduler dequeues interrupt",
+      "6. RIC.process_interrupt() → S-MMU.assemble_context() → L1 load",
+      "7. S-MMU queries HyMem/ARAG for relevant L2 memories",
+      "8. RIC builds system prompt + LLM call (Kimi/Claude/Gemini)",
+      "9. 8 post-process hooks fire: episodic log, persist, graphiti, pending match, directive extract, reactive dispatch, drift measure, thought vault",
+      "10. Reactive dispatch may classify for plan creation or agent dispatch",
+      "11. Response sent back via WhatsApp"
+    ],
+    "task_execution": [
+      "1. Heartbeat or RIC reactive dispatch creates task (POST /tasks)",
+      "2. ContinuousTaskDispatcher polls queue, calls POST /tasks/{id}/run",
+      "3. task_runner.sh spawns: pre-flight → budget check → claude CLI",
+      "4. Claude Code runs with specialist agent (coder/architect/etc.)",
+      "5. On completion: POST /tasks/{id}/complete with output",
+      "6. tasks.py: trigger QA, JiTRL ingest, A2A signal, fire task interrupt",
+      "7. qa_runner.sh: Gemini review → approve/reject → RL2F feedback",
+      "8. If plan task: task_plans.py advances DAG, injects output to dependents",
+      "9. If workflow task: workflows.py advances step, evaluates, may evolve"
+    ],
+    "memory_storage": [
+      "Semantic: remember() → OpenAI embed → SVC bias removal → pgvector INSERT → A-MEM link update",
+      "Episodic: events logged → salience scored → consolidated to narratives after 7 days",
+      "Procedural: created once → outcome updates trust score via exponential smoothing",
+      "Graph: graphiti_ingest() → Neo4j entity extraction → cross_brain_graph G2CP nodes",
+      "Agent memory: specialist agents write MEMORY.md + topic files to .claude/agent-memory/{type}/"
+    ]
+  },
+
+  "learning_systems_summary": {
+    "RL2F": "2-layer feedback. L1: teacher critiques per heartbeat. L2: QA rejection → structured feedback → retry outcome → training signal.",
+    "JiTRL": "Experience replay (arXiv 2601.18510). KNN similarity → advantage computation → ranked action hints at task creation.",
+    "AutoEvolve": "karpathy/autoresearch-inspired. Hypothesis → file mutation → N-cycle eval → keep/discard. Currently Gen 3.",
+    "MARS": "Multi-Adversarial Reflection System. Initial conclusions → adversarial critic → synthesis. Per reflection cycle.",
+    "HyMem": "Dual-granularity retrieval. Full content + pre-computed summaries. Reduces retrieval token cost.",
+    "A-MEM": "Memory graph (arXiv 2502.12110). New memories auto-link to related old ones. Zettelkasten-style.",
+    "BMAM": "Blended ranking. Combines vector similarity + recency + importance + goal alignment.",
+    "A-RAG": "3-strategy retrieval. Semantic + keyword + graph. Merges and re-ranks results.",
+    "SimpleMem": "3-stage lossless compression (arXiv 2601.02553). Dedup → summarize → rank+trim.",
+    "SVC": "Singular Value Calibration. Removes top-3 bias directions from query embeddings.",
+    "Reasoning Chain": "WHY→DECIDED→EXPECTED→ACTUAL per heartbeat. Outcome matching drives RL2F Layer 2 lesson extraction."
+  },
+
+  "research_paper_implementations": {
+    "count": "24+ papers implemented",
+    "papers": [
+      "arXiv 2602.20934v1 — AgentOS cognitive OS (kernel, IVT, S-MMU, drift, sync)",
+      "arXiv 2601.18510 — JiTRL experience replay",
+      "arXiv 2502.12110 — A-MEM Zettelkasten memory graph",
+      "arXiv 2601.02553 — SimpleMem semantic compression",
+      "arXiv 2602.13370 — G2CP graph-grounded context protocol",
+      "arXiv 2601.07190 — Context compression (focus context)",
+      "arXiv 2512.24601 — RLM recursive language models",
+      "arXiv 2603.15797 — OMNIFLOW constraint injection checkpoints",
+      "arXiv 2602.08229 — InfiCoEvalChain evaluation",
+      "arXiv 2412.15538 — FedRLHF federated learning",
+      "VISTA hypothesis loop (math reasoning, adapted for task failure)",
+      "TrustGraph context cores pattern",
+      "HiClaw DAG-as-manager multi-agent architecture",
+      "STEM 5-layer agent architecture (partial)",
+      "karpathy/autoresearch — AutoEvolve self-improvement loop",
+      "AgeMem RL-driven unified LTM+STM",
+      "HiAgent hierarchical working memory",
+      "Constraint injection (PG-CoT gates at heartbeat checkpoints)"
+    ]
+  },
+
+  "known_gaps_and_improvements": {
+    "identified_gaps": [
+      "STEM: Caller Profiler not implemented (5-8 dim tracker for Mev preferences)",
+      "STEM: MCP externalization incomplete",
+      "STEM: Dynamic Tool Composition not implemented",
+      "STEM: Self-Adaptation (RL2F) cross-session only, not within-session",
+      "S-MMU: similarity_threshold=0.7 not applied to near-miss injection (P5 deferred)",
+      "RL2F: idle_cycle tagging missing — inflates accuracy metrics during idle periods",
+      "VISTA: hypothesis loop structured categorization not fully implemented",
+      "HiClaw GAP-3: heartbeat sometimes bypasses plan system for multi-step work",
+      "Context Rot: S-MMU inject ordering not always at START",
+      "AutoEvolve Gen 3: active workload validation needed (current improvement possibly inflated by idle)"
+    ],
+    "p1_actions": [
+      "STEM Caller Profiler implementation (FULL GAP)",
+      "VISTA structured failure categorization + prompt injection into retry",
+      "S-MMU near-miss threshold 0.7 for L2 injection"
+    ]
+  }
+}
