@@ -143,14 +143,18 @@ Tier 3: "I AM THE NETWORK"      (sovereign — full autonomy)
 - **Alternative rejected**: Own L3 immediately — requires sequencer infrastructure, premature for Phase 1.
 - **Alternative rejected**: Polkadot People Chain — good long-term fit but requires Substrate expertise and different account model. Phase 2 consideration.
 
-**Decision 3: Lazy Account Creation** (create on first meaningful action, not signup)
-- **Chosen**: Smart account is counterfactually deployed — address is deterministic from signup, but no on-chain tx until the user does something that needs signing (first vote, first message, first credential).
-- **Why**: 90% of signups may never need a chain interaction. Paying gas to create accounts for inactive users wastes paymaster budget. Counterfactual addresses work for receiving credentials and being referenced by others.
-- **Alternative rejected**: Eager creation on signup — wastes gas, no UX benefit.
+**Decision 3: Eager Account Deployment on Signup** (not lazy/counterfactual)
+- **Chosen**: Smart account is deployed on-chain at signup time, not deferred until first action. Address is deterministic (CREATE2), and the account is deployed in the same paymaster-sponsored batch as the first session key setup.
+- **Why**: Session keys (Decision 4) require a deployed contract to call `addSessionKey()` on. A counterfactual address has no on-chain code — you cannot configure it. Eager deployment on Base L2 costs ~$0.001 per account, which is negligible. The alternative (deferring session key setup until first action) would mean the first action requires two transactions (deploy + configure + execute), adding latency and complexity to the moment the UX must be most seamless.
+- **Alternative rejected**: Lazy/counterfactual creation — incompatible with session keys. Cannot call `addSessionKey()` on an undeployed address. Would require bundling deploy+configure+action on first use, degrading Tier 1 UX.
+- **Alternative rejected**: Defer session keys until first action — makes first action slower and more complex. The ~$0.001 deploy cost is worth paying upfront for instant session key availability.
 
 **Decision 4: Session Keys for Tier 1** (pre-authorized action types)
-- **Chosen**: On signup, the smart account is pre-configured with session keys authorizing common actions (vote, post, message, claim credential) for 30 days. No per-action wallet confirmation.
+- **Chosen**: On signup, after the smart account is deployed (see Decision 3), session keys are configured authorizing common actions (vote, post, message, claim credential) for 30 days. No per-action wallet confirmation.
 - **Why**: The #1 UX killer in Web3 is "confirm this transaction" popups. Tier 1 users don't know what transactions are. Session keys let the backend sign actions automatically within pre-authorized scopes.
+- **Session key custody model (Tier 1)**: The server generates an ephemeral ECDSA key pair per user. The **private key** is encrypted with the vault master key (AES-256-GCM, key from `ONEON_VAULT_MASTER_KEY` env var) and stored in `oneon_session_keys.encrypted_private_key`. The public key is registered on-chain via `addSessionKey()`. On each Tier 1 action, `invisible.py` decrypts the private key in memory, signs the UserOp, and discards the plaintext. This is custodial by design — Tier 1 users trade self-custody for zero-friction UX. Tier 2+ users bring their own keys.
+- **Alternative rejected**: HKDF-derived keys from master root — simpler but master key compromise exposes all session keys simultaneously. Per-user encryption limits blast radius.
+- **Alternative rejected**: Memory-only keys (no persistence) — lost on restart, requiring re-setup for all users. Unacceptable for production.
 - **Alternative rejected**: Per-action confirmation — defeats "invisible" goal. Reserved for Tier 2+ users who want control.
 
 **Decision 5: XMTP for messaging** vs Waku vs custom
@@ -260,35 +264,46 @@ POST   /oneon/messages/send
 User fills handle + email on ONEON frontend
   │
   ├─ POST /oneon/signup
+  │   ├─ Validate handle (2-32 chars, alphanumeric + underscore only)
   │   ├─ Create oneon_identities row (tier=custodial)
   │   ├─ Derive deterministic smart account address (CREATE2)
-  │   │   └─ Store address in wallet_address column
-  │   ├─ Generate session key pair (ephemeral, 30-day TTL)
+  │   ├─ Deploy smart account on Base L2 (paymaster-sponsored, ~$0.001)
+  │   │   └─ Store address in smart_account_address, set smart_account_deployed=TRUE
+  │   ├─ Generate session key pair (ECDSA), encrypt private key with vault master key
+  │   │   └─ Store in oneon_session_keys (encrypted_private_key + public_key)
+  │   ├─ Register session key on-chain: addSessionKey(pubkey, [VOTE,POST,MSG,CRED], 30d)
   │   ├─ Store DID: did:oneon:<handle>:base:<address>
-  │   ├─ Send magic link email
+  │   ├─ Hash email (SHA-256) → store email_hash for lookup, discard plaintext
+  │   ├─ Send magic link email (via admin@otto.lk)
   │   └─ Return {identity_id, session_token (limited until email verified)}
   │
   ├─ User clicks magic link
   │   ├─ POST /oneon/auth/magic-link
-  │   │   ├─ Verify token
-  │   │   ├─ Activate full session key
+  │   │   ├─ Verify token (SHA-256 hash lookup, single-use via used_at)
+  │   │   ├─ Set email_verified = TRUE
+  │   │   ├─ Activate full session privileges
   │   │   └─ Return {session_token, identity}
   │   │
-  │   └─ User is now "logged in" — has a handle, DID, smart account
+  │   └─ User is now "logged in" — has a handle, DID, deployed smart account
   │       No wallet popup. No seed phrase. No gas.
   │
   └─ User votes on a proposal
       ├─ POST /oneon/actions/vote
+      │   ├─ CHECK: email_verified = TRUE → if not, return 403 "Verify email first"
+      │   ├─ CHECK: gas_used_today_usd < gas_budget_daily_usd → if not, return 429
       │   ├─ Lookup identity → get smart account address
-      │   ├─ First action? Deploy smart account (counterfactual → real)
       │   ├─ Construct governance vote UserOp
+      │   ├─ Decrypt session key private key from vault
       │   ├─ Sign with session key (automatic, no user prompt)
       │   ├─ Paymaster validates: is this user sponsored? → yes
       │   ├─ Bundler submits UserOp to Base L2
+      │   ├─ Increment gas_used_today_usd with actual gas cost
       │   └─ Return {action_id, tx_hash (hidden from UI)}
       │
       └─ User sees: "Vote recorded ✓" — nothing else
 ```
+
+> **IMPORTANT for Phase 1A coder**: All Tier 1 action endpoints (`/actions/vote`, `/actions/post`, `/actions/message`) MUST check `email_verified = TRUE` before executing. Return HTTP 403 with `{"detail": "Email verification required. Check your inbox."}` if not verified. This prevents gas budget drain from unverified signups.
 
 ---
 
@@ -391,6 +406,7 @@ CREATE TABLE IF NOT EXISTS oneon_session_keys (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     identity_id UUID NOT NULL REFERENCES oneon_identities(id) ON DELETE CASCADE,
     public_key TEXT NOT NULL,
+    encrypted_private_key TEXT NOT NULL,  -- AES-256-GCM encrypted with ONEON_VAULT_MASTER_KEY (Tier 1 custodial only)
     permissions TEXT[] NOT NULL DEFAULT '{}',  -- VOTE, POST, MESSAGE, CLAIM_CREDENTIAL
     expires_at TIMESTAMPTZ NOT NULL,
     revoked_at TIMESTAMPTZ,
@@ -462,7 +478,7 @@ ALTER TABLE oneon_identities
 
 #### Phase 1A: Backend Foundation (~$4-5, 2-3 tasks)
 
-1. **Migration 078** — new tables + identity columns (see SQL above)
+1. **Migration 080** — new tables + identity columns (see SQL above)
 2. **auth.py** — magic link flow (send via admin@otto.lk, verify, session token)
 3. **invisible.py** — `CounterfactualAccount` (deterministic address from handle hash), `ActionExecutor` (construct UserOp payloads)
 4. **Update identity.py** — `register_identity()` now derives smart account address on creation, stores email
