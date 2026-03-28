@@ -210,6 +210,17 @@ type: project
 - **What NOT to repeat**: "no company was going to build this" constraint framing, "They are context, not qualification. The qualification is what is already running." as the kicker
 - **Related**: 1a369f23 (answers *why best person*) | this answers *how did you get here*
 
+## ONEON Positioning (Strategic Reference)
+
+### ONEON: Four-Primitive Differentiation Positioning (5d18e242)
+- **DB ID**: 5d18e242-940c-4a2c-9516-d7c4c94d65f6
+- **Content type**: plan (strategic reference, not a public article)
+- **Angle covered**: Competitive differentiation — 8-dimension matrix vs 7 protocols, four-primitive gap (identity + comms + governance + encrypted storage), DPC as governance moat, Memory Capsules as data moat, invisible onboarding as growth mechanism, Bluesky contrast as market proof
+- **Status**: draft
+- **Story beat**: The Frame + The Mission
+- **All undeployed features qualified as**: "designed/not deployed" (DPC, Memory Capsules) or "planned" (invisible onboarding Phase 1, LoRa Phase 2)
+- **What NOT to repeat**: 4-primitive matrix as core argument, Bluesky 40M vs Web3 45K contrast, "the gap no protocol occupies" frame, $240M raised / <100K DAU as the verdict
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)

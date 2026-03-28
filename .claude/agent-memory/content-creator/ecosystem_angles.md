@@ -48,10 +48,14 @@ type: project
 - Commons architecture / engineering argument for self-sovereign identity (inception rewrite 2026-03-19, DB: 35aacd26)
   - Angle: commons not service, architecture enforces ZEN principles not policy, ONEON as backbone
 
+**Covered (2026-03-28):**
+- Competitive differentiation — four-primitive gap, DPC governance moat, Memory Capsules data moat, invisible onboarding, Bluesky contrast — strategic reference doc (5d18e242, DB type: plan)
+
 **Open:**
-- Five-layer architecture technical explainer
+- Five-layer architecture technical explainer (blog article angle)
 - Identity portability mechanics across all protocols
 - The .ink waitlist origin story
+- Public blog article: single angle from positioning doc (e.g., "The Governance Nobody Built" — DPC as missing primitive)
 
 ## TUSITA
 
