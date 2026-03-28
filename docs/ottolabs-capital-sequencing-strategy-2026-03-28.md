@@ -176,7 +176,7 @@ All six must be met before Phase 2 fundraising begins:
 **5. Strategic Web3 VC (Otto AI / ONEON / Koink.fun)**
 
 - Only pursue after Phase 1 milestones are demonstrated
-- Lead targets: OKX Ventures (P0 — 2026 thesis explicitly "AI agents + onchain sovereignty"), Coinbase Ventures (BANKR Bot warm path), a16z Crypto (competitive but perfect thesis fit)
+- Lead targets: OKX Ventures (P0 — 2026 thesis strongly aligned with AI agents + onchain sovereignty), Coinbase Ventures (BANKR Bot warm path), a16z Crypto (competitive but perfect thesis fit)
 - SAFE terms: $250K–$750K, $5–8M valuation cap (adjusted for traction at raise), 20% discount, community governance protection clause (governance rights cannot be sold to majority bloc)
 - Governance protection clause: Non-negotiable. Any investor taking > 5% stake must sign the community governance non-concentration agreement. This is not a dealbreaker — it is a pre-screening filter that surfaces sovereignty-aligned investors.
 
@@ -275,8 +275,8 @@ All six must be met before Phase 2 fundraising begins:
 **5. Institutional Green Bond Market (Tusita)**
 
 - Once UNDP framework and government partner in place, eligible for direct green bond issuance
-- Green bond market: $6T+ globally, institutional demand confirmed
-- ESG property premium: 15–20% above standard assets
+- Green bond market: $6T+ globally, institutional demand confirmed (Climate Bonds Initiative, 2025)
+- ESG property premium: 15–20% above standard assets (JLL / CBRE ESG Research, 2024)
 - Structure: Project-level bond backed by Tusita revenue (eco-tourism fees + carbon credits)
 - Amount: $5M–$15M per Tusita location at scale
 
