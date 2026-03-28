@@ -325,8 +325,18 @@ type: project
 - **What NOT to repeat**: "the island reflects its builder" frame, accountability-is-structural argument, "the design flaw IS the design" line, Tusita as accountability inversion
 - **Tense discipline**: All Tusita features in "designed to" / "being built" — not operational
 
+### The Loop Remembers ← NEW 2026-03-29
+- **DB ID**: 9e01c26c-9986-48e8-b027-f61069e28854
+- **Angle**: Brand new SOS inception article — island metaphor (private sovereignty vs contribution-governed) as entry frame; agents already earning on-chain (Bittensor $43M Q1) as urgency hook; furniture loop (8-stage Otto Loop) as the concrete model; solo founder + AI as the working proof; SOS governance requirement (DPC mechanics included); automation liberation thesis (contribution stake = perpetual earnings); call to founding cohort
+- **Story beat**: The Law + The Mission + The Frame + The Dream (all four)
+- **File**: /mnt/media/projects/505-systems-web/content/the-loop-remembers.mdx
+- **Status**: draft
+- **Word count**: ~1,080
+- **What NOT to repeat**: island-reflects-builder frame, "when the agent earns, who earns?" as entry hook, furniture loop as central concrete example, "Not as a metaphor. As a fact." proof section structure, "The threat is an automated economy with no governance backbone." line, "This is not generosity. This is accounting." in loop context, automation-as-liberation-not-threat thesis arc
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
+- SOS integrity layer deep dive (offline mesh, displaced communities, auditable aid) — referenced but not centered in new piece; could be its own article
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
 - Solo founder + AI as a *how-to* or *model* article (partially started in rewrite)
 - Otto AI inception article (7b8062fd is a version but may need rewrite)
