@@ -38,6 +38,12 @@ type: project
 **Covered (2026-03-25):**
 - Honest-accounting intro — "Before the Protocol, the Proof" (eaf5395d). Present-tense reality: what's live, what's in development, what's in design. Ecosystem emergence as founding story + open invitation. Does NOT repeat lake/river central frame or civilization collapse.
 
+**Covered (2026-03-28–29) — Otto Loop / Live Organism:**
+- "Every Hand That Touched This" (438df147) — the mechanism overview. Furniture scenario as entry. Otto Loop eight stages. Agent tax. Who this is for. ~1,280 words. REVIEW: NEEDS_CHANGES (tense violations in mechanics sections).
+- "One Current, Every Bank" (bc92f58f) — 6 role-perspective scenarios: architect, chef, coder, curator, data annotator, physical builder. ~780 words. Story beat: Law + Dream.
+- "Five Trades. One Law." (f1f5156a) — 5 industry-perspective scenarios: furniture designer, musician, educator, farmer, developer. ~1,060 words. Story beat: Law + Frame. Full tense discipline applied (companion to bc92f58f, takes different sector angles).
+- NOTE: The Otto Loop / vertical universality angle is now TRIPLE-COVERED. Any subsequent Otto Loop piece must find a NEW entry: e.g., failure modes, the agent tax deep dive, the governance weight mechanics in depth, or a first-person persona journey through the system.
+
 **Open angles:**
 - The mechanism: how DPC contribution weighting works across the full ecosystem simultaneously
 - The origin: personal founder narrative / why MY3YE came to exist (Mev hasn't provided — must wait)
