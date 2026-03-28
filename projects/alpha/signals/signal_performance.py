@@ -49,8 +49,10 @@ load_env()
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHANNEL   = os.environ.get("TELEGRAM_CHANNEL", "")
 
-# Signal is "stale" after 72h — close as timeout
-TIMEOUT_HOURS = 72
+# Signal timeout — close as timeout if no TP/SL hit within this window.
+# Extended from 72h to match observation_window_minutes (300min = 5h) + generous buffer.
+# With TP1=0.8% and SL=3%, most signals resolve well within 6h for meme tokens.
+TIMEOUT_HOURS = 6
 
 
 # ---------------------------------------------------------------------------
@@ -247,10 +249,10 @@ def build_timeout_message(sig: dict, current_price: float, pnl_pct: float) -> st
     symbol = sig.get("token_symbol", "???")
     sig_id = sig.get("signal_id", "?")
 
-    msg = f"""⏱️ SIGNAL CLOSED — 72h Timeout
+    msg = f"""⏱️ SIGNAL CLOSED — {TIMEOUT_HOURS}h Timeout
 
 📍 Token: {name} ({symbol})
-❌ No TP or SL hit within 72h window
+❌ No TP or SL hit within {TIMEOUT_HOURS}h window
 💰 Entry: {format_price(sig.get('entry_price'))} → Now: {format_price(current_price)}
 📊 Exit PnL: {format_pnl(pnl_pct)}
 
@@ -272,9 +274,7 @@ async def check_open_signals(dry_run: bool = False):
     Checkpoint logic:
     - 1h:  Record where price is (no action needed unless already hit)
     - 4h:  Same — checkpoints for reporting
-    - 24h: Evaluate — most signals should resolve here
-    - 48h: Final evaluation before timeout
-    - 72h: Force-close with timeout exit
+    - 6h:  Force-close with timeout exit (TIMEOUT_HOURS)
     """
     now_ts = time.time()
     # Load sent-notification dedup set once per run
@@ -337,12 +337,6 @@ async def check_open_signals(dry_run: bool = False):
             updates_made += 1
         if age_hours >= 4  and not updated_sig.get("checked_4h"):
             updated_sig["checked_4h"] = True
-            updates_made += 1
-        if age_hours >= 24 and not updated_sig.get("checked_24h"):
-            updated_sig["checked_24h"] = True
-            updates_made += 1
-        if age_hours >= 48 and not updated_sig.get("checked_48h"):
-            updated_sig["checked_48h"] = True
             updates_made += 1
 
         # --- Timeout: 72h with no hit ---
