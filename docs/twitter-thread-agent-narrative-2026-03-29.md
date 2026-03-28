@@ -1,7 +1,7 @@
 # Twitter Thread: Agent Narrative Moment
 **Account:** @MY3YE
 **Date:** 2026-03-29
-**Status:** DRAFT
+**Status:** REVISED — reviewer-sharpened (5 targeted fixes applied)
 
 ---
 
@@ -13,13 +13,13 @@
 
 The headlines are right.
 
-Agents are earning money on-chain. Real revenue. Autonomous execution.
+Agents are earning money on-chain. Real revenue.
 
 Virtuals: $477M aGDP. elizaOS: $20B+ managed. OLAS: 4,200+ trades in month one.
 
-This is not hype. It's already happening.
+It's already happening.
 ```
-*Chars: 202*
+*Chars: 175*
 
 ---
 
@@ -37,7 +37,7 @@ No redistribution. No governance. No memory. No compounding.
 
 The money is real. The architecture is shallow.
 ```
-*Chars: 211*
+*Chars: 211* — **unchanged (strongest tweet in thread)**
 
 ---
 
@@ -45,17 +45,15 @@ The money is real. The architecture is shallow.
 ```
 3/
 
-We're building the layer underneath all of that.
+We're building the layer underneath.
 
 Not one agent — infrastructure.
 
 Identity. Intelligence. Economy. Governance. Physical.
 
-Running together as a system.
-
-Agents that work, earn, and route value back to the people who made them.
+Agents that work, earn, and route value back to the people who built them.
 ```
-*Chars: 241*
+*Chars: 202*
 
 ---
 
@@ -63,15 +61,15 @@ Agents that work, earn, and route value back to the people who made them.
 ```
 4/
 
-Here's what the loop actually looks like:
+Here's how the loop is designed:
 
 A chef submits a recipe → Otto trains on it → every time that model earns, the chef earns. Forever.
 
-A coder writes a governance module → it gets used → perpetual revenue from every integration.
+A coder writes a module → it gets used → they earn from every integration. Perpetually.
 
 Labor that compounds. That's new.
 ```
-*Chars: 272*
+*Chars: 260*
 
 ---
 
@@ -79,15 +77,15 @@ Labor that compounds. That's new.
 ```
 5/
 
-And it runs everywhere.
+It works on any chain.
 
-Not because we picked the right chain. Because we built chain-agnostic from the start.
+Not because we picked the right one. Because we built chain-agnostic from day one.
 
-Wherever the contracts run, the loop runs.
+Wherever contracts can run, the loop can run.
 
-Solana. Base. Polkadot. Cosmos. All of it.
+Solana. Base. Polkadot. Cosmos.
 ```
-*Chars: 199*
+*Chars: 188*
 
 ---
 
@@ -95,15 +93,13 @@ Solana. Base. Polkadot. Cosmos. All of it.
 ```
 6/
 
-The difference between most agent projects and what we're building:
-
-They extract value upward.
+Most agent projects extract value upward.
 
 We redistribute it outward — in proportion to what each contributor actually built.
 
 That's not a feature. That's the design.
 ```
-*Chars: 222*
+*Chars: 172*
 
 ---
 
@@ -115,11 +111,11 @@ We're not late.
 
 We're early — to the right version of this.
 
-Narrow agents earned the first dollar. We're building the system that makes that dollar compound for everyone who built it.
+Narrow agents earned the first dollar. We're building the economy that makes every dollar compound for everyone who built it.
 
 @MY3YE
 ```
-*Chars: 197*
+*Chars: 199*
 
 ---
 
@@ -127,13 +123,22 @@ Narrow agents earned the first dollar. We're building the system that makes that
 - **1** — Hook: validates headlines (credible numbers, no dismissal)
 - **2** — Pivot: those are narrow (shape critique, not attack)
 - **3** — Build: Otto is the layer underneath (infrastructure, not one agent)
-- **4** — Mechanics: the perpetual earnings loop (concrete example)
-- **5** — Scale: chain agnostic by design (breadth)
+- **4** — Mechanics: the perpetual earnings loop (concrete example — design, not live)
+- **5** — Scale: chain agnostic by design (breadth, capability claim)
 - **6** — Differentiation: redistribution vs extraction (values, not features)
-- **7** — Close: not late, early to the right version (confidence)
+- **7** — Close: not late, early to the right version (confidence earned by argument)
 
 ## Tone Notes
 - Confident, builder tone throughout
 - No hype language ("moon", "100x", "revolutionary")
 - Validates the mainstream narrative first — earns the pivot
 - Closes on identity, not urgency
+- "We're building" tense throughout = honest about build status
+
+## Changes from v1 (review diff)
+1. **T1:** Removed "Autonomous execution." (buzzword fragment) and "This is not hype." (redundant)
+2. **T3:** Removed "all of that" and filler sentence "Running together as a system." Changed "made them" → "built them"
+3. **T4:** Changed "Here's what the loop actually looks like:" → "Here's how the loop is designed:" (design claim, not live deployment claim)
+4. **T5:** Changed "And it runs everywhere." → "It works on any chain." Changed "contracts run, the loop runs" → "contracts can run, the loop can run." Removed "All of it."
+5. **T6:** Removed 12-word preamble setup sentence; leads directly with the contrast
+6. **T7:** Changed "that dollar" → "every dollar"; changed "system" → "economy"
