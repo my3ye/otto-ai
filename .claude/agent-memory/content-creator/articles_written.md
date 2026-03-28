@@ -291,24 +291,26 @@ type: project
 
 ## MY3YE Ecosystem / Live Organism
 
-### One Current, Every Bank ← NEW 2026-03-29
+### One Current, Every Bank ← NEW 2026-03-29 / REVISED Step 2
 - **DB ID**: bc92f58f-1ffe-40e0-9fd2-6f362860bcc0
 - **File**: /mnt/media/projects/my3ye-web/content/blog/one-current-every-bank.mdx
 - **Angle**: Vertical scenario playbook — the Otto Loop running across 6 contributor types NOT covered in "Every Hand That Touched This": architect (dome spec → per-build royalty), chef (recipe → per-meal earnings), coder (governance module → integration revenue), curator (discovery on Otto Music → discovery residuals), data annotator (labels → Redistribution Pool), physical builder at Tusita (labor attestation → perpetual booking revenue).
-- **What NOT to repeat**: These 6 specific scenarios. "Different banks, one current" universality frame. "The river does not forget what it owes." kicker. "This is not generosity. It is accounting." line.
-- **Status**: draft
+- **Step 2 revisions**: Opening changed to inversion declaration ("The loop does not run in one vertical."); closing architecture anchor added before river closing line ("Same current. Every vertical. That is not a metaphor. It is the architecture.")
+- **What NOT to repeat**: These 6 specific scenarios. "Different banks, one current" universality frame. "The river does not forget what it owes." kicker. "This is not generosity. It is accounting." line. "Same current. Every vertical. That is not a metaphor. It is the architecture." closing anchor.
+- **Status**: draft (Step 2 complete)
 - **Story beat**: The Law + The Dream
 - **Word count**: ~780
 - **Tense note**: All planned features in conditional/future ("designed to", "would be in the chain")
 
-### Five Trades. One Law. ← NEW 2026-03-29
+### Five Trades. One Law. ← NEW 2026-03-29 / REVISED Step 2
 - **DB ID**: f1f5156a-4984-4c5c-bba7-712ed5014fc7
 - **Angle**: Companion playbook to "Every Hand That Touched This" (438df147) and "One Current, Every Bank" (bc92f58f). Five verticals from an INDUSTRY/SECTOR perspective: furniture designer (design), musician (music), educator (SOS/education), farmer (Tusita/agriculture), developer (code/protocol). Each scenario walks the full Otto Loop from submission to governance weight. Companion to One Current's labor-role perspective.
+- **Step 2 revisions**: Musician section — "she is also designed to earn" → "she also earns" (human action must use present tense per voice rule); Farmer section — "A small farm" → "A farmer" (wrong subject — person records, not place).
 - **File**: /mnt/media/projects/my3ye-web/content/blog/five-trades-one-law.mdx
-- **Status**: draft
+- **Status**: draft (Step 2 complete)
 - **Story beat**: The Law + The Frame
 - **Word count**: ~1,060
-- **Tense discipline**: Full PRE-WRITE CONSTRAINT — all mechanisms use "designed to" / "planned to"
+- **Tense discipline**: Full PRE-WRITE CONSTRAINT — all mechanisms use "designed to" / "planned to"; human actions use present tense
 - **What NOT to repeat**: Five specific industry scenarios (design/music/education/agriculture/code), "Same eight stages in every one of them" central device, "That is not a promise. It is architecture." kicker, "The river does not care which valley it runs through." closing line
 
 ## Angles NOT yet taken
