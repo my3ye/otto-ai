@@ -334,6 +334,19 @@ type: project
 - **Word count**: ~1,080
 - **What NOT to repeat**: island-reflects-builder frame, "when the agent earns, who earns?" as entry hook, furniture loop as central concrete example, "Not as a metaphor. As a fact." proof section structure, "The threat is an automated economy with no governance backbone." line, "This is not generosity. This is accounting." in loop context, automation-as-liberation-not-threat thesis arc
 
+## Sri Lanka Movement
+
+### The Island Does Not Have to Bow ← NEW 2026-03-29
+- **DB ID**: 97015b04-6e99-49d7-a82c-8e6ba81e5e54
+- **Angle**: Movement manifesto + community whitepaper for the Sri Lanka proposal. Entry: 2022 Sri Lanka crisis as concrete grounding (not abstract). Makes the case for WHY Sri Lanka (NPP alignment, $98M digital budget, SL-UDI operational, Port City crypto licensing live, 4.97% crypto penetration). What SOS Systems + Tusita are building (DPC governance, education ladder, dome communities). How the crypto community participates ($TUSITA tiers, $KOIN, Port City registration, DPC smart contract building). Dream: SL 2030 with on-chain contribution records, 50K digital jobs, Tusita ecotourism funding governance loop.
+- **Story beat**: The Law + The Mission + The Frame + The Dream (all four)
+- **File**: /mnt/media/projects/505-systems-web/content/the-island-does-not-have-to-bow.mdx
+- **Status**: draft
+- **Word count**: ~2,100
+- **Commit**: 566f8b2
+- **What NOT to repeat**: 2022 crisis as entry frame, "island does not have to bow" sovereignty framing, the five-tier $TUSITA participation model as CTA, SL-UDI + Port City + $98M budget as the three proof-of-window facts, "the first country that got it right" as the dream frame, "The record cannot be forged. It cannot be bought. It can only be earned." accountability line
+- **Tone note**: Closest to a political manifesto of anything written. Register is higher stakes than normal articles. Canonical brand lines used at close. "For the ones who were handed nothing — we built this for us." placed in What We Are Building section.
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - SOS integrity layer deep dive (offline mesh, displaced communities, auditable aid) — referenced but not centered in new piece; could be its own article
@@ -342,3 +355,5 @@ type: project
 - Otto AI inception article (7b8062fd is a version but may need rewrite)
 - MEV redistribution model: how anti-MEV protocols return value to LPs (extension of The Block Is a Battleground)
 - Q1 2026 angles remaining: AI+Web3 convergence (deeper), L2 ecosystem maturation, developer credentialing shift
+- Sri Lanka: government response article (for when the proposal gets traction)
+- Sri Lanka: diaspora-specific piece (more emotional, less technical — for the WhatsApp groups)
