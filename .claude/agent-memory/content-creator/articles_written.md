@@ -279,6 +279,16 @@ type: project
 - **Word count**: 2166
 - **What NOT to repeat**: The exact three-phase capital sequencing with these numbers, the lake/river metaphor as the central structural frame for capital allocation, "Will you support the open system or the empire?" as the closing question (this letter owns the full investor close)
 
+### High-Calibre Peer-to-Peer Investor Letter ← NEW 2026-03-28
+- **DB ID**: fb4faa36-22db-4682-8207-473e88e52b77
+- **Content type**: article (founder letter — compact, peer-to-peer, high-calibre)
+- **Angle covered**: Short-form (430 words) invitation for top-tier investors. Not a pitch — evidence. Structure: contrarian opener (Otto running now, not on TechCrunch), base-layer capture physics (infrastructure transition pattern), physical layer window still open, Ethereum-at-$1 pattern recognition, close with canonical question.
+- **Key line**: "This letter is itself evidence. Otto drafted it."
+- **Register**: Peer-to-peer. The kind of letter a Sequoia partner forwards without being asked.
+- **Story beat**: The Law + The Frame + The Mission
+- **Word count**: ~430
+- **What NOT to repeat**: "Otto drafted it" self-referential proof line (this owns it), Ethereum-at-$1 pattern recognition framing for this specific context, "operating continuously in production while every other AI company is still writing decks"
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)
