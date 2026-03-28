@@ -1,13 +1,13 @@
 {
-  "last_run": "2026-03-28T18:48:56Z",
-  "elapsed_seconds": 72.27,
+  "last_run": "2026-03-28T19:49:59Z",
+  "elapsed_seconds": 63.88,
   "wallets_scanned": 20,
-  "raw_findings": 6,
-  "signals_written": 2,
-  "grade_a": 2,
+  "raw_findings": 11,
+  "signals_written": 4,
+  "grade_a": 4,
   "grade_b": 0,
   "whatsapp_alerts_sent": 0,
   "win_rates_loaded": 0,
-  "prices_fetched": 2,
+  "prices_fetched": 4,
   "balances_fetched": 20
 }
