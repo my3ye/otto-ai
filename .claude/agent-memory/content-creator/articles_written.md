@@ -313,6 +313,18 @@ type: project
 - **Tense discipline**: Full PRE-WRITE CONSTRAINT — all mechanisms use "designed to" / "planned to"; human actions use present tense
 - **What NOT to repeat**: Five specific industry scenarios (design/music/education/agriculture/code), "Same eight stages in every one of them" central device, "That is not a promise. It is architecture." kicker, "The river does not care which valley it runs through." closing line
 
+## TUSITA
+
+### Let's Build a Better Island ← NEW 2026-03-29
+- **DB ID**: 56316016-2fe2-4b0f-bc1c-31dd6987ce45
+- **Angle**: Islands as sovereignty without accountability — private islands reflect their builders because there is no external check. The architecture determines whose argument wins. Tusita as the designed alternative: contribution-governed, on-chain rules, no single override authority.
+- **Cultural subtext**: Extremely subtle Epstein Island resonance (files recently released) — never named; purely architectural argument works on two reading levels
+- **Story beat**: The Law + The Frame
+- **Status**: draft
+- **File**: /mnt/media/projects/my3ye-web/content/blog/lets-build-a-better-island.mdx
+- **What NOT to repeat**: "the island reflects its builder" frame, accountability-is-structural argument, "the design flaw IS the design" line, Tusita as accountability inversion
+- **Tense discipline**: All Tusita features in "designed to" / "being built" — not operational
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - Deep DPC mechanics walkthrough (reserved for Pink Paper)

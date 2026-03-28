@@ -76,11 +76,13 @@ type: project
 **Covered:**
 - Arrive as visitor / stay as builder / dome architecture / civilization roadmap (inception rewrite 2026-03-19, DB: ac0e39b6)
   - Angle: what Tusita IS (not what it isn't), architecture of belonging, legal sovereignty as milestone
+- Island power dynamics / accountability architecture — "Let's Build a Better Island" (56316016, 2026-03-29)
+  - Angle: private islands = sovereignty without accountability → Tusita = structural accountability by design. Extremely subtle Epstein Island cultural resonance. Never names the reference.
 
 **Open:**
 - Tusita OS + NFT tiers + Contribution Score governance mechanics
 - Physical zones detail: wellness / motorsport / cultural / agricultural
-- Island jurisdictional argument and sovereignty pathway
+- Island jurisdictional argument and sovereignty pathway (distinct from power dynamics angle — this is the legal/regulatory path)
 
 ## KOINK
 
