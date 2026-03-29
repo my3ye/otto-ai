@@ -25,13 +25,18 @@ if [ -f "$LOCK_FILE" ]; then
     fi
 fi
 
-# ── Self-healing: ensure sibling timers are enabled ──────────────────────────
-for TIMER in otto-reflection.timer otto-maintenance.timer otto-security-audit.timer otto-vuln-sync.timer; do
+# ── Self-healing: ensure sibling timers and services are running ──────────────
+for TIMER in otto-reflection.timer otto-maintenance.timer otto-security-audit.timer otto-vuln-sync.timer otto-strategy.timer; do
     if ! systemctl is-active "$TIMER" &>/dev/null; then
         echo "$(date -Iseconds) HEAL: $TIMER was inactive — re-enabling" >> "$LOG_FILE"
         sudo systemctl enable --now "$TIMER" 2>/dev/null || true
     fi
 done
+# Ensure continuous task dispatcher is running
+if ! systemctl is-active "otto-task-dispatcher.service" &>/dev/null; then
+    echo "$(date -Iseconds) HEAL: otto-task-dispatcher.service was inactive — restarting" >> "$LOG_FILE"
+    sudo systemctl start otto-task-dispatcher.service 2>/dev/null || true
+fi
 
 # ── Rate limit awareness: check API endpoint first, fall back to sentinel ──────
 API="http://localhost:8100"
