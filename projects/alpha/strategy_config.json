@@ -32,9 +32,14 @@
       "ts": "2026-03-28T17:00:00Z",
       "change": "Added observation_window_minutes: 300 (5h). Extended from implicit 120min.",
       "rationale": "Research pipeline recommended observation_window_minutes 120->240+ across 14+ iterations. Signals have 88.9% directional accuracy but 89% expire without hitting TP/SL — 2h hold window too short for price action to develop. Extending to 300min (5h) gives tokens time to reach TP1=0.8% targets."
+    },
+    {
+      "ts": "2026-03-29T00:00:00Z",
+      "change": "Extended observation_window_minutes from 300 to 360 (6h).",
+      "rationale": "Research pipeline finding (2 consecutive iterations): signals 1-9 expired 89% of the time despite 88.9% directional accuracy and 5.96% consolidation depth. 300min window still undersized — extending to 360min to reduce expiration rate and improve TP hit rate from 22.2% toward ≥50%."
     }
   ],
-  "observation_window_minutes": 300,
+  "observation_window_minutes": 360,
   "convergence": {
     "min_wallet_count": 4,
     "min_total_usd": 1000,
