@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_my3ye_article4_review.md](project_my3ye_article4_review.md) — "The Last Unfair Advantage" MY3YE Article 4 (517b0154, 2026-03-30, WF Step 1): MINOR_CHANGES (8.0/10). 1 critical: "production AI operating system" overclaims. Thin crypto-native hook. Do not touch: opener, river metaphor, clarity thesis, proof stats, closing dedication.
 - [project_my3ye_article5_review.md](project_my3ye_article5_review.md) — "Before the Protocol, the Proof" MY3YE Article 5 (1fb6d382, 2026-03-30, WF Step 1): MINOR_CHANGES (8.0/10). 2 criticals: DPC tense "encoded behavior/mechanism" (11th instance); "for real clients" overclaim. Do not touch: opener, river closer, three name meanings, "you join by building."
 - [project_river_has_no_king_optimized_review.md](project_river_has_no_king_optimized_review.md) — "The River Has No King" SOS-5 optimized (a3ac5242, 2026-03-30, WF Step 1): MINOR_CHANGES (8.0/10). Prior CTA critical fixed. 1 critical: "Written" fragment line 54 still ambiguous. 1 new: "graph is public" present-tense on undeployed DPC (line 68). Do not touch: DAO examples, dissolution frame, physics line, river closer.
 - [project_daily_strategy_cron_review.md](project_daily_strategy_cron_review.md) — Daily strategy cron (2026-03-30, Step 3): APPROVE. Step 2 critical fixed. Warning: "strategist" not in ROLE_QUERIES — S-MMU context suboptimal. Pattern: agent roles need ROLE_QUERIES entry.
