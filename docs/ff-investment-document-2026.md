@@ -36,7 +36,7 @@ We are at launch stage. The WebAssist product and website are live at **webassis
 
 **Why I am coming to you first:**
 
-Before approaching outside investors, I am offering a small allocation to people who know me personally and want to be part of this from the beginning. Outside investors get better information and terms because they negotiate them. You get access earlier, at a lower valuation, because of the relationship. That is the honest trade.
+Before approaching outside investors, I am offering a small allocation to people who know me personally and want to be part of this from the beginning. Outside investors negotiate harder on terms. You get earlier access at a lower valuation cap because of the relationship. That is the honest trade.
 
 ---
 
@@ -133,7 +133,7 @@ We do not know which of these scenarios will happen. We are presenting all three
 
 ---
 
-### Scenario 1: Failure (most likely outcome for any early-stage startup)
+### Scenario 1: Failure (a real risk for any early-stage startup)
 
 **What happens:** The business does not reach sustainable revenue. We exhaust our capital within 12–24 months without finding product-market fit, run out of runway, and shut down.
 
@@ -151,9 +151,9 @@ We do not know which of these scenarios will happen. We are presenting all three
 
 In this scenario, the company may offer investors a structured buyback — repurchasing SAFE agreements over time at a modest premium — or continue operating and convert SAFE holders to equity at a future date if a priced round occurs.
 
-**Your outcome:** Return of your original investment plus a modest premium of approximately **1x–2x** over **5–7 years**. This means a $5,000 investment might return $7,500–$10,000. It is not exciting — but it is a positive outcome.
+**Your outcome:** Ranges from a **partial loss to a modest gain** over **5–7 years**, depending on exit size. Small businesses are typically acquired at 2–5x annual revenue. A company doing $30K/month ($360K/year) might sell for $1M–$2M — which at SAFE conversion returns less than your original investment. A larger exit ($4M+) could return 1.5–2x. The honest range for this scenario is wide.
 
-**Example:** You invest $5,000 today at the $3M valuation cap. In Year 6, the company generates consistent $30K/month revenue and is acquired for [FILL IN: e.g., $1.5M]. Your SAFE converts. At a $3M cap, your $5,000 investment represents approximately 0.17% of the company. 0.17% of $1.5M = approximately $2,500 — a partial loss, depending on the acquisition price. *[Note: small exits often do not return early investors well — this is why honest projection matters.]*
+**Example:** You invest $5,000 today at the $3M valuation cap. In Year 6, the company generates consistent $30K/month revenue and is acquired for [FILL IN: e.g., $2M]. Your SAFE converts. At a $3M cap, your $5,000 investment represents approximately 0.17% of the company. 0.17% of $2M = approximately $3,400 — a partial loss. At a $4.5M exit, the same stake returns ~$7,650 — a modest gain. Small exits often do not return early investors well. This is why we present all three scenarios honestly.
 
 **Probability:** Possible — if we find clients and execute consistently.
 
@@ -165,9 +165,9 @@ In this scenario, the company may offer investors a structured buyback — repur
 
 **Your outcome:** Your SAFE converts at the lower of the valuation cap ($3,000,000) or a 20% discount to the next round price. This means you get equity as if you invested at a $3M valuation, regardless of how high the company's valuation grows.
 
-**Example:** You invest $5,000 today. We raise a Series A at a $15M valuation. Your SAFE converts at the $3M cap (better for you). Your $5,000 / $3,000,000 = 0.167% ownership. At a $15M valuation, your stake is worth approximately $25,000 — a **5x return**. If the company is eventually acquired at $50M, your stake would be worth approximately $83,000 — a **16x return**.
+**Example:** You invest $5,000 today. We raise a Series A at a $15M valuation. Your SAFE converts at the $3M cap (better for you). Your $5,000 / $3,000,000 = 0.167% ownership. Note: your percentage will be diluted by new shares issued in the Series A, so actual ownership will be somewhat lower than 0.167%. At a $15M valuation, your stake is worth approximately $25,000 — a **5x return** before dilution. If the company is eventually acquired at $50M, your stake would be worth approximately $83,000 — a **16x return** before dilution.
 
-These numbers are illustrative. We cannot promise any of them.
+These numbers are illustrative and pre-dilution. We cannot promise any of them. Actual returns will be lower after accounting for dilution from future funding rounds.
 
 **Timeline:** 5–10 years to meaningful liquidity.
 
@@ -179,8 +179,8 @@ These numbers are illustrative. We cannot promise any of them.
 
 | Scenario | Probability | Timeline | Return on $5,000 invested |
 |---|---|---|---|
-| Failure | Significant — this is early-stage | 1–2 years | $0 (full loss) |
-| Survival | Possible | 5–7 years | $7,500–$10,000 (1.5x–2x) |
+| Failure | Real risk — statistically common in early-stage startups | 1–2 years | $0 (full loss) |
+| Survival | Possible | 5–7 years | $3,400–$7,650 (partial loss to ~1.5x) |
 | Breakout | Possible | 5–10 years | $25,000–$83,000+ (5x–16x) |
 
 *We cannot predict which scenario will happen. We are working toward Scenario 3.*
@@ -210,16 +210,14 @@ In plain English: you are betting early. If the company grows and raises more mo
 
 **Minimum round to close:** The round closes only if we raise at least [FILL IN: e.g., $25,000] total. If we fall short, all funds are returned.
 
-**Securities notice:** This offering is made under Regulation D, Rule 506(b) of the United States Securities Act. This document is not a public solicitation and is not being offered to anyone who has not been directly contacted by the founder. By participating, you represent that you have received this document directly from the company and not through any public channel.
-
-*If you are not a US resident, additional legal considerations may apply to your jurisdiction. We recommend consulting a local advisor.*
+**Securities notice:** This offering is a private placement made exclusively to personal contacts of the founder and is not a public solicitation. This document is not being offered to anyone who has not been directly contacted by the founder. By participating, you represent that you have received this document directly from the company and not through any public channel. Recipients should consult local legal counsel regarding applicable securities law in their jurisdiction.
 
 ---
 
 ## Section 7 — What Happens If Things Go Wrong
 
 **If the company struggles:**
-We will tell you before you hear it elsewhere. We will not go quiet. We will tell you what is wrong, what we are doing about it, and what it means for your investment. You will not be surprised.
+We will notify all investors promptly when significant developments occur. We will not go quiet. We will tell you what is wrong, what we are doing about it, and what it means for your investment.
 
 **If we decide to shut down:**
 We will wind down in an orderly way, pay creditors first (as required by law), and distribute any remaining assets to shareholders and SAFE holders on a pro-rata basis. In most early-stage failure scenarios, there are no remaining assets after creditor obligations. This means SAFE holders typically receive nothing in a failure wind-down.
@@ -236,17 +234,19 @@ If at any point you feel you need your money back, come to me directly. I cannot
 
 **Quarterly investor updates:** Every three months, all investors receive a brief email update covering: revenue and key metrics, milestones hit and missed, current runway, and honest assessment of where we stand.
 
-**Major event notifications:** Any significant development — a large client win, a new funding round, a major setback, a potential acquisition — you will hear from us within 48 hours.
+**Major event notifications:** Any significant development — a large client win, a new funding round, a major setback, a potential acquisition — you will hear from us promptly.
 
 **Annual summary:** Once a year, a fuller summary of the business, the cap table, and updated scenario projections.
 
-**How to reach me:** [FILL IN: email address]. I will respond within 48 hours.
+**How to reach me:** [FILL IN: email address]. I will respond within a few business days for non-urgent matters, and promptly for significant developments.
 
 **What I commit to:** I will not go quiet. The hardest version of this commitment is when things are not going well. I will keep that commitment especially then.
 
 ---
 
 ## Section 9 — Acknowledgment and Sign-Off
+
+Signing below indicates your intent to invest. A formal SAFE agreement — the legally binding document — will be provided separately for execution.
 
 By signing below, you confirm that:
 
@@ -255,8 +255,8 @@ By signing below, you confirm that:
 - [ ] I am investing money I can afford to lose without material hardship to myself or my family.
 - [ ] I have not been promised any specific financial return.
 - [ ] I understand this is an illiquid investment — I may not be able to access my funds for 5–10 years or more.
-- [ ] I have had the opportunity to ask questions and, if desired, to seek independent financial or legal advice.
-- [ ] [If applicable] I meet the definition of an "accredited investor" under applicable law — OR — I acknowledge that I am a non-accredited investor and I am investing as a close personal contact of the founder under Rule 506(b)'s allowance for up to 35 non-accredited investors per offering.
+- [ ] I have had the opportunity to ask questions and, if desired, to seek independent financial, legal, or tax advice. *(International investors in particular should consult a tax advisor regarding any tax obligations arising from this investment.)*
+- [ ] [If applicable] I meet the definition of an "accredited investor" under applicable law — OR — I acknowledge that I am a non-accredited investor and I am investing as a close personal contact of the founder.
 
 ---
 
