@@ -3,12 +3,16 @@ Outreach Queue API routes — manage AI-generated outreach messages for Web Assi
 Mev reviews and approves messages before they're sent.
 """
 
+import asyncio
 import logging
 import httpx
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from ..db import get_pool
+
+# Minimum seconds between outreach messages to avoid WhatsApp spam detection
+SEND_DELAY_SECONDS = 60
 
 log = logging.getLogger("otto.routes.outreach")
 
@@ -224,7 +228,7 @@ async def send_all_approved(limit: int = 50):
     failed_ids = []
 
     async with httpx.AsyncClient(timeout=15.0) as http:
-        for row in rows:
+        for i, row in enumerate(rows):
             clean_phone = row["phone"].replace("+", "").replace(" ", "").replace("-", "")
             jid = f"{clean_phone}@s.whatsapp.net"
             try:
@@ -258,6 +262,11 @@ async def send_all_approved(limit: int = 50):
                 )
                 failed_ids.append(str(row["id"]))
                 log.error(f"Outreach send error: msg={row['id']} error={e}")
+
+            # Throttle: max 1 message per minute to avoid WhatsApp spam detection
+            if i < len(rows) - 1:
+                log.info(f"Throttling: waiting {SEND_DELAY_SECONDS}s before next message ({i+1}/{len(rows)} sent)")
+                await asyncio.sleep(SEND_DELAY_SECONDS)
 
     return {
         "ok": True,

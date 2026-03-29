@@ -18,7 +18,7 @@ DB_NAME="memory"
 DRY_RUN=false
 LIMIT=5
 APPROVE_ALL=false
-DELAY_SECONDS=30  # delay between messages to avoid spam flags
+DELAY_SECONDS=60  # 1 message per minute — prevents WhatsApp spam detection
 
 while [[ $# -gt 0 ]]; do
     case $1 in
