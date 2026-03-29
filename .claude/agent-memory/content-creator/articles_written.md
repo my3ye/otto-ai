@@ -26,6 +26,16 @@ type: project
 
 ## MY3YE Ecosystem
 
+### The Machine Needs No Priest ← OPTIMIZED 2026-03-30
+- **DB ID (original)**: 5f08b83a-0f46-4ded-8423-ba78b8258e5a (draft)
+- **DB ID (optimized)**: 4054fa28-4680-4281-9a1a-964a90fad964 (status=ready)
+- **Angle**: Governance architecture — keeper asymmetry as old model; encoding rules into machines as structural inversion; three projects (Otto, SOS Systems, Koink) as evidence; why this matters beyond crypto; The Work as closing discipline statement
+- **File**: /mnt/media/projects/my3ye-web/content/blog/the-machine-needs-no-priest.mdx
+- **Status**: ready (optimized for Paragraph publication)
+- **Story beat**: The Law + The Mission
+- **Optimization changes**: (1) Broken link my3ye.xyz/protocol removed, (2) SOS Systems tense fixed to conditional/future, (3) Koink tense fixed to conditional/future, (4) Em dash→period for closing rhythm, (5) Date 2026-03-19→2026-03-30, (6) tags and published added, (7) category governance→protocol, (8) Paragraph CTA added
+- **What NOT to repeat**: keeper asymmetry as THE argument, "capture the priest, capture the temple" triptych, "The rules are the machine. The machine is the rules." as the center pivot, "structurally unemployed" as the payoff line, encoding discipline (not inspiration/vision-casting) as the work frame
+
 ### Before the Protocol, the Proof (eaf5395d)
 - **Angle**: Honest accounting — what exists NOW (Otto operational, WebAssist live, inception articles published) vs what is in development (ONEON, Tusita, SOS Systems, Shakrah, Panik — early) vs what is in design (Koink, Ottolabs, Music/Travel/Market/Properties — concept). Ecosystem emergence as founding story + invitation.
 - **Story beats**: Mission + Dream
@@ -327,13 +337,18 @@ type: project
 - **What NOT to repeat**: "the island reflects its builder" frame, accountability-is-structural argument, "the design flaw IS the design" line, Tusita as accountability inversion
 - **Tense discipline**: All Tusita features in "designed to" / "being built" — not operational
 
-### The Loop Remembers ← NEW 2026-03-29
-- **DB ID**: 9e01c26c-9986-48e8-b027-f61069e28854
-- **Angle**: Brand new SOS inception article — island metaphor (private sovereignty vs contribution-governed) as entry frame; agents already earning on-chain (Bittensor $43M Q1) as urgency hook; furniture loop (8-stage Otto Loop) as the concrete model; solo founder + AI as the working proof; SOS governance requirement (DPC mechanics included); automation liberation thesis (contribution stake = perpetual earnings); call to founding cohort
+### The Loop Remembers ← OPTIMIZED SOS-2 2026-03-30
+- **DB ID (original)**: 9e01c26c-9986-48e8-b027-f61069e28854 (draft)
+- **DB ID (source for optimization)**: cc7a28cd-feb6-4537-8c04-5d54c8e56d85 (draft, partial prior optimization)
+- **DB ID (optimized)**: 062609e0-cf49-45c2-bc14-2a42b977e1bc (status=ready)
+- **Angle**: SOS inception article — island metaphor (private sovereignty vs contribution-governed) as entry frame; agents already earning on-chain as urgency hook (softened from $43M Bittensor stat); furniture loop (8-stage Otto Loop) as the concrete model; solo founder + AI as the working proof; SOS governance requirement (DPC mechanics included); automation liberation thesis; call to founding cohort
 - **Story beat**: The Law + The Mission + The Frame + The Dream (all four)
-- **File**: /mnt/media/projects/505-systems-web/content/the-loop-remembers.mdx
-- **Status**: draft
-- **Word count**: ~1,080
+- **File**: /mnt/media/projects/505-systems-web/content/the-loop-remembers-optimized.mdx
+- **Status**: ready (optimized for Paragraph publication)
+- **Word count**: ~1,040 (minus frontmatter)
+- **Multi-Audience Review**: d3de345e — NEEDS_CHANGES 7.5/10. Applied all 6 fixes.
+- **Optimizations**: (1) Bittensor $43M→tens of millions, (2) governance immutability→rules no single actor can rewrite, (3) SOS Systems is being built as the answer, (4) running without interruption→continuously in production, (5) 6 prose em dashes removed (2 canonical brand lines kept), (6) CTA strengthened with admin@otto.lk, (7) name reveal moved to parenthetical at first mention, (8) thousands of agents→a growing number
+- **Negative checklist**: COMPLIANT — 505-systems status=early, no deployed contracts. All product claims use conditional/design tense.
 - **What NOT to repeat**: island-reflects-builder frame, "when the agent earns, who earns?" as entry hook, furniture loop as central concrete example, "Not as a metaphor. As a fact." proof section structure, "The threat is an automated economy with no governance backbone." line, "This is not generosity. This is accounting." in loop context, automation-as-liberation-not-threat thesis arc
 
 ## Sri Lanka Movement
