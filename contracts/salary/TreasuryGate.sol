@@ -45,6 +45,12 @@ contract TreasuryGate is AccessControl, Pausable {
     ///         10,000 USDC = minimum operational reserve.
     uint128 public constant ABSOLUTE_MINIMUM_FLOOR = 10_000e6; // 10k USDC, 6 decimals
 
+    /// @notice Minimum claim period duration: 28 days.
+    ///         FIX H-1: Raised from 7 days to 28 days. A 7-day period enables
+    ///         4x monthly payouts (36k/month), breaking the 9k/month intent.
+    ///         28 days enforces at most one claim per calendar month.
+    uint32 public constant MIN_PERIOD_DURATION = 28 days; // 2419200 seconds
+
     // =========================================================================
     //                              STATE
     // =========================================================================
@@ -56,7 +62,7 @@ contract TreasuryGate is AccessControl, Pausable {
 
     /// @notice Address of the treasury being protected (Gnosis Safe or multi-sig).
     ///         This is what TreasuryGate reads balances from.
-    ///         Updatable by GATE_ADMIN_ROLE to support treasury migrations.
+    ///         Updatable by GATE_ADMIN_ROLE via 7-day timelocked propose/execute pattern.
     address public treasury;
 
     /// @notice Minimum USDC balance the treasury must maintain at all times (6 decimals).
@@ -65,7 +71,7 @@ contract TreasuryGate is AccessControl, Pausable {
     uint128 public floorUsd;
 
     /// @notice Duration of a claim period in seconds.
-    ///         Default: 30 days. Updatable by governance.
+    ///         Default: 28 days. Minimum: 28 days (MIN_PERIOD_DURATION). Updatable by governance.
     ///         The salary contract uses this value to compute current claim periods.
     uint32 public periodDuration;
 
@@ -86,6 +92,20 @@ contract TreasuryGate is AccessControl, Pausable {
     ///         Reset when a new period snapshot is taken.
     uint128 public periodTotalPaid;
 
+    // ── FIX H-2: Treasury address change timelock ──────────────────────
+    // Prevents instant treasury address swaps that could bypass floor checks
+    // by pointing to any USDC-holding address. Uses the same timelock pattern
+    // as ContributorSalary.sol's floor/period changes.
+
+    /// @notice Timelock duration for treasury address changes.
+    uint32 public constant TREASURY_CHANGE_TIMELOCK = 7 days;
+
+    /// @notice Pending new treasury address (address(0) = no pending change).
+    address public pendingTreasury;
+
+    /// @notice Timestamp when pending treasury change becomes executable.
+    uint64 public treasuryChangeUnlocksAt;
+
     // =========================================================================
     //                              EVENTS
     // =========================================================================
@@ -93,14 +113,20 @@ contract TreasuryGate is AccessControl, Pausable {
     /// @notice Emitted when the treasury floor is updated.
     event FloorUpdated(uint128 oldFloor, uint128 newFloor, address updatedBy);
 
-    /// @notice Emitted when the treasury address is updated (migration).
-    event TreasuryAddressUpdated(address oldTreasury, address newTreasury, address updatedBy);
-
     /// @notice Emitted when the claim period duration is updated.
     event PeriodDurationUpdated(uint32 oldDuration, uint32 newDuration, address updatedBy);
 
     /// @notice Emitted when a period snapshot is taken (first claim of a new period).
     event PeriodSnapshotTaken(uint32 indexed period, uint128 openingBalance, uint64 takenAt);
+
+    /// @notice Emitted when a treasury address change is proposed.
+    event TreasuryChangeProposed(address indexed newTreasury, uint64 unlocksAt, address proposedBy);
+
+    /// @notice Emitted when a pending treasury change is executed.
+    event TreasuryChangeExecuted(address indexed oldTreasury, address indexed newTreasury, address executedBy);
+
+    /// @notice Emitted when a pending treasury change is cancelled.
+    event TreasuryChangeCancelled(address indexed cancelledTreasury, address cancelledBy);
 
     /// @notice Emitted when a payout is approved by the gate.
     event PayoutApproved(
@@ -121,6 +147,9 @@ contract TreasuryGate is AccessControl, Pausable {
     error ZeroPeriodDuration();
     error PeriodDurationTooShort(uint32 requested, uint32 minimum);
     error PeriodDurationTooLong(uint32 requested, uint32 maximum);
+    error TreasuryChangeAlreadyPending();
+    error NoTreasuryChangePending();
+    error TreasuryChangeNotUnlockedYet(uint64 unlocksAt, uint64 currentTime);
 
     // =========================================================================
     //                              CONSTRUCTOR
@@ -147,8 +176,15 @@ contract TreasuryGate is AccessControl, Pausable {
         usdc = IERC20(usdcAddress);
         treasury = treasuryAddress;
         floorUsd = initialFloor;
-        periodDuration = 30 days;
+        periodDuration = 28 days; // FIX H-1: 28-day minimum enforces monthly cadence (see MIN_PERIOD_DURATION)
         launchTimestamp = uint64(block.timestamp);
+
+        // FIX C1: Initialize snapshotPeriod to max sentinel so it never matches
+        // getCurrentPeriod() (which returns 0 for period 0). Without this, the
+        // condition `snapshotPeriod != currentPeriod` is false in period 0,
+        // preventing the snapshot from being taken — periodOpeningBalance stays 0,
+        // getEligiblePool() returns 0, and all period 0 claims revert with ZeroPayout.
+        snapshotPeriod = type(uint32).max;
 
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
         _grantRole(GATE_ADMIN_ROLE, admin);
@@ -192,9 +228,17 @@ contract TreasuryGate is AccessControl, Pausable {
         }
 
         // Phase 2: Would this payout breach the floor?
-        // We add periodTotalPaid already disbursed this period to give a worst-case view
-        // if multiple claims happen in the same block.
+        // FIX M-3: periodTotalPaid was tracked but never used in the check (dead code).
+        // Now we subtract periodTotalPaid from currentBalance to get worst-case effective
+        // balance when multiple claims are approved in the same block before transfers settle.
+        // Without this, two concurrent pre-claim approvals could both pass even though only
+        // one payout's worth of headroom exists above the floor.
         uint128 effectiveBalance = currentBalance;
+        if (periodTotalPaid < effectiveBalance) {
+            effectiveBalance -= periodTotalPaid;
+        } else {
+            effectiveBalance = 0;
+        }
         if (effectiveBalance < amount + floorUsd) {
             revert PayoutWouldBreachFloor(effectiveBalance, amount, floorUsd);
         }
@@ -213,10 +257,14 @@ contract TreasuryGate is AccessControl, Pausable {
     ///         If this check fails, the entire transaction reverts — USDC transfer included.
     ///         This is the final safety net: belt AND suspenders.
     ///
-    /// @dev    This function is the "trust but verify" layer. The pre-claim check is
-    ///         arithmetic — it reasons about expected post-transfer state. This check
-    ///         reads actual on-chain balance. If they diverge (e.g., due to a concurrent
-    ///         transaction in the same block), this catches it.
+    /// @dev    AUDIT M-2 NOTE: This is NOT a no-op despite pre-claim arithmetic checks.
+    ///         The pre-claim check reasons about expected post-transfer state using
+    ///         periodTotalPaid accounting. This check reads actual on-chain USDC balance
+    ///         AFTER the real transfer. They can diverge when:
+    ///         (a) Another transaction moves USDC from the treasury in the same block.
+    ///         (b) A fee-on-transfer token is used (not USDC today, but future-proofs).
+    ///         (c) Safe module execution has unexpected side effects.
+    ///         This catches all three cases and reverts the entire tx including the transfer.
     function postClaimCheck() external view onlyRole(SALARY_CONTRACT_ROLE) {
         uint128 currentBalance = _readTreasuryBalance();
         if (currentBalance < floorUsd) {
@@ -240,23 +288,58 @@ contract TreasuryGate is AccessControl, Pausable {
         emit FloorUpdated(oldFloor, newFloor, msg.sender);
     }
 
-    /// @notice Update the treasury address. Used when the Gnosis Safe migrates.
-    ///         After updating, the next period snapshot will read from the new address.
-    /// @param newTreasury New treasury address.
-    function setTreasury(address newTreasury) external onlyRole(GATE_ADMIN_ROLE) {
+    /// @notice Propose a new treasury address. Starts 7-day timelock.
+    ///         FIX H-2: Treasury address changes now require a 7-day timelock to prevent
+    ///         instant swaps that could bypass floor protection by pointing to any
+    ///         USDC-holding address. Contributors have 7 days to react.
+    /// @param newTreasury New treasury address to propose.
+    function proposeTreasuryChange(address newTreasury) external onlyRole(GATE_ADMIN_ROLE) {
         if (newTreasury == address(0)) revert ZeroAddress();
+        if (pendingTreasury != address(0)) revert TreasuryChangeAlreadyPending();
+
+        pendingTreasury = newTreasury;
+        treasuryChangeUnlocksAt = uint64(block.timestamp) + TREASURY_CHANGE_TIMELOCK;
+
+        emit TreasuryChangeProposed(newTreasury, treasuryChangeUnlocksAt, msg.sender);
+    }
+
+    /// @notice Execute a pending treasury address change after the 7-day timelock.
+    function executeTreasuryChange() external onlyRole(GATE_ADMIN_ROLE) {
+        if (pendingTreasury == address(0)) revert NoTreasuryChangePending();
+        if (block.timestamp < treasuryChangeUnlocksAt) {
+            revert TreasuryChangeNotUnlockedYet(treasuryChangeUnlocksAt, uint64(block.timestamp));
+        }
+
         address oldTreasury = treasury;
+        address newTreasury = pendingTreasury;
         treasury = newTreasury;
-        emit TreasuryAddressUpdated(oldTreasury, newTreasury, msg.sender);
+
+        // Clear pending state
+        pendingTreasury = address(0);
+        treasuryChangeUnlocksAt = 0;
+
+        emit TreasuryChangeExecuted(oldTreasury, newTreasury, msg.sender);
+    }
+
+    /// @notice Cancel a pending treasury address change.
+    function cancelTreasuryChange() external onlyRole(GATE_ADMIN_ROLE) {
+        if (pendingTreasury == address(0)) revert NoTreasuryChangePending();
+        address cancelled = pendingTreasury;
+
+        pendingTreasury = address(0);
+        treasuryChangeUnlocksAt = 0;
+
+        emit TreasuryChangeCancelled(cancelled, msg.sender);
     }
 
     /// @notice Update the claim period duration.
-    ///         Minimum: 7 days. Maximum: 365 days.
+    ///         Minimum: 28 days (MIN_PERIOD_DURATION). Maximum: 365 days.
+    ///         FIX H-1: Raised minimum from 7 days to 28 days to enforce monthly cadence.
     ///         Changing this mid-flight will shift future period boundaries but does not
     ///         retroactively invalidate in-progress periods.
     /// @param newDuration New period duration in seconds.
     function setPeriodDuration(uint32 newDuration) external onlyRole(GATE_ADMIN_ROLE) {
-        if (newDuration < 7 days) revert PeriodDurationTooShort(newDuration, 7 days);
+        if (newDuration < MIN_PERIOD_DURATION) revert PeriodDurationTooShort(newDuration, MIN_PERIOD_DURATION);
         if (newDuration > 365 days) revert PeriodDurationTooLong(newDuration, 365 days);
         uint32 oldDuration = periodDuration;
         periodDuration = newDuration;

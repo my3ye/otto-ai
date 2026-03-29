@@ -304,7 +304,7 @@ contract ContributorSalary is AccessControl, Pausable, ReentrancyGuard {
     }
 
     /// @notice Propose a new claim period duration. Starts 48h timelock.
-    /// @param newDuration New period duration in seconds (7 days min, 365 days max).
+    /// @param newDuration New period duration in seconds (28 days min, 365 days max).
     function proposePeriodChange(uint32 newDuration) external onlyRole(GOVERNANCE_ROLE) {
         if (pendingConfigHash != bytes32(0)) revert ConfigAlreadyPending();
 
