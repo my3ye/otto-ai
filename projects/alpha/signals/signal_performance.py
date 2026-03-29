@@ -50,7 +50,7 @@ TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHANNEL   = os.environ.get("TELEGRAM_CHANNEL", "")
 
 # Signal timeout — close as timeout if no TP/SL hit within this window.
-# Extended from 72h to match observation_window_minutes (300min = 5h) + generous buffer.
+# Extended to match observation_window_minutes (360min = 6h) from strategy_config.json.
 # With TP1=0.8% and SL=3%, most signals resolve well within 6h for meme tokens.
 TIMEOUT_HOURS = 6
 
