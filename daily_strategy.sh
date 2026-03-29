@@ -91,6 +91,8 @@ timeout 900s /home/web3relic/.local/bin/claude \
     --agent strategist \
     --dangerously-skip-permissions \
     --model sonnet \
+    --fallback-model haiku \
+    --max-budget-usd 2.00 \
     --effort high \
     --no-session-persistence \
     -p "$PROMPT" \

@@ -52,7 +52,7 @@ curl -sf http://localhost:8100/context/inject
 # Open blockers / questions for Mev
 curl -sf http://localhost:8100/pending/open
 
-# Recent task completions (last 24h)
+# Recent task completions (most recent 20 — filter by completed_at if needed)
 curl -sf "http://localhost:8100/tasks?status=completed&limit=20" | python3 -c "
 import json, sys
 tasks = json.load(sys.stdin)
@@ -62,7 +62,7 @@ for t in recent[:20]:
     print(f'  [{t.get(\"priority\",\"?\")}] {t[\"title\"][:80]} — {t.get(\"status\",\"?\")}')
 "
 
-# Recent failures (last 24h)
+# Recent task failures (most recent 10 — check completed_at for recency)
 curl -sf "http://localhost:8100/tasks?status=failed&limit=10" | python3 -c "
 import json, sys
 tasks = json.load(sys.stdin)
@@ -123,12 +123,20 @@ For each question, write a structured analysis:
 Before creating ANY task, check for duplicates:
 
 ```bash
-# Check existing queue for duplicates
-curl -sf "http://localhost:8100/tasks?status=pending,running" | python3 -c "
-import json, sys
-tasks = json.load(sys.stdin)
-print(f'{len(tasks)} pending/running tasks:')
-for t in tasks:
+# Check existing queue for duplicates (two queries — API uses exact status match, not IN clause)
+python3 -c "
+import json, subprocess, sys
+
+all_tasks = []
+for status in ['pending', 'running']:
+    r = subprocess.run(['curl', '-sf', f'http://localhost:8100/tasks?status={status}&limit=50'],
+                       capture_output=True, text=True)
+    if r.returncode == 0 and r.stdout.strip():
+        try: all_tasks.extend(json.loads(r.stdout))
+        except: pass
+
+print(f'{len(all_tasks)} pending/running tasks:')
+for t in all_tasks:
     print(f'  [{t.get(\"priority\",\"?\")}] {t[\"title\"][:80]} ({t[\"status\"]})')
 "
 ```
