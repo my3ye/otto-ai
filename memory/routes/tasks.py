@@ -700,6 +700,28 @@ async def run_task(task_id: UUID):
         )
     if row["status"] != "pending":
         raise HTTPException(409, f"Task is '{row['status']}', must be 'pending' to run")
+
+    # Dependency gate: block tasks whose depends_on tasks haven't all completed.
+    # This prevents the heartbeat or other callers from launching plan tasks
+    # before their DAG dependencies are satisfied.
+    dep_row = await pool.fetchrow(
+        "SELECT depends_on FROM tasks WHERE id = $1", task_id
+    )
+    if dep_row and dep_row["depends_on"]:
+        unmet = await pool.fetchval("""
+            SELECT COUNT(*) FROM unnest($1::uuid[]) AS dep_id
+            WHERE NOT EXISTS (
+                SELECT 1 FROM tasks d WHERE d.id = dep_id AND d.status = 'completed'
+            )
+        """, dep_row["depends_on"])
+        if unmet and unmet > 0:
+            raise HTTPException(
+                409,
+                f"Task has {unmet} unmet dependencies — cannot run until all "
+                f"depends_on tasks are completed. The plan executor will launch "
+                f"it automatically when dependencies clear.",
+            )
+
     # Decomposition gate: block tasks that require decomposition before execution
     if row["requires_decomposition"] and not row["decomposed"]:
         raise HTTPException(

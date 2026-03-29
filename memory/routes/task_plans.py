@@ -163,14 +163,45 @@ def _find_agency_agent(agent_type: str) -> str | None:
 # ── Plan Executor (DAG Scheduler) ────────────────────────────────────────
 
 async def _launch_task(pool, task_id: UUID) -> bool:
-    """Launch a single task if CLI capacity allows. Returns True if launched."""
+    """Launch a single task if CLI capacity allows. Returns True if launched.
+
+    Includes a pre-launch dependency guard: re-verifies ALL depends_on tasks
+    are completed before spawning the process, preventing launches with unmet deps.
+    """
     from .tasks import _count_running_by_cli, CLI_CONCURRENCY, TASK_RUNNER as TR
 
     try:
+        # ── Pre-launch dependency guard ─────────────────────────────────
+        # Re-check deps right before launch to catch any race conditions
+        dep_check = await pool.fetchrow("""
+            SELECT t.depends_on,
+                   (SELECT COUNT(*) FROM unnest(t.depends_on) AS dep_id
+                    WHERE NOT EXISTS (
+                        SELECT 1 FROM tasks d WHERE d.id = dep_id AND d.status = 'completed'
+                    )) AS unmet_deps
+            FROM tasks t WHERE t.id = $1
+        """, task_id)
+        if dep_check and dep_check["depends_on"] and dep_check["unmet_deps"] > 0:
+            log.warning(f"Plan executor: task {str(task_id)[:8]} has {dep_check['unmet_deps']} "
+                        f"unmet dependencies — NOT launching")
+            return False
+
         cli_counts = await _count_running_by_cli(pool)
         claude_running = cli_counts.get("claude", 0)
         if claude_running >= CLI_CONCURRENCY["claude"]:
             log.info(f"Plan executor: no claude slots for task {str(task_id)[:8]}")
+            return False
+
+        # Atomically claim the task (CAS: pending → running) to prevent
+        # concurrent execute_plan calls from double-launching the same task.
+        claimed = await pool.fetchval(
+            """UPDATE tasks SET status = 'running', started_at = now()
+               WHERE id = $1 AND status = 'pending'
+               RETURNING id""",
+            task_id,
+        )
+        if not claimed:
+            log.info(f"Plan executor: task {str(task_id)[:8]} already claimed by another executor")
             return False
 
         task_env = os.environ.copy()
@@ -188,7 +219,7 @@ async def _launch_task(pool, task_id: UUID) -> bool:
             env=task_env,
         )
         await pool.execute(
-            "UPDATE tasks SET status = 'running', pid = $2, started_at = now() WHERE id = $1",
+            "UPDATE tasks SET pid = $2 WHERE id = $1",
             task_id, proc.pid,
         )
         log.info(f"Plan executor launched task {str(task_id)[:8]} as PID {proc.pid}")
@@ -279,7 +310,7 @@ async def execute_plan(pool, plan_id: UUID):
             plan_id,
         )
 
-    # Find all pending tasks where every dependency is completed
+    # Find all pending tasks where every dependency is completed.
     ready_tasks = await pool.fetch("""
         SELECT t.id, t.metadata
         FROM tasks t
@@ -532,55 +563,64 @@ async def create_plan(
     # 2. Compute topology
     topology = _compute_topology(items)
 
-    # 3. Create plan
-    plan_row = await pool.fetchrow(
-        """INSERT INTO task_plans (title, instruction, topology, total_items,
-               agents_employed, created_by, trigger_message)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)
-           RETURNING id""",
-        title, instruction[:2000], topology, len(items),
-        employed, created_by, (trigger_message or "")[:500],
-    )
-    plan_id = plan_row["id"]
-
-    # 4. Create tasks — first pass to get real UUIDs
-    temp_to_uuid: dict[str, UUID] = {}
-    for item in items:
-        metadata = {}
-        if item.workflow_template:
-            metadata["workflow_template"] = item.workflow_template
-            metadata["workflow_variables"] = item.workflow_variables
-
-        # Coding agents (coder, debugger, architect, etc.) run on opus per Mev directive 2026-03-27
-        task_model = model_for_agent(item.agent_type)
-        row = await pool.fetchrow(
-            """INSERT INTO tasks (title, prompt, priority, model, cli, agent_type,
-                   max_budget_usd, max_turns, timeout_seconds,
-                   working_directory, created_by, metadata, plan_id)
-               VALUES ($1, $2, $3, $10, 'claude', $4,
-                   $5, 50, 900, $6, $7, $8, $9)
-               RETURNING id""",
-            item.title, item.prompt, item.priority, item.agent_type,
-            10.0 if item.priority >= 8 else 5.0,
-            item.working_directory, created_by, metadata, plan_id, task_model,
-        )
-        temp_to_uuid[item.temp_id] = row["id"]
-
-    # 5. Second pass: resolve depends_on temp_ids to real UUIDs
-    for item in items:
-        if not item.depends_on:
-            continue
-        dep_uuids = [temp_to_uuid[dep] for dep in item.depends_on if dep in temp_to_uuid]
-        if dep_uuids:
-            await pool.execute(
-                "UPDATE tasks SET depends_on = $2 WHERE id = $1",
-                temp_to_uuid[item.temp_id], dep_uuids,
+    # 3. Create plan + tasks atomically in a single transaction.
+    # Previously, tasks were created with depends_on='{}' (step 4), then
+    # depends_on was updated (step 5), then execute_plan ran (step 6).
+    # This caused a race: execute_plan could see tasks with empty depends_on
+    # and launch them before dependencies were set. Fix: two-pass insert
+    # inside a transaction — first pass gets UUIDs, second pass sets depends_on
+    # — then execute_plan runs AFTER the transaction commits.
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            plan_row = await conn.fetchrow(
+                """INSERT INTO task_plans (title, instruction, topology, total_items,
+                       agents_employed, created_by, trigger_message)
+                   VALUES ($1, $2, $3, $4, $5, $6, $7)
+                   RETURNING id""",
+                title, instruction[:2000], topology, len(items),
+                employed, created_by, (trigger_message or "")[:500],
             )
+            plan_id = plan_row["id"]
 
+            # 4. Create tasks — first pass to get real UUIDs
+            temp_to_uuid: dict[str, UUID] = {}
+            for item in items:
+                metadata = {}
+                if item.workflow_template:
+                    metadata["workflow_template"] = item.workflow_template
+                    metadata["workflow_variables"] = item.workflow_variables
+
+                # Coding agents (coder, debugger, architect, etc.) run on opus per Mev directive 2026-03-27
+                task_model = model_for_agent(item.agent_type)
+                row = await conn.fetchrow(
+                    """INSERT INTO tasks (title, prompt, priority, model, cli, agent_type,
+                           max_budget_usd, max_turns, timeout_seconds,
+                           working_directory, created_by, metadata, plan_id)
+                       VALUES ($1, $2, $3, $10, 'claude', $4,
+                           $5, 50, 900, $6, $7, $8, $9)
+                       RETURNING id""",
+                    item.title, item.prompt, item.priority, item.agent_type,
+                    10.0 if item.priority >= 8 else 5.0,
+                    item.working_directory, created_by, metadata, plan_id, task_model,
+                )
+                temp_to_uuid[item.temp_id] = row["id"]
+
+            # 5. Second pass: resolve depends_on temp_ids to real UUIDs
+            for item in items:
+                if not item.depends_on:
+                    continue
+                dep_uuids = [temp_to_uuid[dep] for dep in item.depends_on if dep in temp_to_uuid]
+                if dep_uuids:
+                    await conn.execute(
+                        "UPDATE tasks SET depends_on = $2 WHERE id = $1",
+                        temp_to_uuid[item.temp_id], dep_uuids,
+                    )
+
+    # Transaction committed — all tasks now visible with correct depends_on
     log.info(f"Plan created: '{title}' ({len(items)} tasks, topology={topology}, "
              f"agents_employed={employed})")
 
-    # 6. Start execution
+    # 6. Start execution (outside transaction so it sees committed state)
     await execute_plan(pool, plan_id)
 
     return plan_id
