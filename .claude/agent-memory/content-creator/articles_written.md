@@ -197,12 +197,14 @@ type: project
 
 ## Governance Manifesto — SOS / 505 Systems
 
-### The River Has No King ← NEW 2026-03-27
-- **DB ID**: 5e01b2cb-939a-420f-9487-628b67d837c2
+### The River Has No King ← OPTIMIZED SOS-5 2026-03-30
+- **DB ID (original)**: 5e01b2cb-939a-420f-9487-628b67d837c2 (draft source)
+- **DB ID (optimized)**: a3ac5242-23a9-457a-83e4-7a58a7adb060 (status=ready)
 - **Angle**: Philosophical — the oldest question about power ("are they good or evil?") is made structurally obsolete. Not better leaders but rotating meritocratic councils. The question doesn't get answered, it gets dissolved. Also covers: founder sunset by immutable contract, DPC open path to leadership.
-- **File**: /mnt/media/projects/my3ye-web/content/blog/the-river-has-no-king.mdx
-- **Status**: draft
+- **File**: /mnt/media/projects/505-systems-web/content/the-river-has-no-king.mdx
+- **Status**: ready (optimized for Paragraph publication)
 - **Story beat**: The Law + The Mission
+- **Optimization changes**: (1) 14 em dashes removed, (2) Phase 0/1/2 descriptions fixed to conditional/future tense, (3) Frontmatter stripped from body, (4) Date updated to 2026-03-30, (5) Negative checklist compliant (505-systems status=early, no contracts)
 - **What NOT to repeat**: "are they good or evil?" dissolution argument (this piece owns it), founder sunset framing, rotating seat expiry as central mechanism, "the room" framing
 
 ## Founder Positioning Copy
