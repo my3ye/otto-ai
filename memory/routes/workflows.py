@@ -261,8 +261,9 @@ def _interpolate(template: str, instance: dict) -> str:
 
     try:
         return template.format_map(values)
-    except (KeyError, ValueError):
+    except (KeyError, ValueError, TypeError):
         # Fallback: manual replacement for unresolved keys
+        # TypeError: nested bracket syntax like {prev_output[key]} fails when value is a string
         result = template
         for k, v in values.items():
             result = result.replace(f"{{{k}}}", str(v))
