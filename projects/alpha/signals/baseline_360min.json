@@ -1,0 +1,33 @@
+{
+  "baseline_established_at": "2026-03-31T13:09:47Z",
+  "observation_window_minutes": 360,
+  "target_review_at": "2026-04-02T13:09:47Z",
+  "pre_fix_metrics": {
+    "note": "Pre-360min era: 22.2% TP hit rate, 88.9% expiration rate, 88.9% directional accuracy",
+    "source": "research_pipeline_finding"
+  },
+  "baseline_metrics": {
+    "total_signals": 21,
+    "tp1_hits": 7,
+    "tp1_hit_rate_pct": 33.3,
+    "any_tp_hit": 7,
+    "any_tp_hit_rate_pct": 33.3,
+    "timeouts": 5,
+    "timeout_rate_pct": 23.8,
+    "sl_hits": 5,
+    "sl_hit_rate_pct": 23.8,
+    "status_breakdown": {
+      "closed_expired": 8,
+      "closed_tp2": 1,
+      "sl_hit": 3,
+      "timeout": 5,
+      "tp1_hit": 4
+    }
+  },
+  "targets": {
+    "tp_hit_rate_pct": 40,
+    "expiration_rate_pct_max": 60,
+    "win_rate_pct": 85
+  },
+  "note": "Helius API exhausted at baseline — new signals resume Apr 1 00:00 UTC. 48h window from first new signal."
+}
