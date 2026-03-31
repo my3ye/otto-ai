@@ -1,6 +1,9 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_my3ye_landing_movement_family_review.md](project_my3ye_landing_movement_family_review.md) — MY3YE landing movement+family rewrite (aab63acc, 2026-03-31, WF Step 1): MINOR_CHANGES (8.0/10). 2 criticals: "Eleven protocols" wrong (registry=18); "base is open/ladder is up" DPC present-tense (13th instance). Family section = best belonging copy in library.
+- [project_midnight_oneon_synthesis_validation.md](project_midnight_oneon_synthesis_validation.md) — Midnight × ONEON synthesis (2026-03-31, WF Step 2): NEEDS_CHANGES 7.5/10. ZK gap verified. 4 criticals: source count (5→8), "only viable" overclaim, unsourced grant range, Aztec single-source.
+
 - [project_loop_remembers_optimized_review.md](project_loop_remembers_optimized_review.md) — "The Loop Remembers" SOS-2 optimized (2026-03-30, WF Step 1): MINOR_CHANGES (8.0/10). All 3 prior criticals fixed. 2 new: revenue stat unverifiable (line 28); "AI operating system" overclaim (line 61, 12th instance). Do not touch: island opener, accounting line, Otto-as-proof, 8-stage loop, Destination section, closing lines.
 - [project_my3ye_article3_review.md](project_my3ye_article3_review.md) — "The Machine Needs No Priest" MY3YE Article 3 (f51576a, 2026-03-30, WF Step 1): MINOR_CHANGES (8.5/10). 1 critical: "scored by the protocol" present-tense (line 40, 12th DPC instance). Do not touch: opener, canonical priest lines, Bitcoin example, edge-case line, closer.
 - [project_my3ye_article4_review.md](project_my3ye_article4_review.md) — "The Last Unfair Advantage" MY3YE Article 4 (517b0154, 2026-03-30, WF Step 1): MINOR_CHANGES (8.0/10). 1 critical: "production AI operating system" overclaims. Thin crypto-native hook. Do not touch: opener, river metaphor, clarity thesis, proof stats, closing dedication.
