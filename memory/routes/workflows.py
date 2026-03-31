@@ -259,15 +259,12 @@ def _interpolate(template: str, instance: dict) -> str:
     values["workflow_name"] = instance.get("name", "")
     values["working_directory"] = instance.get("working_directory", "/home/web3relic/otto")
 
-    try:
-        return template.format_map(values)
-    except (KeyError, ValueError, TypeError):
-        # Fallback: manual replacement for unresolved keys
-        # TypeError: nested bracket syntax like {prev_output[key]} fails when value is a string
-        result = template
-        for k, v in values.items():
-            result = result.replace(f"{{{k}}}", str(v))
-        return result
+    # Safe manual replacement — format_map chokes on curly braces in values
+    # (e.g., JSON/code in prev_output). Manual replace is always safe.
+    result = template
+    for k, v in values.items():
+        result = result.replace(f"{{{k}}}", str(v))
+    return result
 
 
 # ── Template Schema & Validation ─────────────────────────────────────────
