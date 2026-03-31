@@ -2,6 +2,7 @@
 
 ## Projects
 - [project_my3ye_landing_movement_family_review.md](project_my3ye_landing_movement_family_review.md) — MY3YE landing movement+family rewrite (aab63acc, 2026-03-31, WF Step 1): MINOR_CHANGES (8.0/10). 2 criticals: "Eleven protocols" wrong (registry=18); "base is open/ladder is up" DPC present-tense (13th instance). Family section = best belonging copy in library.
+- [project_my3ye_movement_family_final_review.md](project_my3ye_movement_family_final_review.md) — MY3YE movement+family landing v2 (aab63acc, 2026-03-31, WF final): APPROVE 8.5/10. 2 targeted fixes: eyebrow "Community"→"Family"; Movement H2 sharpened. Family section = best belonging copy in library.
 - [project_midnight_oneon_synthesis_validation.md](project_midnight_oneon_synthesis_validation.md) — Midnight × ONEON synthesis (2026-03-31, WF Step 2): NEEDS_CHANGES 7.5/10. ZK gap verified. 4 criticals: source count (5→8), "only viable" overclaim, unsourced grant range, Aztec single-source.
 
 - [project_loop_remembers_optimized_review.md](project_loop_remembers_optimized_review.md) — "The Loop Remembers" SOS-2 optimized (2026-03-30, WF Step 1): MINOR_CHANGES (8.0/10). All 3 prior criticals fixed. 2 new: revenue stat unverifiable (line 28); "AI operating system" overclaim (line 61, 12th instance). Do not touch: island opener, accounting line, Otto-as-proof, 8-stage loop, Destination section, closing lines.
