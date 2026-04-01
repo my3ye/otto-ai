@@ -1,5 +1,18 @@
 # Researcher Agent Memory
 
+## Midnight Network Research (2026-04-01) — VALIDATED 8.0/10
+
+DB Note ID: 97be3f13 | Episodic IDs: bc629021 (I1), aac96e80 (I2), c6b5ad63 (I3), bbf67b61 (I4), 380517e8 (I5), 449d95a5 (I6), bd897221 (I7)
+File: project_midnight_network_2026_04_01.md
+- **Mainnet LIVE Mar 30 2026** (Kūkolu federated). $808M cap, NIGHT on Binance/Kraken/OKX. Monument Bank £250M RWA. Validators: Google Cloud, Blockdaemon, MoneyGram, Worldpay, Telegram, eToro, Bullish, Pairpoint.
+- **Tech:** Substrate/Rust + AURA/GRANDPA + Halo2 ZK (BLS12-381, recursive, no trusted setup). Compact DSL. Client-side proving. NIGHT + DUST dual-token.
+- **Roadmap:** Mōhalu Q2 2026 (SPO decentralization), Hua Q3 2026 (ETH/SOL bridges).
+- **ONEON ZK gap CONFIRMED:** Zero implementation in codebase. No Midnight integration in any project dir (only UI color refs).
+- **Grants:** 9.6B NIGHT ecosystem reserve. Aliit Fellowship active (rolling). Amounts/deadlines UNCONFIRMED.
+- **PATCHED:** Glacier Drop thaw Dec 2026 → **~Feb 2027** (450-day math). MCP server downgraded MEDIUM-LOW (self-referential source).
+- **Risk:** No public security audits. Centralization paradox. Token unlock pressure Feb 2027.
+- **Actions:** (1) Apply Aliit Fellowship for ONEON (confirm deadlines). (2) Build Compact DSL PoC. (3) Gate at Mōhalu Q2 2026.
+
 ## Agent-on-Chain Money Narrative (2026-03-29) — VALIDATED
 
 DB Note ID: 161c9b5a | Memory IDs: a19be2a5, d2e54828
