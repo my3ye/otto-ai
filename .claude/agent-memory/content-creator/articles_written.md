@@ -414,10 +414,25 @@ type: project
 - **DB-only**: No MDX file — LinkedIn article
 - **What NOT to repeat**: 18-month-fails-from-scope-overload as entry argument, three-phase (30/60/90) day structure, "organizational muscle" as the true outcome, "systems compound in a way that projects do not" line, "proof is worth more than strategy at this stage" line, "ROADMAP" CTA keyword
 
+### How to Build an AI-First Culture Without Losing Your Team ← LinkedIn Article 4 / 2026-04-03
+- **DB ID**: 5f08f11f-1497-4c84-97cb-b40209094216
+- **Content type**: article (LinkedIn long-form)
+- **Project**: OTTOLABS (Mev consulting positioning)
+- **Series**: Mev AI & Automation Consulting LinkedIn Series, Article 4 of 5
+- **Target persona**: The Builder / People-First Leader / Operations-focused Founder
+- **Angle**: Culture as the hardest operational variable in AI implementation. Core insight: resistance comes from fear of losing value (not fear of tech). The fix: involve people in designing the change. Three specific leader mistakes: skip job security talk, measure adoption too early, train enthusiasts instead of skeptics. Success signal: team owns and improves the system.
+- **CTA keyword**: "CULTURE"
+- **Status**: draft — Step 0 COMPLETE (2026-04-03)
+- **Word count**: ~855
+- **Voice**: Authoritative practitioner (NOT MY3YE brand voice)
+- **Story beat**: N/A (consulting series, not MY3YE ecosystem)
+- **DB-only**: No MDX file — LinkedIn article
+- **What NOT to repeat**: "tool doesn't resist, team does" opener, the value-loss fear framing (vs. tech fear), "built with them not handed to them" line, "you don't announce your way to AI-first culture, you demonstrate it", train skeptics first insight, "CULTURE" CTA keyword
+
 ### Note on LinkedIn Series Voice
 - This 5-article series uses Mev's personal consulting voice — NOT MY3YE brand voice
 - Short paragraphs (2-3 lines), direct and practitioner-grounded, no hype, no jargon walls
-- Every article ends with a keyword CTA (READY / AUDIT / CASE / ROADMAP / etc.)
+- Every article ends with a keyword CTA (READY / AUDIT / CASE / CULTURE / ROADMAP)
 - Series strategy document at: ~/otto/logs/tasks/72e029a4-e73f-4646-a7b1-fffd2934965e/linkedin_strategy.md
 
 ## Angles NOT yet taken
