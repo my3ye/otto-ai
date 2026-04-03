@@ -1,8 +1,8 @@
 {
-  "last_run": "2026-04-03T08:52:26Z",
-  "elapsed_seconds": 67.84,
+  "last_run": "2026-04-03T13:38:36Z",
+  "elapsed_seconds": 73.14,
   "wallets_scanned": 20,
-  "raw_findings": 9,
+  "raw_findings": 6,
   "signals_written": 3,
   "grade_a": 3,
   "grade_b": 0,
