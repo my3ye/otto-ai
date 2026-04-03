@@ -364,6 +364,45 @@ type: project
 - **What NOT to repeat**: 2022 crisis as entry frame, "island does not have to bow" sovereignty framing, the five-tier $TUSITA participation model as CTA, SL-UDI + Port City + $98M budget as the three proof-of-window facts, "the first country that got it right" as the dream frame, "The record cannot be forged. It cannot be bought. It can only be earned." accountability line
 - **Tone note**: Closest to a political manifesto of anything written. Register is higher stakes than normal articles. Canonical brand lines used at close. "For the ones who were handed nothing — we built this for us." placed in What We Are Building section.
 
+## LinkedIn AI Consulting Series (for Mev's consulting positioning)
+
+### Why Most AI Transformations Fail (And What Actually Works)
+- **DB ID**: 0857eeb6-6bfc-4d9e-a96d-aceaa355c954
+- **Content type**: article (LinkedIn long-form)
+- **Project**: OTTOLABS (Mev consulting)
+- **Angle covered**: Three hidden prerequisites of AI implementation (data readiness, process definition, change management). Failure is upstream of the tool. Incentive misalignment in vendor/consulting ecosystem. What the 10% who succeed actually do.
+- **Series**: LinkedIn AI consulting Article 1 of 5
+- **Target persona**: Burned Founder, Cautious Operator
+- **Story beat**: The Frame
+- **Status**: draft
+- **Word count**: ~750
+- **CTA**: Comment "READY" / DM for 90-min AI Readiness Diagnostic
+- **Voice note**: LINKEDIN B2B PRACTITIONER VOICE — not MY3YE ecosystem voice. First-person Mev. Short paragraphs. No river metaphor. No ecosystem brand lines.
+- **Data used**: Forrester 25% spend deferred; "research suggests ~90% failure" (directional, not hard stat)
+- **What NOT to repeat**: three-prerequisites framing (data/process/change), "failure is upstream of the tool" as core argument, "20% technology / 80% people and process" ratio, pilot-works-but-scale-fails as entry observation, Forrester 25% deferral as closing data point
+
+## Mev AI Consulting LinkedIn Series
+
+### The Hidden Cost of Not Automating (A Business Case) ← LinkedIn Article 3 / 2026-04-03
+- **DB ID**: bd5a4b2c-bb0d-4b92-b5d4-693565f06ed0
+- **Content type**: article (LinkedIn long-form)
+- **Project**: OTTOLABS (Mev consulting positioning)
+- **Series**: Mev AI & Automation Consulting LinkedIn Series, Article 3 of 5
+- **Target persona**: CFO Skeptic / Burned Founder
+- **Angle**: Opportunity cost of NOT automating — flips the standard pitch by making the status quo feel expensive. Three hidden costs (productivity tax, error rate, speed gap), CFO math (40% efficiency, 6-month payback), risk framing, internal case-making guide.
+- **CTA keyword**: "CASE" (triggers DM script)
+- **Status**: draft
+- **Word count**: 825
+- **Voice**: Authoritative practitioner (NOT MY3YE brand voice — this is Mev's personal consulting LinkedIn)
+- **Story beat**: N/A (consulting series, not MY3YE ecosystem)
+- **What NOT to repeat**: "productivity tax" framing, "invisible competitive moat" line, "Not automating is a risk position, not just an efficiency position" close, the 4-hour vs 3-day inquiry response example, "before-and-after with your own numbers" as the CFO activation move
+
+### Note on LinkedIn Series Voice
+- This 5-article series uses Mev's personal consulting voice — NOT MY3YE brand voice
+- Short paragraphs (2-3 lines), direct and practitioner-grounded, no hype, no jargon walls
+- Every article ends with a keyword CTA (READY / AUDIT / CASE / etc.)
+- Series strategy document at: ~/otto/logs/tasks/72e029a4-e73f-4646-a7b1-fffd2934965e/linkedin_strategy.md
+
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
 - SOS integrity layer deep dive (offline mesh, displaced communities, auditable aid) — referenced but not centered in new piece; could be its own article
