@@ -44,6 +44,9 @@ type: project
 - "Five Trades. One Law." (f1f5156a) — 5 industry-perspective scenarios: furniture designer, musician, educator, farmer, developer. ~1,060 words. Story beat: Law + Frame. Full tense discipline applied (companion to bc92f58f, takes different sector angles).
 - NOTE: The Otto Loop / vertical universality angle is now TRIPLE-COVERED. Any subsequent Otto Loop piece must find a NEW entry: e.g., failure modes, the agent tax deep dive, the governance weight mechanics in depth, or a first-person persona journey through the system.
 
+**Covered (2026-04-03):**
+- Transformation narrative — "MY3YE Transformation Narrative — Three Variations" (37ab8998, landing_copy, draft). Human arc: wound -> truth -> healing -> protection -> peace -> learning -> achievement -> dream life -> sovereignty. Three variations: The Arc (emotional/cold audience), The Ten (Web3-native/punchy), The Full Stack (intellectual/systems thinkers). Story beat: Dream + Mission + Law. Maps all ten transformation beats to real systems (S0S, Shakrah, Refuge, Panik, Tusita, Otto tools, Web3 governance). This is the front-page "what you get" angle.
+
 **Open angles:**
 - The mechanism: how DPC contribution weighting works across the full ecosystem simultaneously
 - The origin: personal founder narrative / why MY3YE came to exist (Mev hasn't provided — must wait)
