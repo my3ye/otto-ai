@@ -1,5 +1,14 @@
 # Researcher Agent Memory
 
+## AI Consulting B2B Landscape (2026-04-03) — VALIDATED 8/10
+
+DB Note ID: 1d60436e | Episodic ID: 6abb779a | Semantic IDs: 07567311, 46ea4fa5, f84ec2bb, ddf1a3b0, 08fef7ca, 78bf1b16, 684c60d1
+- **MARKET:** $11-14B (2026) → $91-117B by 2035, 26-36% CAGR. Mid-market 500-999 employees fastest-growing (27.9%). Finance 22.3%, N. America 36%+.
+- **BUYER STATE:** Burned. ~90% AI projects failed (directional, single primary source — cite carefully). 25% 2026 spend deferred. CFOs gate; only 29% measure ROI confidently.
+- **GAP:** Big 5 enterprise-only ($500K-$10M). SMB underserved. Boutiques 40-60% cheaper. Trilemma: data fragmentation + talent gap + cost overrun simultaneously.
+- **MEV PLAY:** Fix-the-failure consultant. AI Readiness Assessment ($3K-$8K, 6-pillar). 5-article LinkedIn series. Target 50-500 employee SMBs in finance/manufacturing/logistics.
+- **PATCHED:** CAGR 26%→26-36%; market $90-116B→$91-117B. DISCARDED: $18M SaaS waste (single source).
+
 ## Midnight Network Research (2026-04-01) — VALIDATED 8.0/10
 
 DB Note ID: 97be3f13 | Episodic IDs: bc629021 (I1), aac96e80 (I2), c6b5ad63 (I3), bbf67b61 (I4), 380517e8 (I5), 449d95a5 (I6), bd897221 (I7)
