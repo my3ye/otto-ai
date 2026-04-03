@@ -1,9 +1,11 @@
 {
   "last_published_ts": 1772994604,
-  "total_published": 18,
-  "published_today": 0,
+  "total_published": 19,
+  "published_today": 1,
   "today_date": "2026-04-03",
-  "published_tokens_today": [],
+  "published_tokens_today": [
+    "Df6yfrKC8kZE3KNkrHERKzAetSxbrWeniQfyJY4Jpump"
+  ],
   "convergence_seen": {},
   "published_signal_ids": [
     "0462b53f4b1b",

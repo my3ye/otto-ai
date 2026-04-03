@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_article5_90day_roadmap_review.md](project_article5_90day_roadmap_review.md) — Mev consulting Article 5 "90-Day AI Roadmap" (cb240798, 2026-04-03, WF Step 1): MINOR_CHANGES 8.0/10. 2 criticals: unsupported universal claim; "Any Business" title vs mid-size body targeting. Voice+structure = best in series.
 - [project_article3_hidden_cost_review.md](project_article3_hidden_cost_review.md) — Mev consulting Article 3 "Hidden Cost of Not Automating" (c14a2476, 2026-04-03, WF Step 1): MINOR_CHANGES 8.0/10. 2 criticals: circular "mid-market data" attribution; "permanently" churn overclaim. Adapt Perspective 1 to CFO/SMB audience for consulting series, not crypto-native.
 - [project_my3ye_landing_movement_family_review.md](project_my3ye_landing_movement_family_review.md) — MY3YE landing movement+family rewrite (aab63acc, 2026-03-31, WF Step 1): MINOR_CHANGES (8.0/10). 2 criticals: "Eleven protocols" wrong (registry=18); "base is open/ladder is up" DPC present-tense (13th instance). Family section = best belonging copy in library.
 - [project_my3ye_movement_family_final_review.md](project_my3ye_movement_family_final_review.md) — MY3YE movement+family landing v2 (aab63acc, 2026-03-31, WF final): APPROVE 8.5/10. 2 targeted fixes: eyebrow "Community"→"Family"; Movement H2 sharpened. Family section = best belonging copy in library.
