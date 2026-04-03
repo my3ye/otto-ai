@@ -391,11 +391,13 @@ type: project
 - **Target persona**: CFO Skeptic / Burned Founder
 - **Angle**: Opportunity cost of NOT automating — flips the standard pitch by making the status quo feel expensive. Three hidden costs (productivity tax, error rate, speed gap), CFO math (40% efficiency, 6-month payback), risk framing, internal case-making guide.
 - **CTA keyword**: "CASE" (triggers DM script)
-- **Status**: draft
-- **Word count**: 825
+- **Status**: draft — Step 3 COMPLETE (v2, 2026-04-03)
+- **Word count**: ~840 (after review additions)
 - **Voice**: Authoritative practitioner (NOT MY3YE brand voice — this is Mev's personal consulting LinkedIn)
 - **Story beat**: N/A (consulting series, not MY3YE ecosystem)
-- **What NOT to repeat**: "productivity tax" framing, "invisible competitive moat" line, "Not automating is a risk position, not just an efficiency position" close, the 4-hour vs 3-day inquiry response example, "before-and-after with your own numbers" as the CFO activation move
+- **DB-only**: No MDX file — LinkedIn article does not belong in my3ye-web blog
+- **Review changes applied (v2)**: (1) "permanently"→"for good" [error rate section], (2) 40% efficiency attribution fixed to "implementations I have run with SMB and mid-market clients", (3) 6-month payback attribution fixed to "based on engagements I have run", (4) Single-point-of-failure strengthened: "The process dies with the person. And the replacement spends their first 30 days learning what the previous person never documented.", (5) Forrester 25% AI spend deferral stat added to "What Not Yet Actually Costs" section
+- **What NOT to repeat**: "productivity tax" framing, "invisible competitive moat" line, "Not automating is a risk position, not just an efficiency position" close, the 4-hour vs 3-day inquiry response example, "before-and-after with your own numbers" as the CFO activation move, Forrester deferral stat (used here)
 
 ### Note on LinkedIn Series Voice
 - This 5-article series uses Mev's personal consulting voice — NOT MY3YE brand voice
