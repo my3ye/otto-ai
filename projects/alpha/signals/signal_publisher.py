@@ -133,6 +133,11 @@ TP2_PCT = _TPSL_CFG.get("tp2_pct", 0.25)
 TP3_PCT = _TPSL_CFG.get("tp3_pct", 0.50)
 SL_PCT  = _TPSL_CFG.get("sl_pct",  0.15)
 
+# --- Published signal entry window (Cornix entry timeout) ---
+# Research finding 2026-04-04: 22% TP hit rate with 88.9% expiration despite 88.9% directional
+# accuracy. Extending published_window_minutes from 30 to 360 gives Cornix 6h entry window.
+PUBLISHED_WINDOW_MINUTES = _STRATEGY.get("published_window_minutes", 360)
+
 # --- Quality filter thresholds ---
 FILTER_MIN_MARKET_CAP   = _QF_CFG.get("min_market_cap",   100_000)
 FILTER_MAX_MARKET_CAP   = _QF_CFG.get("max_market_cap",   3_000_000)
@@ -504,7 +509,7 @@ def format_signal_post(signal: dict, dex_data: dict | None, tp_sl: dict | None) 
     confidence = signal["confidence"]
     total_usd = signal.get("total_buy_usd", 0)
     signal_time = signal.get("signal_time", "")
-    window = signal.get("window_minutes", 30)
+    window = signal.get("window_minutes", PUBLISHED_WINDOW_MINUTES)
     conv_count = signal.get("convergence_count", 1)
     is_repeat = conv_count >= 2
 

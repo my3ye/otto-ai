@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated_at": "2026-04-03T12:32:37.878592+00:00",
+  "updated_at": "2026-04-03T18:32:04.590546+00:00",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
     {
@@ -109,9 +109,37 @@
       "change": "Research patch: single_wallet.min_quality_score 0.3 \u2192 0.55",
       "rationale": "Current 0.30 threshold selects signals too late in momentum cycle (88.9% expiry rate confirms this). SM_10's 85.7% win rate on 7 trades proves wallet quality is sound; the 22% TP hit rate failure is pure execution timing. Raising threshold to 0.55 filters for only strongest signals, which correlates",
       "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-03T18:32:04.590437+00:00",
+      "field": "tp_sl.tp1_pct",
+      "old": 0.008,
+      "new": 0.005,
+      "change": "Research patch: tp_sl.tp1_pct 0.008 \u2192 0.005",
+      "rationale": "Secondary change ONLY\u2014after service restart. SM_10's 6.38% avg PnL across 7 trades shows current TP targets (8%, 15%, 50%) are unrealistic: 0 TP3 hits (50% is too high), only 1 TP1 hit in 9 signals (8% is above avg), TP2 at 15% is also too high. Revised targets TP1=0.5%, TP2=1.0%, TP3=20% better ali",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-03T18:32:04.590437+00:00",
+      "field": "tp_sl.tp2_pct",
+      "old": 0.015,
+      "new": 0.01,
+      "change": "Research patch: tp_sl.tp2_pct 0.015 \u2192 0.01",
+      "rationale": "Secondary change ONLY\u2014after service restart. SM_10's 6.38% avg PnL across 7 trades shows current TP targets (8%, 15%, 50%) are unrealistic: 0 TP3 hits (50% is too high), only 1 TP1 hit in 9 signals (8% is above avg), TP2 at 15% is also too high. Revised targets TP1=0.5%, TP2=1.0%, TP3=20% better ali",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-03T18:32:04.590437+00:00",
+      "field": "tp_sl.tp3_pct",
+      "old": 0.05,
+      "new": 0.2,
+      "change": "Research patch: tp_sl.tp3_pct 0.05 \u2192 0.2",
+      "rationale": "Secondary change ONLY\u2014after service restart. SM_10's 6.38% avg PnL across 7 trades shows current TP targets (8%, 15%, 50%) are unrealistic: 0 TP3 hits (50% is too high), only 1 TP1 hit in 9 signals (8% is above avg), TP2 at 15% is also too high. Revised targets TP1=0.5%, TP2=1.0%, TP3=20% better ali",
+      "source": "research_pipeline"
     }
   ],
   "observation_window_minutes": 360,
+  "published_window_minutes": 360,
   "convergence": {
     "min_wallet_count": 4,
     "min_total_usd": 1000,
@@ -144,9 +172,9 @@
     "min_token_age_days": 7
   },
   "tp_sl": {
-    "tp1_pct": 0.008,
-    "tp2_pct": 0.015,
-    "tp3_pct": 0.05,
+    "tp1_pct": 0.005,
+    "tp2_pct": 0.01,
+    "tp3_pct": 0.2,
     "sl_pct": 0.03
   },
   "auto_update": {
