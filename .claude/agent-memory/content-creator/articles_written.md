@@ -399,10 +399,25 @@ type: project
 - **Review changes applied (v2)**: (1) "permanently"→"for good" [error rate section], (2) 40% efficiency attribution fixed to "implementations I have run with SMB and mid-market clients", (3) 6-month payback attribution fixed to "based on engagements I have run", (4) Single-point-of-failure strengthened: "The process dies with the person. And the replacement spends their first 30 days learning what the previous person never documented.", (5) Forrester 25% AI spend deferral stat added to "What Not Yet Actually Costs" section
 - **What NOT to repeat**: "productivity tax" framing, "invisible competitive moat" line, "Not automating is a risk position, not just an efficiency position" close, the 4-hour vs 3-day inquiry response example, "before-and-after with your own numbers" as the CFO activation move, Forrester deferral stat (used here)
 
+### The 90-Day AI & Automation Roadmap for Any Business ← LinkedIn Article 5 / 2026-04-03
+- **DB ID**: cb240798-67e0-42c1-b743-4e2b61b63bb4
+- **Content type**: article (LinkedIn long-form)
+- **Project**: MEV_CONSULTING
+- **Series**: Mev AI & Automation Consulting LinkedIn Series, Article 5 of 5
+- **Target persona**: Burned Founder / Overwhelmed Leader (decision-ready)
+- **Angle**: 90-day phased approach vs failed 18-month transformations. Three phases: Diagnose+Win Small (Days 1-30), Operationalize (Days 31-60), Build the System (Days 61-90). Organizational muscle argument — the most valuable outcome is the team's ability to iterate without external help.
+- **CTA keyword**: "ROADMAP"
+- **Status**: draft — Step 0 COMPLETE (2026-04-03)
+- **Word count**: ~973
+- **Voice**: Authoritative practitioner (NOT MY3YE brand voice)
+- **Story beat**: N/A (consulting series, not MY3YE ecosystem)
+- **DB-only**: No MDX file — LinkedIn article
+- **What NOT to repeat**: 18-month-fails-from-scope-overload as entry argument, three-phase (30/60/90) day structure, "organizational muscle" as the true outcome, "systems compound in a way that projects do not" line, "proof is worth more than strategy at this stage" line, "ROADMAP" CTA keyword
+
 ### Note on LinkedIn Series Voice
 - This 5-article series uses Mev's personal consulting voice — NOT MY3YE brand voice
 - Short paragraphs (2-3 lines), direct and practitioner-grounded, no hype, no jargon walls
-- Every article ends with a keyword CTA (READY / AUDIT / CASE / etc.)
+- Every article ends with a keyword CTA (READY / AUDIT / CASE / ROADMAP / etc.)
 - Series strategy document at: ~/otto/logs/tasks/72e029a4-e73f-4646-a7b1-fffd2934965e/linkedin_strategy.md
 
 ## Angles NOT yet taken
