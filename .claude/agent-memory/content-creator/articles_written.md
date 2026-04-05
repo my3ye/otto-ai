@@ -104,6 +104,14 @@ type: project
 - **Status**: draft
 - **File**: /mnt/media/projects/my3ye-web/content/blog/the-machine-is-already-running.mdx
 
+### We've Been Building an AI OS. Here's How It Compares to What Else Exists. (45407c6d) ← NEW LinkedIn 2026-04-05
+- **DB ID**: 45407c6d-88db-4e22-805c-13b3ebb5154a
+- **Angle**: LinkedIn article — Otto's architecture vs 8 benchmarked frameworks (2026 landscape), honest gap analysis (OTel missing, multi-LLM underdeveloped), blockchain roadmap as Phase 3 vision (NOT live — all future tense). Covers: 6-layer memory stack moat, RL2F+MARS+AutoEvolve self-improvement (unique across all frameworks), WebAssist as first live product.
+- **Voice**: LinkedIn practitioner, first-person Mev, short paragraphs — NOT MY3YE ecosystem voice
+- **Story beat**: Mission + Frame
+- **Status**: draft
+- **What NOT to repeat**: "agent is a runtime" vs "AI OS" framing, 6-layer memory stack as moat, RL2F+MARS+AutoEvolve as self-improvement moat, OTel as the gap, blockchain ownership problem as Phase 3 vision, "two of three" closing structure
+
 ## KOINK
 ### Chaos With Structure. Chaos That Compounds. (9c46d865)
 ### The Meme Has Always Been a Mirror (e451f538)
