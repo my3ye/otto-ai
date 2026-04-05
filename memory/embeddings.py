@@ -119,19 +119,19 @@ def apply_svc(embedding: list[float]) -> list[float]:
     return (v / norm).tolist()
 
 
-async def get_embedding(text: str) -> list[float]:
-    # Optional OTel span around the OpenAI API call
-    _tracer = None
-    try:
-        from opentelemetry import trace
-        _tracer = trace.get_tracer("otto.embeddings")
-    except ImportError:
-        pass
+_embedding_tracer = None
+try:
+    from opentelemetry import trace as _otel_trace
+    _embedding_tracer = _otel_trace.get_tracer("otto.embeddings")
+except ImportError:
+    pass
 
+
+async def get_embedding(text: str) -> list[float]:
     client = _get_client()
 
-    if _tracer:
-        with _tracer.start_as_current_span(
+    if _embedding_tracer:
+        with _embedding_tracer.start_as_current_span(
             "embeddings.openai",
             attributes={
                 "embedding.model": "text-embedding-3-small",

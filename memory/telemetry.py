@@ -29,7 +29,7 @@ def setup_telemetry(app, settings) -> bool:
     resource = Resource.create({
         "service.name": settings.otel_service_name,
         "service.version": "0.1.0",
-        "deployment.environment": "production",
+        "deployment.environment": settings.otel_environment,
     })
 
     provider = TracerProvider(resource=resource)
@@ -59,14 +59,47 @@ def setup_telemetry(app, settings) -> bool:
     FastAPIInstrumentor.instrument_app(
         app,
         tracer_provider=provider,
-        excluded_urls="health,hello",
+        excluded_urls="health,hello,mcp-status,kernel/status",
     )
+
+    # Prune old trace files on startup
+    cleanup_old_traces(settings.otel_log_dir, settings.otel_trace_retention_days)
 
     logger.info(
         f"OpenTelemetry enabled: service={settings.otel_service_name}, "
         f"traces_dir={settings.otel_log_dir}"
     )
     return True
+
+
+def cleanup_old_traces(log_dir: str, retention_days: int = 30) -> int:
+    """Delete trace files older than retention_days. Returns count of files removed."""
+    import os
+    from datetime import datetime, timedelta, timezone
+
+    if not os.path.isdir(log_dir):
+        return 0
+
+    cutoff = datetime.now(timezone.utc) - timedelta(days=retention_days)
+    removed = 0
+    for fname in os.listdir(log_dir):
+        if not fname.startswith("traces-") or not fname.endswith(".jsonl"):
+            continue
+        # Extract date from traces-YYYY-MM-DD.jsonl
+        try:
+            date_str = fname[7:-6]  # strip "traces-" and ".jsonl"
+            file_date = datetime.strptime(date_str, "%Y-%m-%d").replace(tzinfo=timezone.utc)
+        except ValueError:
+            continue
+        if file_date < cutoff:
+            try:
+                os.remove(os.path.join(log_dir, fname))
+                removed += 1
+            except OSError:
+                pass
+    if removed:
+        logger.info(f"Cleaned up {removed} trace files older than {retention_days} days")
+    return removed
 
 
 def shutdown_telemetry():

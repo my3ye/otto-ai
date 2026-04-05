@@ -105,7 +105,6 @@ async def lifespan(app: FastAPI):
         _scheduler.shutdown(wait=False)
     # Flush OTel spans before closing
     try:
-        from .telemetry import shutdown_telemetry
         shutdown_telemetry()
     except Exception:
         pass

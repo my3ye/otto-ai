@@ -76,7 +76,7 @@ class TracedPool:
         return getattr(self._pool, name)
 
 
-async def get_pool() -> asyncpg.Pool:
+async def get_pool() -> "asyncpg.Pool | TracedPool":
     global _pool, _traced_pool
     if _pool is None:
         _pool = await asyncpg.create_pool(

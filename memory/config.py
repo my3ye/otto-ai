@@ -128,8 +128,10 @@ class Settings(BaseSettings):
     # ── OpenTelemetry ────────────────────────────────────────────────
     otel_enabled: bool = False
     otel_service_name: str = "otto-memory-api"
+    otel_environment: str = "production"  # deployment.environment tag
     otel_export_endpoint: str = ""  # OTLP endpoint (empty = file-only)
     otel_log_dir: str = "/home/web3relic/otto/logs/traces"
+    otel_trace_retention_days: int = 30  # Auto-prune trace files older than this
 
     # ── MCP Server ───────────────────────────────────────────────────
     # Bearer token for external MCP clients. Empty = dev mode (no auth).
