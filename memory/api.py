@@ -16,7 +16,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from .db import get_pool, close_pool
-from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist, articles, contacts, services, live_systems, autoevolve, orders, trading, conclusions, social_calendar, backup, security, email, education, omnisearch, critiques, content, workflows, investors, bankr, crypto, secrets, thought_vault, athena, task_plans, koink, oneon, tusita, sos, submissions, calendar_routes, a2a, failure_branch  # noqa
+from .routes import sessions, episodic, semantic, procedural, graph, context, whatsapp, pending, leads, outreach, research, tasks, intake, working, maintenance, consolidation, metrics, reasoning, principles, agents, eval, plans, evaluator, graph_nodes, rl2f, jitrl, workspace, broadcast, files, commerce, virtuals, universe, skills, notify, webassist, articles, contacts, services, live_systems, autoevolve, orders, trading, conclusions, social_calendar, backup, security, email, education, omnisearch, critiques, content, workflows, investors, bankr, crypto, secrets, thought_vault, athena, task_plans, koink, oneon, tusita, sos, submissions, calendar_routes, a2a, failure_branch, a2a_standard  # noqa
 from .routes.kernel_routes import router as kernel_router
 from .gateway.routes import router as gateway_router
 from .routes.maintenance import run_maintenance_job
@@ -201,6 +201,7 @@ app.include_router(sos.router)
 app.include_router(submissions.router)
 app.include_router(calendar_routes.router)
 app.include_router(a2a.router)
+app.include_router(a2a_standard.router)
 app.include_router(failure_branch.router)
 
 # ── MCP Server (Model Context Protocol) ──────────────────────────────────────
@@ -236,6 +237,14 @@ async def mcp_status():
         "resources": 4,
         "prompts": 3,
     }
+
+
+# ── A2A Standard: Agent Card Discovery ──────────────────────────────────────
+@app.get("/.well-known/agent.json", tags=["a2a-standard"])
+async def agent_card():
+    """A2A v1.0 Agent Card — cross-vendor agent discovery endpoint."""
+    from .routes.a2a_standard import get_agent_card
+    return get_agent_card()
 
 
 @app.get("/hello", response_class=HTMLResponse)

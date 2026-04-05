@@ -841,6 +841,10 @@ async def complete_task(task_id: UUID, req: TaskComplete):
     # ── A2A: Announce completion to channel ────────────────────────
     asyncio.create_task(_a2a_completion_signal(pool, task_id, row, req))
 
+    # ── A2A Standard: Update linked external A2A task ─────────────
+    from .a2a_standard import on_otto_task_complete
+    asyncio.create_task(on_otto_task_complete(pool, task_id, status, req.output))
+
     return TaskOut(**dict(row))
 
 
