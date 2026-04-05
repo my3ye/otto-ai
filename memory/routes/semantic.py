@@ -573,16 +573,92 @@ def _importance_weighted_score(r) -> float:
     return 0.7 * similarity + 0.2 * importance + 0.1 * recency
 
 
+async def _bm25_search(
+    pool,
+    query: str,
+    limit: int = 30,
+    min_confidence: float = 0.0,
+    category: str | None = None,
+) -> list[dict]:
+    """BM25 full-text search using PostgreSQL tsvector + ts_rank.
+
+    Uses plainto_tsquery for full-text matching with ts_rank scoring,
+    plus pg_trgm similarity as fallback for fuzzy/partial matches.
+    OmniMem paper (arXiv 2604.01007v1): BM25 set-union with pgvector improves recall 30-50%.
+    """
+    conditions = ["archived = FALSE", "deleted_at IS NULL"]
+    params: list = [query]
+    idx = 2
+
+    if min_confidence > 0:
+        conditions.append(f"confidence >= ${idx}")
+        params.append(min_confidence)
+        idx += 1
+    if category:
+        conditions.append(f"category = ${idx}")
+        params.append(category)
+        idx += 1
+
+    where = " AND ".join(conditions)
+    params.append(limit)
+
+    async with pool.acquire() as conn:
+        # Strategy 1: Full-text search with ts_rank (highest quality matches)
+        fts_rows = await conn.fetch(
+            f"""SELECT id, content, category, confidence, source, created_at,
+                       utility_score, relevance_score, importance_score, salience_score,
+                       retrieval_count, summary_content,
+                       ts_rank(content_tsv, plainto_tsquery('english', $1)) AS bm25_score
+                FROM semantic_memories
+                WHERE content_tsv @@ plainto_tsquery('english', $1) AND {where}
+                ORDER BY bm25_score DESC
+                LIMIT ${idx}""",
+            *params,
+        )
+
+        # Strategy 2: pg_trgm fuzzy fallback (catches misspellings, partial terms)
+        trgm_rows = await conn.fetch(
+            f"""SELECT id, content, category, confidence, source, created_at,
+                       utility_score, relevance_score, importance_score, salience_score,
+                       retrieval_count, summary_content,
+                       word_similarity($1, content) AS bm25_score
+                FROM semantic_memories
+                WHERE word_similarity($1, content) > 0.15 AND {where}
+                ORDER BY bm25_score DESC
+                LIMIT ${idx}""",
+            *params,
+        )
+
+    # Merge: FTS results first (higher quality), then trgm additions
+    seen = set()
+    results = []
+    for row in fts_rows:
+        rid = str(row["id"])
+        if rid not in seen:
+            seen.add(rid)
+            results.append(dict(row))
+    for row in trgm_rows:
+        rid = str(row["id"])
+        if rid not in seen:
+            seen.add(rid)
+            results.append(dict(row))
+
+    return results[:limit]
+
+
 @router.post("/search")
 async def search(
     req: SemanticSearchQuery,
     compress: bool = Query(default=False, description="Apply SimpleMem 3-stage compression (dedup+summarize+rank). Returns SimpleMemSearchResponse when True."),
 ):
-    """HyMem dual-granularity semantic search.
+    """HyMem dual-granularity semantic search with optional BM25 hybrid (OmniMem).
 
     Automatically selects tier based on query complexity:
     - Summary tier: fast, lightweight retrieval for simple queries
     - Detailed tier: full semantic search for complex queries
+
+    When hybrid=true (default), also runs BM25 full-text search and merges results
+    via set-union (OmniMem paper finding: +30-50% recall improvement).
 
     Optional ?compress=true applies SimpleMem 3-stage compression (arXiv 2601.02553):
     returns a SimpleMemSearchResponse with original_count, compressed_count, and
@@ -597,17 +673,72 @@ async def search(
     # Use forced tier if specified, otherwise use classifier recommendation
     tier = req.force_tier or recommended_tier
 
-    logger.info(f"HyMem: query='{req.query[:50]}...' tier={tier} (confidence={confidence:.2f}, forced={req.force_tier is not None})")
+    logger.info(f"HyMem: query='{req.query[:50]}...' tier={tier} hybrid={req.hybrid} (confidence={confidence:.2f})")
 
-    # Perform dual-tier search
-    results = await _hymem_search(pool, req, tier)
+    if req.hybrid:
+        # Run pgvector semantic + BM25 full-text in parallel, merge via set-union
+        # return_exceptions=True so OpenAI quota errors don't crash BM25
+        gather_results = await asyncio.gather(
+            _hymem_search(pool, req, tier),
+            _bm25_search(pool, req.query, limit=req.limit * 2,
+                         min_confidence=req.min_confidence, category=req.category),
+            return_exceptions=True,
+        )
+        vector_results = gather_results[0] if not isinstance(gather_results[0], BaseException) else []
+        bm25_results = gather_results[1] if not isinstance(gather_results[1], BaseException) else []
+        if isinstance(gather_results[0], BaseException):
+            logger.warning(f"BM25 hybrid: pgvector failed ({gather_results[0]}), using BM25 only")
+        if isinstance(gather_results[1], BaseException):
+            logger.warning(f"BM25 hybrid: BM25 failed ({gather_results[1]}), using pgvector only")
 
-    # Tag results with tier used
-    for r in results:
-        r.tier_used = tier
+        # Set-union merge: combine unique results from both strategies
+        seen_ids = set()
+        merged = []
+
+        # Vector results come first (primary ranking)
+        for r in vector_results:
+            rid = str(r.id)
+            if rid not in seen_ids:
+                seen_ids.add(rid)
+                r.tier_used = tier
+                r.retrieval_strategies = ["semantic"]
+                merged.append(r)
+
+        # Add BM25-only results (not already in vector results)
+        for bm25_row in bm25_results:
+            rid = str(bm25_row["id"])
+            if rid not in seen_ids:
+                seen_ids.add(rid)
+                r_out = SemanticMemoryOut(
+                    id=bm25_row["id"],
+                    content=bm25_row["content"],
+                    category=bm25_row["category"],
+                    confidence=float(bm25_row["confidence"]),
+                    source=bm25_row.get("source"),
+                    created_at=bm25_row["created_at"],
+                    score=float(bm25_row.get("bm25_score", 0.0)),
+                    importance_score=float(bm25_row["importance_score"]) if bm25_row.get("importance_score") is not None else 0.5,
+                )
+                r_out.tier_used = "bm25"
+                r_out.retrieval_strategies = ["bm25"]
+                merged.append(r_out)
+            else:
+                # Tag existing result as found by both strategies
+                for m in merged:
+                    if str(m.id) == rid and hasattr(m, 'retrieval_strategies'):
+                        if "bm25" not in m.retrieval_strategies:
+                            m.retrieval_strategies.append("bm25")
+                        break
+
+        results = merged[:req.limit]
+        logger.info(f"BM25 hybrid: {len(vector_results)} vector + {len(bm25_results)} bm25 → {len(results)} merged (set-union)")
+    else:
+        # Pure pgvector search (legacy behavior)
+        results = await _hymem_search(pool, req, tier)
+        for r in results:
+            r.tier_used = tier
 
     if not compress:
-        # Unchanged backwards-compatible response
         return results
 
     # ── SimpleMem compression ─────────────────────────────────────────────────
@@ -855,20 +986,22 @@ async def arag_search_internal(
     min_importance: float | None = None,
     date_after=None,
     date_before=None,
-    semantic_weight: float = 0.5,
-    keyword_weight: float = 0.3,
-    structured_weight: float = 0.2,
+    semantic_weight: float = 0.4,
+    keyword_weight: float = 0.2,
+    bm25_weight: float = 0.25,
+    structured_weight: float = 0.15,
 ) -> dict:
-    """A-RAG hierarchical retrieval — 3 strategies in parallel, merged + ranked.
+    """A-RAG hierarchical retrieval — 4 strategies in parallel, merged + ranked.
 
     Strategies:
       1. semantic    — pgvector cosine similarity (broad meaning-based recall)
       2. keyword     — pg_trgm word_similarity (exact/partial term matching)
-      3. structured  — SQL metadata filtering (importance_score, date, category)
+      3. bm25        — PostgreSQL full-text search with ts_rank (OmniMem paper)
+      4. structured  — SQL metadata filtering (importance_score, date, category)
 
-    Scoring: arag_score = semantic_weight * s_sem + keyword_weight * s_kw + structured_weight * s_str
+    Scoring: arag_score = weighted sum of all strategy scores
     Returns a dict with keys: results, strategies_used, total_candidates,
-    semantic_count, keyword_count, structured_count.
+    semantic_count, keyword_count, bm25_count, structured_count.
     """
 
     # ── Strategy 1: Semantic (pgvector halfvec cosine) ────────────────────
@@ -987,9 +1120,41 @@ async def arag_search_internal(
             logger.warning(f"A-RAG structured strategy failed: {e}")
             return []
 
-    # ── Run all 3 strategies in parallel ─────────────────────────────────
-    semantic_results, keyword_results, structured_results = await asyncio.gather(
-        _semantic(), _keyword(), _structured()
+    # ── Strategy 4: BM25 full-text search (OmniMem paper) ──────────────
+    async def _bm25():
+        try:
+            conditions = ["archived = FALSE", "deleted_at IS NULL"]
+            params: list = [query]
+            idx = 2
+            if min_confidence > 0:
+                conditions.append(f"confidence >= ${idx}")
+                params.append(min_confidence)
+                idx += 1
+            if category:
+                conditions.append(f"category = ${idx}")
+                params.append(category)
+                idx += 1
+            where = " AND ".join(conditions)
+            params.append(limit * 3)
+            async with pool.acquire() as conn:
+                rows = await conn.fetch(
+                    f"""SELECT id, content, category, confidence, source, created_at,
+                               importance_score,
+                               ts_rank(content_tsv, plainto_tsquery('english', $1)) AS score
+                        FROM semantic_memories
+                        WHERE content_tsv @@ plainto_tsquery('english', $1) AND {where}
+                        ORDER BY score DESC
+                        LIMIT ${idx}""",
+                    *params,
+                )
+            return [dict(r) for r in rows]
+        except Exception as e:
+            logger.warning(f"A-RAG BM25 strategy failed: {e}")
+            return []
+
+    # ── Run all 4 strategies in parallel ─────────────────────────────────
+    semantic_results, keyword_results, bm25_results, structured_results = await asyncio.gather(
+        _semantic(), _keyword(), _bm25(), _structured()
     )
 
     # ── Normalize scores within each strategy to [0, 1] ──────────────────
@@ -1005,12 +1170,13 @@ async def arag_search_internal(
 
     semantic_results = _normalize(semantic_results)
     keyword_results = _normalize(keyword_results)
+    bm25_results = _normalize(bm25_results)
     structured_results = _normalize(structured_results)
 
     # ── Merge results by memory ID ────────────────────────────────────────
     merged: dict[str, dict] = {}
 
-    def _upsert(row: dict, sem: float = 0.0, kw: float = 0.0, st: float = 0.0, strategy: str = "") -> None:
+    def _upsert(row: dict, sem: float = 0.0, kw: float = 0.0, bm: float = 0.0, st: float = 0.0, strategy: str = "") -> None:
         rid = str(row["id"])
         if rid not in merged:
             merged[rid] = {
@@ -1023,6 +1189,7 @@ async def arag_search_internal(
                 "importance_score": float(row["importance_score"]) if row.get("importance_score") is not None else 0.5,
                 "semantic_score": 0.0,
                 "keyword_score": 0.0,
+                "bm25_score": 0.0,
                 "structured_score": 0.0,
                 "retrieval_strategies": [],
             }
@@ -1031,6 +1198,8 @@ async def arag_search_internal(
             entry["semantic_score"] = max(entry["semantic_score"], sem)
         if kw > 0:
             entry["keyword_score"] = max(entry["keyword_score"], kw)
+        if bm > 0:
+            entry["bm25_score"] = max(entry["bm25_score"], bm)
         if st > 0:
             entry["structured_score"] = max(entry["structured_score"], st)
         if strategy and strategy not in entry["retrieval_strategies"]:
@@ -1040,6 +1209,8 @@ async def arag_search_internal(
         _upsert(r, sem=r["score"], strategy="semantic")
     for r in keyword_results:
         _upsert(r, kw=r["score"], strategy="keyword")
+    for r in bm25_results:
+        _upsert(r, bm=r["score"], strategy="bm25")
     for r in structured_results:
         _upsert(r, st=r["score"], strategy="structured")
 
@@ -1048,6 +1219,7 @@ async def arag_search_internal(
         entry["arag_score"] = (
             semantic_weight * entry["semantic_score"]
             + keyword_weight * entry["keyword_score"]
+            + bm25_weight * entry["bm25_score"]
             + structured_weight * entry["structured_score"]
         )
 
@@ -1071,23 +1243,23 @@ async def arag_search_internal(
 
     return {
         "results": final,
-        "strategies_used": ["semantic", "keyword", "structured"],
+        "strategies_used": ["semantic", "keyword", "bm25", "structured"],
         "total_candidates": len(merged),
         "semantic_count": len(semantic_results),
         "keyword_count": len(keyword_results),
+        "bm25_count": len(bm25_results),
         "structured_count": len(structured_results),
     }
 
 
 @router.post("/arag_search", response_model=ARAGSearchResponse)
 async def arag_search(req: ARAGSearchRequest):
-    """A-RAG hierarchical retrieval: 3 strategies in parallel, merged + ranked.
+    """A-RAG hierarchical retrieval: 4 strategies in parallel, merged + ranked.
 
-    Runs semantic (pgvector), keyword (pg_trgm), and structured (SQL) retrieval
-    simultaneously, deduplicates by memory ID, and returns a unified ranked list.
+    Runs semantic (pgvector), keyword (pg_trgm), BM25 (full-text), and structured (SQL)
+    retrieval simultaneously, deduplicates by memory ID, and returns a unified ranked list.
 
-    Ranking formula: arag_score = 0.5*semantic + 0.3*keyword + 0.2*structured
-    (weights are configurable via request body).
+    Ranking formula: arag_score = weighted sum of all strategy scores (configurable).
     """
     pool = await get_pool()
     result = await arag_search_internal(
@@ -1101,6 +1273,7 @@ async def arag_search(req: ARAGSearchRequest):
         date_before=req.date_before,
         semantic_weight=req.semantic_weight,
         keyword_weight=req.keyword_weight,
+        bm25_weight=req.bm25_weight,
         structured_weight=req.structured_weight,
     )
     return ARAGSearchResponse(
@@ -1110,6 +1283,7 @@ async def arag_search(req: ARAGSearchRequest):
         total_candidates=result["total_candidates"],
         semantic_count=result["semantic_count"],
         keyword_count=result["keyword_count"],
+        bm25_count=result.get("bm25_count", 0),
         structured_count=result["structured_count"],
     )
 
