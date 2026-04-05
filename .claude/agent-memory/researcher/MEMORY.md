@@ -1,5 +1,15 @@
 # Researcher Agent Memory
 
+## AI Agent & Orchestration Landscape Benchmark (2026-04-05) — VALIDATED 8.0/10
+
+DB Note ID: f838eb95 | Episodic IDs: fbc29257 (Step1), 2e85a02f (Step3) | File: ~/otto/docs/ai-landscape-synthesis-2026-04-05.md
+- **MOATS (code-verified):** 6-layer memory ★★★★★; RL2F+MARS+AutoEvolve ★★★★★ (unique); 182-agent catalog (22 active); DAG task plans; QA budget gate.
+- **GAPS (grep-verified):** OTel ABSENT core routes (P-HIGH); A2A needs extension (routes/a2a.py internal only); MCP needs dynamic tool composition.
+- **TIERS:** Tier-1: LangGraph/CrewAI/Google ADK/AG2. Tier-2: Strands/Pydantic AI/Mastra. Tier-3: Bittensor/Virtuals/OLAS.
+- **PATCHED:** 138→182 agent count; ERC-8004 Phase 3 qualifier (not live); Bittensor mcap KuCoin-sourced.
+- **TOP ACTIONS:** (1) Implement OTel in api.py+routes/. (2) Dispatch LinkedIn article (anchor: otto-vs-ai-harnesses-comparison-2026-03-28.md). (3) Extend routes/a2a.py to Google standard.
+- **NOTE:** Semantic/remember blocked (OpenAI quota P8). Stored episodic + research note only.
+
 ## OmniMem — Lifelong Multimodal Agent Memory (2026-04-05) — RESEARCHED 8/10
 
 DB Note ID: 22efbf05 | Episodic ID: 687bfb45 | File: project_omnimem_2604_01007v1.md | Summary: ~/otto/research/papers/2604_01007v1_summary.md

@@ -1,9 +1,11 @@
 # AI Agent & Orchestration Landscape Synthesis — Otto Benchmark
 **Date:** 2026-04-05
-**Workflow:** Research current AI agent & orchestration landscape for benchmarking Otto / Step 1: Synthesis
+**Workflow:** Research current AI agent & orchestration landscape for benchmarking Otto
+**Validation:** Step 2 complete — MINOR_CHANGES, score 8.0/10
+**Step 3 patches applied:** Agent count 138→182/22 active; ERC-8004 Phase 3 qualifier; Bittensor mcap sourced
 **Sources:** 21 (web ×7, semantic memory ×5, graph ×0/error, papers ×4, codebase ×5)
 **Episodic event:** fbc29257-dd9e-4614-af46-787cbba5f767
-**Memory write:** BLOCKED (OpenAI quota exhausted — P8 Mev-blocked)
+**Memory write:** BLOCKED (OpenAI quota exhausted — P8 Mev-blocked); episodic fallback active
 
 ---
 
@@ -19,9 +21,9 @@
 
 5. **MCP is "needs extension," not absent** — `mcp_server.py` + `mcp_auth.py` exist (15 tools, 4 resources, 3 prompts on `:8100/mcp` SSE). Comparison doc: ★★★☆☆. Gap: no dynamic tool composition at runtime. Google ADK is reference implementation (★★★★★). — **Confidence: HIGH | Sources: 3**
 
-6. **2026 framework landscape has stabilized** — Tier-1 (production): LangGraph, CrewAI, Google ADK, AutoGen/AG2. Tier-2 (emerging): AWS Strands, Pydantic AI, Mastra. Tier-3 (decentralized): Bittensor ($3.44B mcap), Virtuals (18K+ agents on Base), OLAS. A2A+MCP convergence confirmed as standard direction. — **Confidence: HIGH | Sources: 5**
+6. **2026 framework landscape has stabilized** — Tier-1 (production): LangGraph, CrewAI, Google ADK, AutoGen/AG2. Tier-2 (emerging): AWS Strands, Pydantic AI, Mastra. Tier-3 (decentralized): Bittensor ($3.44B mcap as of early 2026, per KuCoin), Virtuals (18K+ agents on Base), OLAS. A2A+MCP convergence confirmed as standard direction. — **Confidence: HIGH | Sources: 5**
 
-7. **Otto's blockchain/decentralized architecture is unique across all tiers** — LaborAttestation + ERC-8004 agent identity portability + capital_governance_weight=0 + 40% agent tax redistribution. No single competitor combines all layers. — **Confidence: MEDIUM | Sources: 2**
+7. **Otto's blockchain/decentralized architecture is unique across all tiers** — LaborAttestation + ERC-8004 agent identity portability + capital_governance_weight=0 + 40% agent tax redistribution. No single competitor combines all layers. **Note: These features are designed/specced for Phase 3 and are NOT yet deployed — ERC-8004 is explicitly Phase 3 per crypto-native-architecture-2026-03-19.md; Solidity spec exists in labor-contribution-smart-contract-architecture-2026-03-28.md only. Present as roadmap/vision, not live capabilities.** — **Confidence: MEDIUM | Sources: 2**
 
 ---
 
@@ -55,7 +57,7 @@ Gaps: Graph API error (0 KG sources). No runtime performance benchmark data.
 
 **Landscape stable:** LangGraph (OTel/LangSmith, graph DAG), CrewAI (role-based, ease), Google ADK (A2A+MCP reference), AG2 (conversational, Azure), Strands (cloud-native cross-platform), Pydantic AI (OTel native), Bittensor (model marketplace $3.44B), Virtuals (tokenized agents), OLAS (on-chain ownership). A2A+MCP = converging standard.
 
-**Otto moats (code-verified):** 6-layer memory (★★★★★ vs ★★☆☆☆ avg); RL2F+MARS+AutoEvolve self-improvement (★★★★★ vs ☆☆☆☆☆ all frameworks); DAG task plans + 138-agent auto-employment; workflow fitness evolution; budget discipline with QA gate; LaborAttestation+ERC-8004+40% agent tax (unique across all tiers).
+**Otto moats (code-verified):** 6-layer memory (★★★★★ vs ★★☆☆☆ avg); RL2F+MARS+AutoEvolve self-improvement (★★★★★ vs ☆☆☆☆☆ all frameworks); DAG task plans + 182-agent auto-employment (22 active); workflow fitness evolution; budget discipline with QA gate; LaborAttestation+ERC-8004+40% agent tax (Phase 3 roadmap — unique design, not yet deployed).
 
 **Otto gaps (grep-verified):**
 - OTel: ABSENT in core (grep: `opentelemetry|otel` in `otto/memory/**/*.py` → 2 peripheral hits only). **Implement now.**
