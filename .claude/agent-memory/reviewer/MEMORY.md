@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_ai_landscape_benchmark_validation.md](project_ai_landscape_benchmark_validation.md) — Otto AI landscape benchmark synthesis (2026-04-05, WF Step 2): MINOR_CHANGES 8.0/10. 2 criticals: agent count stale (138→182); ERC-8004/LaborAttestation are Phase 3 planned not live — tense fix required before LinkedIn publish.
 - [project_article5_90day_roadmap_review.md](project_article5_90day_roadmap_review.md) — Mev consulting Article 5 "90-Day AI Roadmap" (cb240798, 2026-04-03, WF Step 1): MINOR_CHANGES 8.0/10. 2 criticals: unsupported universal claim; "Any Business" title vs mid-size body targeting. Voice+structure = best in series.
 - [project_article4_aifirst_culture_review.md](project_article4_aifirst_culture_review.md) — Mev consulting Article 4 "AI-First Culture" (5f08f11f, 2026-04-03, WF Step 1): MINOR_CHANGES 8.0/10. 2 criticals: Train Skeptics First no mechanism; "Forward Deployed engagement" undefined jargon.
 - [project_article3_hidden_cost_review.md](project_article3_hidden_cost_review.md) — Mev consulting Article 3 "Hidden Cost of Not Automating" (c14a2476, 2026-04-03, WF Step 1): MINOR_CHANGES 8.0/10. 2 criticals: circular "mid-market data" attribution; "permanently" churn overclaim. Adapt Perspective 1 to CFO/SMB audience for consulting series, not crypto-native.
