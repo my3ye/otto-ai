@@ -1,5 +1,16 @@
 # Researcher Agent Memory
 
+## Google A2A v1.0 — Spec + Otto Gap Analysis (2026-04-05) — VALIDATED 9/10
+
+DB Note ID: f954bf58 | Episodic IDs: d75eebec, efca08c2, 992d7719, a72f6594, 3f06d407, c56914ff
+- **SPEC:** v1.0 released 2026-03-12, Linux Foundation, Apache 2.0, 150+ orgs. Transport: JSON-RPC 2.0/HTTP(S), SSE, gRPC. Discovery: Agent Card at `/.well-known/agent.json`. Task lifecycle: working→input-required→completed/failed/canceled/rejected.
+- **OTTO GAPS (all grep-verified absent):** well-known, agent.json, jsonrpc, JSON-RPC, SSE at A2A, grpc, protobuf, a2a_tasks, OAuth2, oidc, mtls. Current state: Postgres mailbox only.
+- **REUSABLE:** message types→A2A Parts; channel_id→Task context; rate limiting→extensible. Additive extension, no rewrite.
+- **A2A≠MCP:** MCP=agent↔tool (already at `/mcp/sse`); A2A=agent↔agent (opaque). Both needed.
+- **IMPL PATH (2-3 days):** (1) `GET /.well-known/agent.json` at API ROOT, not /a2a prefix (~2h); (2) `POST /a2a` JSON-RPC dispatcher (~4h); (3) `a2a_tasks` DB table (~2h); (4) SSE tasks/sendSubscribe — budget 6-8h (FastAPI/asyncpg complexity); (5) Auth declaration (~1h).
+- **PATCHED:** QuerySkill() v1.0 downgraded implied HIGH→MEDIUM (blog post only, spec body not read). gRPC "normative" not directly verified from proto file — flag for Phase 2.
+- **RETRIEVAL RISK:** Semantic write BLOCKED (OpenAI quota P8). Use episodic IDs above or research note f954bf58.
+
 ## AI Agent & Orchestration Landscape Benchmark (2026-04-05) — VALIDATED 8.0/10
 
 DB Note ID: f838eb95 | Episodic IDs: fbc29257 (Step1), 2e85a02f (Step3) | File: ~/otto/docs/ai-landscape-synthesis-2026-04-05.md
