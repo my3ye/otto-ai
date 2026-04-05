@@ -29,6 +29,10 @@ logger = logging.getLogger("otto.a2a_standard")
 
 router = APIRouter(prefix="/a2a", tags=["a2a-standard"])
 
+# Startup diagnostic: warn if A2A auth is unconfigured
+if not settings.mcp_token:
+    logger.warning("A2A: MCP_TOKEN not set — all authenticated A2A endpoints will return 503")
+
 # ── A2A Task States ──────────────────────────────────────────────────────────
 
 VALID_STATES = {"submitted", "working", "input-required", "completed", "failed", "canceled"}
@@ -39,7 +43,7 @@ TERMINAL_STATES = {"completed", "failed", "canceled"}
 
 class A2APart(BaseModel):
     type: str = "text"  # text, data, file
-    text: str | None = None
+    text: str | None = Field(None, max_length=50000)
     data: dict | None = None
     mimeType: str | None = None  # noqa: N815
 
@@ -134,7 +138,9 @@ def _check_bearer_auth(request: Request) -> str | None:
 
 
 def _require_auth(request: Request) -> str:
-    """Require valid bearer auth. Raises 401 if invalid."""
+    """Require valid bearer auth. Raises 401 if invalid, 503 if auth not configured."""
+    if not settings.mcp_token:
+        raise HTTPException(503, "A2A authentication not configured (MCP_TOKEN not set)")
     identity = _check_bearer_auth(request)
     if identity is None:
         raise HTTPException(401, "Invalid or missing bearer token")
@@ -258,40 +264,78 @@ def _row_to_a2a_task(row: dict) -> dict:
 # ── Bridge: Otto Task Queue → A2A Task ──────────────────────────────────────
 
 async def _bridge_to_otto_task(pool, a2a_task_id: UUID, message: A2AMessage) -> UUID | None:
-    """Create an internal Otto task linked to the A2A task. Returns Otto task ID."""
-    # Extract text content from parts
-    text_parts = [p.text for p in message.parts if p.type == "text" and p.text]
-    if not text_parts:
+    """Create an internal Otto task linked to the A2A task and auto-start it.
+
+    Note: Only text parts are bridged. data/file parts are silently dropped (Phase 1 limitation).
+    """
+    try:
+        # Extract text content from parts
+        text_parts = [p.text for p in message.parts if p.type == "text" and p.text]
+        if not text_parts:
+            await _update_a2a_task_state(pool, a2a_task_id, "failed", "No text content in message parts")
+            return None
+
+        prompt = "\n\n".join(text_parts)
+
+        # Read optional hints from metadata
+        a2a_row = await pool.fetchrow("SELECT metadata FROM a2a_tasks WHERE id = $1", a2a_task_id)
+        meta = (a2a_row["metadata"] if a2a_row and a2a_row["metadata"] else {}) or {}
+        if isinstance(meta, str):
+            meta = json.loads(meta)
+        model = meta.get("preferred_model", "sonnet")
+        agent_type = meta.get("preferred_agent", "general-purpose")
+        max_budget = min(float(meta.get("max_budget", 5.0)), 10.0)  # Cap at $10
+
+        # Create internal task
+        from .tasks import TASK_COLUMNS, run_task
+        row = await pool.fetchrow(
+            f"""INSERT INTO tasks
+                (title, prompt, priority, status, model, agent_type,
+                 max_budget_usd, max_turns, timeout_seconds,
+                 working_directory, created_by, metadata)
+                VALUES ($1, $2, 5, 'pending', $4, $5,
+                        $6, 50, 600,
+                        '/home/web3relic/otto', 'a2a-standard',
+                        $3::jsonb)
+                RETURNING {TASK_COLUMNS}""",
+            f"A2A: {prompt[:80]}",
+            prompt,
+            json.dumps({"a2a_task_id": str(a2a_task_id)}),
+            model,
+            agent_type,
+            max_budget,
+        )
+
+        if row:
+            otto_task_id = row["id"]
+            # Link back
+            await pool.execute(
+                "UPDATE a2a_tasks SET linked_task_id = $1 WHERE id = $2",
+                otto_task_id, a2a_task_id,
+            )
+            # Auto-start the task immediately (don't wait for heartbeat)
+            try:
+                await run_task(otto_task_id)
+                logger.info(f"A2A bridge: auto-started Otto task {otto_task_id} for A2A {a2a_task_id}")
+            except Exception as e:
+                logger.error(f"A2A bridge: failed to auto-start Otto task {otto_task_id}: {e}")
+                # Task exists but couldn't start — still linked, heartbeat can pick it up
+                await _update_a2a_task_state(
+                    pool, a2a_task_id, "working",
+                    f"Task queued (auto-start failed: {str(e)[:100]})",
+                )
+            return otto_task_id
+
+        await _update_a2a_task_state(pool, a2a_task_id, "failed", "Failed to create internal task")
         return None
 
-    prompt = "\n\n".join(text_parts)
-
-    # Create internal task
-    from .tasks import TASK_COLUMNS
-    row = await pool.fetchrow(
-        f"""INSERT INTO tasks
-            (title, prompt, priority, status, model, agent_type,
-             max_budget_usd, max_turns, timeout_seconds,
-             working_directory, created_by, metadata)
-            VALUES ($1, $2, 5, 'pending', 'sonnet', 'general-purpose',
-                    5.00, 50, 600,
-                    '/home/web3relic/otto', 'a2a-standard',
-                    $3::jsonb)
-            RETURNING {TASK_COLUMNS}""",
-        f"A2A: {prompt[:80]}",
-        prompt,
-        json.dumps({"a2a_task_id": str(a2a_task_id)}),
-    )
-
-    if row:
-        otto_task_id = row["id"]
-        # Link back
-        await pool.execute(
-            "UPDATE a2a_tasks SET linked_task_id = $1 WHERE id = $2",
-            otto_task_id, a2a_task_id,
-        )
-        return otto_task_id
-    return None
+    except Exception as e:
+        logger.error(f"A2A bridge failed for {a2a_task_id}: {e}", exc_info=True)
+        try:
+            await _update_a2a_task_state(pool, a2a_task_id, "failed", f"Bridge error: {str(e)[:200]}")
+        except Exception:
+            logger.error(f"A2A bridge: also failed to update task state for {a2a_task_id}")
+        return None
 
 
 # ── JSON-RPC Method Handlers ─────────────────────────────────────────────────
@@ -392,13 +436,15 @@ async def _handle_tasks_cancel(params: dict) -> dict:
 
     updated = await _update_a2a_task_state(pool, task_id, "canceled", "Canceled by caller")
 
-    # Cancel linked Otto task if exists
+    # Cancel linked Otto task if exists — use stop_task to kill the process
     if row.get("linked_task_id"):
-        await pool.execute(
-            """UPDATE tasks SET status = 'cancelled'
-               WHERE id = $1 AND status IN ('pending', 'running')""",
-            row["linked_task_id"],
-        )
+        try:
+            from .tasks import stop_task
+            await stop_task(row["linked_task_id"])
+            logger.info(f"A2A cancel: stopped linked Otto task {row['linked_task_id']}")
+        except HTTPException as e:
+            # Task may already be done or not running — that's fine
+            logger.info(f"A2A cancel: stop_task returned {e.status_code}: {e.detail}")
 
     return _row_to_a2a_task(updated) if updated else {}
 
@@ -488,8 +534,14 @@ async def jsonrpc_dispatch(request: Request):
         else:
             result = await handler(params)
 
-        # For message/sendStream, return SSE instead
+        # For message/sendStream, return SSE instead of JSON-RPC response.
+        # Note: This changes Content-Type from application/json to text/event-stream.
+        # Callers should set Accept: text/event-stream when using sendStream.
         if method == "message/sendStream" and isinstance(result, dict) and "id" in result:
+            accept = request.headers.get("accept", "")
+            if "text/event-stream" not in accept and "*/*" not in accept and accept:
+                # Caller didn't ask for SSE — return standard JSON-RPC with task state
+                return JSONResponse(_jsonrpc_success(req_id, result))
             task_id = result["id"]
             return StreamingResponse(
                 _sse_task_stream(UUID(task_id)),
