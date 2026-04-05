@@ -104,15 +104,16 @@ type: project
 - **Status**: draft
 - **File**: /mnt/media/projects/my3ye-web/content/blog/the-machine-is-already-running.mdx
 
-### We've Been Building an AI OS. Here's How It Compares to What Else Exists. (45407c6d) ← LinkedIn 2026-04-05, v2 reviewed
+### We've Been Building an AI OS. Here's How It Compares to What Else Exists. (45407c6d) ← LinkedIn 2026-04-05, v3 harness section added
 - **DB ID**: 45407c6d-88db-4e22-805c-13b3ebb5154a
-- **Version**: 2 (review feedback applied 2026-04-05)
-- **Angle**: LinkedIn article — Otto's architecture vs 8 benchmarked frameworks (2026 landscape), honest gap analysis (OTel missing, multi-LLM underdeveloped), blockchain roadmap as Phase 3 vision (NOT live — all future tense). Covers: 6-layer memory stack moat, RL2F+MARS+AutoEvolve structured self-improvement (unique across all frameworks), WebAssist as first live product.
+- **Version**: 3 (v3 2026-04-05: AI harness section added — OpenClaw + Symphony; OTel gap updated to "now shipped")
+- **Angle**: LinkedIn article — Otto's architecture vs 8 benchmarked frameworks (2026 landscape), honest gap analysis (OTel NOW SHIPPED, multi-LLM underdeveloped, community scale), blockchain roadmap as Phase 3 vision (NOT live — all future tense). Covers: 6-layer memory stack moat, RL2F+MARS+AutoEvolve structured self-improvement (unique across all frameworks), WebAssist as first live product.
+- **v3 additions**: New section "category I left out" — AI harnesses (OpenClaw: >150K stars, heartbeat-native, flat-file memory, 5700+ skills; Symphony: BEAM runtime, deterministic runs). OTel gap updated from "building next" to "now shipped". Two gaps remain: multi-LLM routing + community ecosystem scale.
 - **Voice**: LinkedIn practitioner, first-person Mev, short paragraphs — NOT MY3YE ecosystem voice
 - **Story beat**: Mission + Frame
 - **Status**: draft — ready for Mev to publish
 - **Review changes (v1→v2)**: Pydantic AI uses Logfire (not LangSmith); "structured self-improvement loops" qualifier; EVM-compatible + smart contracts in blockchain section; comparison matrix links to first comment; closer sharpened to single question "What are you building on?"; 8 frameworks named in opening (added Mastra, OpenAI Agents SDK, AWS Strands); "We are two of three" given visual standalone weight
-- **What NOT to repeat**: "agent is a runtime" vs "AI OS" framing, 6-layer memory stack as moat, RL2F+MARS+AutoEvolve as self-improvement moat, OTel as the gap, blockchain ownership problem as Phase 3 vision, "two of three" closing structure
+- **What NOT to repeat**: "agent is a runtime" vs "AI OS" framing, 6-layer memory stack as moat, RL2F+MARS+AutoEvolve as self-improvement moat, OTel as a gap (now resolved — shipped), AI harnesses vs frameworks distinction, OpenClaw as closest Otto parallel, blockchain ownership problem as Phase 3 vision, "two of three" closing structure
 
 ## KOINK
 ### Chaos With Structure. Chaos That Compounds. (9c46d865)
