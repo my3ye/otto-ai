@@ -104,12 +104,14 @@ type: project
 - **Status**: draft
 - **File**: /mnt/media/projects/my3ye-web/content/blog/the-machine-is-already-running.mdx
 
-### We've Been Building an AI OS. Here's How It Compares to What Else Exists. (45407c6d) ← NEW LinkedIn 2026-04-05
+### We've Been Building an AI OS. Here's How It Compares to What Else Exists. (45407c6d) ← LinkedIn 2026-04-05, v2 reviewed
 - **DB ID**: 45407c6d-88db-4e22-805c-13b3ebb5154a
-- **Angle**: LinkedIn article — Otto's architecture vs 8 benchmarked frameworks (2026 landscape), honest gap analysis (OTel missing, multi-LLM underdeveloped), blockchain roadmap as Phase 3 vision (NOT live — all future tense). Covers: 6-layer memory stack moat, RL2F+MARS+AutoEvolve self-improvement (unique across all frameworks), WebAssist as first live product.
+- **Version**: 2 (review feedback applied 2026-04-05)
+- **Angle**: LinkedIn article — Otto's architecture vs 8 benchmarked frameworks (2026 landscape), honest gap analysis (OTel missing, multi-LLM underdeveloped), blockchain roadmap as Phase 3 vision (NOT live — all future tense). Covers: 6-layer memory stack moat, RL2F+MARS+AutoEvolve structured self-improvement (unique across all frameworks), WebAssist as first live product.
 - **Voice**: LinkedIn practitioner, first-person Mev, short paragraphs — NOT MY3YE ecosystem voice
 - **Story beat**: Mission + Frame
-- **Status**: draft
+- **Status**: draft — ready for Mev to publish
+- **Review changes (v1→v2)**: Pydantic AI uses Logfire (not LangSmith); "structured self-improvement loops" qualifier; EVM-compatible + smart contracts in blockchain section; comparison matrix links to first comment; closer sharpened to single question "What are you building on?"; 8 frameworks named in opening (added Mastra, OpenAI Agents SDK, AWS Strands); "We are two of three" given visual standalone weight
 - **What NOT to repeat**: "agent is a runtime" vs "AI OS" framing, 6-layer memory stack as moat, RL2F+MARS+AutoEvolve as self-improvement moat, OTel as the gap, blockchain ownership problem as Phase 3 vision, "two of three" closing structure
 
 ## KOINK
