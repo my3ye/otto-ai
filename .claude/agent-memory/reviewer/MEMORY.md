@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_openclaw_research_validation.md](project_openclaw_research_validation.md) — OpenClaw + 2026 AI harness synthesis (2026-04-05, WF Step 2): APPROVE 8.5/10. All codebase claims verified. OTel+A2A RESOLVED. 3 warnings: star count conflict (use >150K), single-source framework table, semantic/remember failed (episodic fallback).
 - [project_linkedin_otto_arch_article_review.md](project_linkedin_otto_arch_article_review.md) — LinkedIn "We've Been Building an AI OS" (45407c6d, 2026-04-05, FINAL): APPROVE 8.5/10. All criticals fixed. 8 formatting/SEO changes applied (commit 2ef0673). 3 caption variants in task c4f87d33 output. Publish-day note: replace `---` with blank lines in LinkedIn editor.
 - [project_ai_landscape_benchmark_validation.md](project_ai_landscape_benchmark_validation.md) — Otto AI landscape benchmark synthesis (2026-04-05, WF Step 2): MINOR_CHANGES 8.0/10. 2 criticals: agent count stale (138→182); ERC-8004/LaborAttestation are Phase 3 planned not live — tense fix required before LinkedIn publish.
 - [project_article5_90day_roadmap_review.md](project_article5_90day_roadmap_review.md) — Mev consulting Article 5 "90-Day AI Roadmap" (cb240798, 2026-04-03, WF Step 1): MINOR_CHANGES 8.0/10. 2 criticals: unsupported universal claim; "Any Business" title vs mid-size body targeting. Voice+structure = best in series.
