@@ -1,21 +1,31 @@
 # Researcher Agent Memory
 
-## Google A2A v1.0 — Spec + Otto Gap Analysis (2026-04-05) — VALIDATED 9/10
+## OpenClaw + 2026 AI Landscape (2026-04-05) — VALIDATED 8/10
+
+DB Note ID: 31036364 | Episodic IDs: 37997294, 83a39ec4, c70e7990, f8e19e8d, 5bf2a82a, 87f50acf
+- **OpenClaw** (MIT, 163K-250K stars, Peter Steinberger): heartbeat+memory+channels+skills = architectural twin of Otto. Otto moats: 6-layer memory, RL2F+MARS+AutoEvolve (unique — zero equivalents in all 9 frameworks).
+- **GAP CORRECTIONS:** A2A "gap" is RESOLVED (a2a_standard.py confirmed). OTel "gap" is RESOLVED (telemetry.py confirmed). Prior MEMORY entries claiming these as gaps are STALE.
+- **NEW 2026 FRAMEWORKS** (missing from 03-28 synthesis): AWS Strands (A2A native), MS Agent Framework (AutoGen+SK merged), Mastra (TS, YC, 300K npm/wk), Vercel AI SDK v6, OpenAI Symphony (Elixir/BEAM).
+- **2026 LANDSCAPE:** Memory=differentiator (3/9 frameworks). Tool calling=commoditized. MCP=table stakes. Otto RL2F=unique moat.
+- **ACTION:** Update LinkedIn article 45407c6d to add OpenClaw + 4 new frameworks to comparison table.
+
+## Google A2A v1.0 — Spec + Otto Gap Analysis (2026-04-05) — ⚠️ SUPERSEDED: A2A NOW IMPLEMENTED
 
 DB Note ID: f954bf58 | Episodic IDs: d75eebec, efca08c2, 992d7719, a72f6594, 3f06d407, c56914ff
+- **⚠️ STATUS UPDATE:** a2a_standard.py is FULLY IMPLEMENTED. Agent Card, JSON-RPC 2.0, SSE, task lifecycle — all confirmed. Gap claims below are historical only.
 - **SPEC:** v1.0 released 2026-03-12, Linux Foundation, Apache 2.0, 150+ orgs. Transport: JSON-RPC 2.0/HTTP(S), SSE, gRPC. Discovery: Agent Card at `/.well-known/agent.json`. Task lifecycle: working→input-required→completed/failed/canceled/rejected.
-- **OTTO GAPS (all grep-verified absent):** well-known, agent.json, jsonrpc, JSON-RPC, SSE at A2A, grpc, protobuf, a2a_tasks, OAuth2, oidc, mtls. Current state: Postgres mailbox only.
+- **OTTO GAPS (HISTORICAL — now resolved):** well-known, agent.json, jsonrpc, JSON-RPC, SSE at A2A, grpc, protobuf, a2a_tasks, OAuth2, oidc, mtls. Current state: Postgres mailbox only.
 - **REUSABLE:** message types→A2A Parts; channel_id→Task context; rate limiting→extensible. Additive extension, no rewrite.
 - **A2A≠MCP:** MCP=agent↔tool (already at `/mcp/sse`); A2A=agent↔agent (opaque). Both needed.
 - **IMPL PATH (2-3 days):** (1) `GET /.well-known/agent.json` at API ROOT, not /a2a prefix (~2h); (2) `POST /a2a` JSON-RPC dispatcher (~4h); (3) `a2a_tasks` DB table (~2h); (4) SSE tasks/sendSubscribe — budget 6-8h (FastAPI/asyncpg complexity); (5) Auth declaration (~1h).
 - **PATCHED:** QuerySkill() v1.0 downgraded implied HIGH→MEDIUM (blog post only, spec body not read). gRPC "normative" not directly verified from proto file — flag for Phase 2.
 - **RETRIEVAL RISK:** Semantic write BLOCKED (OpenAI quota P8). Use episodic IDs above or research note f954bf58.
 
-## AI Agent & Orchestration Landscape Benchmark (2026-04-05) — VALIDATED 8.0/10
+## AI Agent & Orchestration Landscape Benchmark (2026-04-05) — ⚠️ PARTIALLY SUPERSEDED
 
 DB Note ID: f838eb95 | Episodic IDs: fbc29257 (Step1), 2e85a02f (Step3) | File: ~/otto/docs/ai-landscape-synthesis-2026-04-05.md
 - **MOATS (code-verified):** 6-layer memory ★★★★★; RL2F+MARS+AutoEvolve ★★★★★ (unique); 182-agent catalog (22 active); DAG task plans; QA budget gate.
-- **GAPS (grep-verified):** OTel ABSENT core routes (P-HIGH); A2A needs extension (routes/a2a.py internal only); MCP needs dynamic tool composition.
+- **⚠️ GAP CORRECTIONS (2026-04-05):** OTel "ABSENT" is WRONG — telemetry.py confirmed. A2A "needs extension" is WRONG — a2a_standard.py confirmed. MCP dynamic tool composition gap still valid.
 - **TIERS:** Tier-1: LangGraph/CrewAI/Google ADK/AG2. Tier-2: Strands/Pydantic AI/Mastra. Tier-3: Bittensor/Virtuals/OLAS.
 - **PATCHED:** 138→182 agent count; ERC-8004 Phase 3 qualifier (not live); Bittensor mcap KuCoin-sourced.
 - **TOP ACTIONS:** (1) Implement OTel in api.py+routes/. (2) Dispatch LinkedIn article (anchor: otto-vs-ai-harnesses-comparison-2026-03-28.md). (3) Extend routes/a2a.py to Google standard.
