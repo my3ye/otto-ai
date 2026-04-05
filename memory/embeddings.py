@@ -120,10 +120,33 @@ def apply_svc(embedding: list[float]) -> list[float]:
 
 
 async def get_embedding(text: str) -> list[float]:
+    # Optional OTel span around the OpenAI API call
+    _tracer = None
+    try:
+        from opentelemetry import trace
+        _tracer = trace.get_tracer("otto.embeddings")
+    except ImportError:
+        pass
+
     client = _get_client()
-    resp = await client.embeddings.create(
-        input=text,
-        model="text-embedding-3-small",
-    )
+
+    if _tracer:
+        with _tracer.start_as_current_span(
+            "embeddings.openai",
+            attributes={
+                "embedding.model": "text-embedding-3-small",
+                "embedding.input_length": len(text),
+            },
+        ):
+            resp = await client.embeddings.create(
+                input=text,
+                model="text-embedding-3-small",
+            )
+    else:
+        resp = await client.embeddings.create(
+            input=text,
+            model="text-embedding-3-small",
+        )
+
     embedding = resp.data[0].embedding
     return apply_svc(embedding)

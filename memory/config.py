@@ -125,6 +125,12 @@ class Settings(BaseSettings):
     # Optional bearer token sent as Authorization: Bearer <token> in webhook POSTs
     gate_webhook_secret: str = ""
 
+    # ── OpenTelemetry ────────────────────────────────────────────────
+    otel_enabled: bool = False
+    otel_service_name: str = "otto-memory-api"
+    otel_export_endpoint: str = ""  # OTLP endpoint (empty = file-only)
+    otel_log_dir: str = "/home/web3relic/otto/logs/traces"
+
     # ── MCP Server ───────────────────────────────────────────────────
     # Bearer token for external MCP clients. Empty = dev mode (no auth).
     mcp_token: str = ""
