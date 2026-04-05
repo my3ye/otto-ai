@@ -1,5 +1,16 @@
 # Researcher Agent Memory
 
+## OmniMem — Lifelong Multimodal Agent Memory (2026-04-05) — RESEARCHED 8/10
+
+DB Note ID: 22efbf05 | Episodic ID: 687bfb45 | File: project_omnimem_2604_01007v1.md | Summary: ~/otto/research/papers/2604_01007v1_summary.md
+- **PAPER:** Omni-SimpleMem arXiv 2604.01007v1. AutoResearch-discovered architecture. F1 0.117→0.598 LoCoMo (+411%) in 72h, 50 autonomous experiments.
+- **ARCH:** MAU={summary+embedding+cold_ptr+timestamp+modality+links}. Pyramid retrieval (3 levels, token budget). FAISS+BM25 set-union. KG 7-entity h-hop expansion.
+- **HEADLINE:** Bugs (+175%) + architecture (+44%) + prompts (+188%) each beat cumulative hyperparameter tuning. AutoML misses the biggest wins.
+- **OTTO P1:** BM25 hybrid search MISSING — add pg_trgm/tsvector alongside pgvector, set-union merge. +30-50% recall.
+- **OTTO P2:** Pyramid retrieval MISSING — S-MMU loads flat, 3-level pyramid reduces context rot.
+- **OTTO P3:** Prompt constraints should go BEFORE questions (zero code, all agent prompts).
+- **NOTE:** Semantic/remember blocked (OpenAI quota P8). Stored episodic + research note only.
+
 ## AI Consulting B2B Landscape (2026-04-03) — VALIDATED 8/10
 
 DB Note ID: 1d60436e | Episodic ID: 6abb779a | Semantic IDs: 07567311, 46ea4fa5, f84ec2bb, ddf1a3b0, 08fef7ca, 78bf1b16, 684c60d1
