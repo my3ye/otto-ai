@@ -193,11 +193,18 @@ async def generate_with_agent(
     if not design_spec:
         raise RuntimeError(f"Could not extract any design spec from {PROMPTS_PATH}")
 
+    # Strip _source_* fields from design_decisions — they duplicate the
+    # design spec already included in the prompt and bloat the context
+    clean_decisions = {
+        k: v for k, v in design_decisions.items()
+        if not k.startswith("_source")
+    }
+
     # Build the prompt
     prompt = _build_agent_prompt(
         page_id=page_id,
         design_spec=design_spec,
-        design_decisions=design_decisions,
+        design_decisions=clean_decisions,
         research_data=research_data,
         competitor_data=competitor_data,
     )
@@ -205,22 +212,24 @@ async def generate_with_agent(
     # Ensure output directory exists
     output_dir = WEBASSIST_DIR / str(page_id)
     output_dir.mkdir(parents=True, exist_ok=True)
+    html_path = output_dir / "index.html"
 
-    # Invoke Claude Code CLI as subprocess
+    # Invoke Claude Code CLI as subprocess (absolute path — service PATH may not include ~/.local/bin)
+    # Use --print + --dangerously-skip-permissions: works from service env (unlike --bare which breaks auth)
     cmd = [
-        "claude",
-        "--bare",
+        "/home/web3relic/.local/bin/claude",
+        "--print",
+        "--dangerously-skip-permissions",
         "--model", "claude-sonnet-4-6",
+        "--max-turns", "8",
+        "--max-budget-usd", "2",
         "-p", prompt,
-        "--max-turns", "5",
-        "--allowedTools", "Write,Read,Bash",
-        "--output-format", "text",
     ]
 
     log.info("[agent:%s] Starting agent (design=%s, spec=%d chars)",
              page_id, design_id, len(design_spec))
 
-    env = {**os.environ, "CLAUDE_CODE_MAX_COST_DOLLARS": "2"}
+    env = {**os.environ, "HOME": "/home/web3relic"}
 
     try:
         proc = await asyncio.create_subprocess_exec(
@@ -233,7 +242,7 @@ async def generate_with_agent(
 
         stdout, stderr = await asyncio.wait_for(
             proc.communicate(),
-            timeout=180,  # 3 minutes max
+            timeout=1500,  # 25 minutes — agent needs time for complex HTML
         )
 
         exit_code = proc.returncode
@@ -242,20 +251,25 @@ async def generate_with_agent(
                  page_id, exit_code, len(stdout_text))
 
     except asyncio.TimeoutError:
-        log.error("[agent:%s] Agent timed out after 180s", page_id)
+        log.warning("[agent:%s] Agent timed out after 1500s", page_id)
         try:
             proc.kill()
             await proc.wait()
         except Exception:
             pass
-        raise RuntimeError("Agent timed out after 180 seconds")
+        # Agent may have written the file just before/during kill — wait for I/O
+        await asyncio.sleep(3)
+        if html_path.exists() and html_path.stat().st_size >= 10 * 1024:
+            log.info("[agent:%s] File exists despite timeout (%d bytes), using it",
+                     page_id, html_path.stat().st_size)
+        else:
+            raise RuntimeError("Agent timed out after 1500 seconds")
 
     except Exception as exc:
         log.exception("[agent:%s] Agent invocation failed: %s", page_id, exc)
         raise RuntimeError(f"Agent invocation failed: {exc}")
 
     # Verify the HTML file was written
-    html_path = output_dir / "index.html"
     if not html_path.exists():
         stderr_text = stderr.decode("utf-8", errors="replace")[-500:] if stderr else ""
         log.error("[agent:%s] HTML not created. exit=%s stderr=%s",

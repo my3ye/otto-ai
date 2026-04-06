@@ -772,9 +772,10 @@ async def generate_landing_page_html(page_id: UUID, _key=Depends(verify_api_key)
     if not row:
         raise HTTPException(404, "Landing page not found")
 
-    research_data = dict(row["research_data"] or {})
-    competitor_data = dict(row["competitor_data"] or {})
-    design_decisions = dict(row["design_decisions"] or {})
+    parsed = _parse_row(row)
+    research_data = parsed.get("research_data") or {}
+    competitor_data = parsed.get("competitor_data") or {}
+    design_decisions = parsed.get("design_decisions") or {}
 
     if not design_decisions:
         raise HTTPException(422, "design_decisions is empty — run design synthesis first")
