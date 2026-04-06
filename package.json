@@ -1,0 +1,30 @@
+{
+  "name": "otto",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs",
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/my3ye/otto-ai.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/my3ye/otto-ai/issues"
+  },
+  "homepage": "https://github.com/my3ye/otto-ai#readme",
+  "dependencies": {
+    "@types/pg": "^8.20.0",
+    "openai": "^6.33.0",
+    "pg": "^8.20.0",
+    "typescript": "^6.0.2"
+  }
+}
