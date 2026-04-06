@@ -133,6 +133,11 @@ class Settings(BaseSettings):
     otel_log_dir: str = "/home/web3relic/otto/logs/traces"
     otel_trace_retention_days: int = 30  # Auto-prune trace files older than this
 
+    # ── Landing Page Service ──────────────────────────────────────────
+    # API key for external clients using /landing-pages/generate
+    # Empty = open access (dev mode). Set to restrict to authorized clients.
+    landing_page_api_key: str = ""
+
     # ── MCP Server ───────────────────────────────────────────────────
     # Bearer token for external MCP clients. Empty = dev mode (no auth).
     mcp_token: str = ""

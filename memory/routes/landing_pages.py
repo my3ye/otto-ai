@@ -1,21 +1,33 @@
 """
-Landing Pages API — CRUD for generated landing page entities.
-Workflow orchestration is separate; this table tracks the product lifecycle.
+Landing Pages API — Sellable endpoint for automated landing page generation.
 
-Research endpoints (standalone — also called by workflow steps):
-  POST /landing-pages/research/business      → research_business()
-  POST /landing-pages/research/competitors   → research_competitors()
+The primary endpoint is POST /landing-pages/generate which orchestrates the full
+async pipeline: business research → competitor analysis → design synthesis →
+copy generation → HTML build. Clients poll GET /landing-pages/{id}/status for
+progress.
+
+Auth: X-API-Key header (or api_key body field). Configurable via
+LANDING_PAGE_API_KEY env var. Empty key = open access (dev mode).
+
+Pipeline stages & status progression:
+  pending → researching → designing → generating → review
+  Any stage failure → status stays at that stage with error_text set.
 """
 
+import asyncio
 import json
-import re
 import logging
+import re
+import sys
+import time
+import traceback
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query
+from pydantic import BaseModel, Field
 
+from ..config import settings
 from ..db import get_pool
 from ..models import (
     LandingPageCreate,
@@ -34,6 +46,31 @@ VALID_STATUSES = {
     "review", "published", "archived",
 }
 
+
+# ── Auth Dependency ──────────────────────────────────────────────────────────
+
+async def verify_api_key(
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+):
+    """
+    API key authentication for landing page endpoints.
+
+    Checks X-API-Key header against LANDING_PAGE_API_KEY env var.
+    If LANDING_PAGE_API_KEY is empty (dev mode), all requests pass.
+    """
+    configured_key = settings.landing_page_api_key
+    if not configured_key:
+        # Dev mode — no auth required
+        return None
+    if not x_api_key or x_api_key != configured_key:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid or missing API key. Provide X-API-Key header.",
+        )
+    return x_api_key
+
+
+# ── Helpers ──────────────────────────────────────────────────────────────────
 
 def _slugify(name: str) -> str:
     """Convert business name to URL-safe slug."""
@@ -77,14 +114,214 @@ def _row_to_list_item(row) -> LandingPageListItem:
     return LandingPageListItem(**dict(row))
 
 
-# ── Research request models ───────────────────────────────────────────────────
+async def _update_status(pool, page_id: UUID, status: str, error_text: str = None):
+    """Update landing page status (and optionally error_text) in DB."""
+    if error_text:
+        await pool.execute(
+            "UPDATE landing_pages SET status = $2, error_text = $3, updated_at = now() "
+            "WHERE id = $1",
+            page_id, status, error_text[:1000],
+        )
+    else:
+        await pool.execute(
+            "UPDATE landing_pages SET status = $2, error_text = NULL, updated_at = now() "
+            "WHERE id = $1",
+            page_id, status,
+        )
+
+
+# ── Background Pipeline ─────────────────────────────────────────────────────
+
+async def _run_pipeline(page_id: UUID, business_name: str, business_url: str,
+                        description: str, target_audience: str):
+    """
+    Full landing page generation pipeline. Runs as a background task.
+
+    Steps:
+      1. Research business (scraping + DDG search)
+      2. Research competitors (DDG search + profiling)
+      3. Design synthesis (LLM-driven design decisions from catalog)
+      4. Copy generation (LLM-driven section copy)
+      5. HTML generation + file save
+
+    Each step updates the landing_pages row with its output and status.
+    Failures at any step store error_text and halt the pipeline.
+    """
+    pool = await get_pool()
+    start = time.time()
+
+    try:
+        # ── Step 1: Business Research ────────────────────────────────
+        logger.info("[pipeline:%s] Step 1: Business research", page_id)
+        await _update_status(pool, page_id, "researching")
+
+        research_data = await research_business(
+            business_name=business_name,
+            business_url=business_url,
+            description=description,
+            target_audience=target_audience,
+            landing_page_id=str(page_id),
+            db_pool=pool,
+        )
+
+        # Persist research_data to DB (research_business may have done this,
+        # but ensure it's there)
+        await pool.execute(
+            "UPDATE landing_pages SET research_data = $2::jsonb, updated_at = now() "
+            "WHERE id = $1",
+            page_id, json.dumps(research_data),
+        )
+
+        logger.info("[pipeline:%s] Step 1 complete (%.1fs)", page_id, time.time() - start)
+
+    except Exception as exc:
+        logger.exception("[pipeline:%s] Step 1 failed: %s", page_id, exc)
+        await _update_status(pool, page_id, "researching",
+                             f"Business research failed: {exc}")
+        return
+
+    try:
+        # ── Step 2: Competitor Research ──────────────────────────────
+        step2_start = time.time()
+        logger.info("[pipeline:%s] Step 2: Competitor research", page_id)
+
+        industry = research_data.get("industry", None)
+        competitor_data = await research_competitors(
+            business_name=business_name,
+            target_audience=target_audience,
+            description=description,
+            industry=industry,
+            landing_page_id=str(page_id),
+            db_pool=pool,
+        )
+
+        await pool.execute(
+            "UPDATE landing_pages SET competitor_data = $2::jsonb, updated_at = now() "
+            "WHERE id = $1",
+            page_id, json.dumps(competitor_data),
+        )
+
+        logger.info("[pipeline:%s] Step 2 complete (%.1fs)", page_id, time.time() - step2_start)
+
+    except Exception as exc:
+        logger.exception("[pipeline:%s] Step 2 failed: %s", page_id, exc)
+        await _update_status(pool, page_id, "researching",
+                             f"Competitor research failed: {exc}")
+        return
+
+    try:
+        # ── Step 3: Design Synthesis + Copy Generation ───────────────
+        step3_start = time.time()
+        logger.info("[pipeline:%s] Step 3: Design synthesis + copy", page_id)
+        await _update_status(pool, page_id, "designing")
+
+        # Import design modules (different path from memory package)
+        sys.path.insert(0, "/home/web3relic/otto")
+        from services.landing_page.design import design_synthesizer, copy_generator
+
+        # 3a: Design decisions
+        design_decisions = await design_synthesizer(
+            research_data=research_data,
+            competitor_data=competitor_data,
+        )
+
+        # 3b: Copy generation (runs in parallel conceptually, but sequential
+        # since copy depends on design decisions for section structure)
+        copy_data = await copy_generator(
+            business_data=research_data,
+            design_decisions=design_decisions,
+        )
+
+        # Persist both to DB
+        await pool.execute(
+            "UPDATE landing_pages SET design_decisions = $2::jsonb, updated_at = now() "
+            "WHERE id = $1",
+            page_id, json.dumps(design_decisions),
+        )
+
+        logger.info("[pipeline:%s] Step 3 complete (%.1fs)", page_id, time.time() - step3_start)
+
+    except Exception as exc:
+        logger.exception("[pipeline:%s] Step 3 failed: %s", page_id, exc)
+        await _update_status(pool, page_id, "designing",
+                             f"Design synthesis failed: {exc}")
+        return
+
+    try:
+        # ── Step 4: HTML Generation ──────────────────────────────────
+        step4_start = time.time()
+        logger.info("[pipeline:%s] Step 4: HTML generation", page_id)
+        await _update_status(pool, page_id, "generating")
+
+        from services.landing_page.generator import generate_and_save
+
+        result = await generate_and_save(
+            page_id=page_id,
+            design_decisions=design_decisions,
+            copy_data=copy_data,
+            research_data=research_data,
+            pool=pool,
+        )
+
+        # generate_and_save sets status='review', html_path, and preview_url
+        total_time = time.time() - start
+        logger.info(
+            "[pipeline:%s] Pipeline complete in %.1fs — preview: %s",
+            page_id, total_time, result.get("preview_url"),
+        )
+
+    except Exception as exc:
+        logger.exception("[pipeline:%s] Step 4 failed: %s", page_id, exc)
+        await _update_status(pool, page_id, "generating",
+                             f"HTML generation failed: {exc}")
+        return
+
+
+# ── Request/Response Models ──────────────────────────────────────────────────
+
+class GenerateRequest(BaseModel):
+    """
+    Request body for POST /landing-pages/generate.
+
+    Args:
+        business_name:   Name of the business (required)
+        business_url:    Homepage URL — used for scraping brand info
+        description:     What the business does (helps when URL unavailable)
+        target_audience: Who the landing page targets
+        api_key:         Alternative to X-API-Key header (convenience for form clients)
+    """
+    business_name: str = Field(..., min_length=1, max_length=200,
+                               description="Business name")
+    business_url: Optional[str] = Field(None, max_length=500,
+                                        description="Business homepage URL")
+    description: Optional[str] = Field(None, max_length=2000,
+                                       description="What the business does")
+    target_audience: Optional[str] = Field(None, max_length=500,
+                                           description="Target audience description")
+    api_key: Optional[str] = Field(None, exclude=True,
+                                   description="API key (alternative to X-API-Key header)")
+
+
+class GenerateResponse(BaseModel):
+    """Response from POST /landing-pages/generate."""
+    id: UUID
+    slug: str
+    status: str
+    preview_url: Optional[str] = None
+    estimated_time_seconds: int = Field(
+        default=120,
+        description="Estimated time to completion in seconds",
+    )
+    status_url: str = Field(
+        description="Poll this URL for status updates",
+    )
+
 
 class ResearchBusinessRequest(BaseModel):
     business_name: str
     business_url: Optional[str] = None
     description: Optional[str] = None
     target_audience: Optional[str] = None
-    # If provided, update landing_pages.research_data and set status=researching
     landing_page_id: Optional[str] = None
 
 
@@ -92,13 +329,92 @@ class ResearchCompetitorsRequest(BaseModel):
     business_name: str
     target_audience: Optional[str] = None
     description: Optional[str] = None
-    # industry hint — pass from business research result if available
     industry: Optional[str] = None
-    # If provided, update landing_pages.competitor_data
     landing_page_id: Optional[str] = None
 
 
-# ── Research endpoints ────────────────────────────────────────────────────────
+# ── POST /landing-pages/generate ─────────────────────────────────────────────
+
+@router.post("/generate", status_code=202, response_model=GenerateResponse)
+async def generate_landing_page(
+    body: GenerateRequest,
+    background_tasks: BackgroundTasks,
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+):
+    """
+    Generate a complete landing page for a business.
+
+    Creates a landing page record and starts the async generation pipeline:
+      1. **Research** — scrapes business website + DDG search for brand info
+      2. **Competitors** — finds 3-5 competitors, analyzes visual + messaging
+      3. **Design** — selects design template, fonts, colors, section layout
+      4. **Copy** — generates all section headlines, body text, CTAs
+      5. **Build** — renders a self-contained HTML file with inline CSS
+
+    **Authentication:**
+      - Header: `X-API-Key: <your-key>`
+      - Body field: `api_key: "<your-key>"`
+      - Dev mode: if no key is configured server-side, all requests pass
+
+    **Polling:**
+      Use the returned `status_url` to check progress. Status values:
+      `pending` → `researching` → `designing` → `generating` → `review`
+
+    **Returns:** 202 Accepted with job metadata. The `preview_url` field
+    populates once generation completes (status=review).
+    """
+    # Auth: check header OR body field
+    configured_key = settings.landing_page_api_key
+    if configured_key:
+        provided_key = x_api_key or body.api_key
+        if not provided_key or provided_key != configured_key:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or missing API key. Provide X-API-Key header or api_key body field.",
+            )
+
+    pool = await get_pool()
+
+    # Create the landing page record
+    slug = _slugify(body.business_name)
+    slug = await _ensure_unique_slug(pool, slug)
+
+    row = await pool.fetchrow(
+        """
+        INSERT INTO landing_pages (slug, business_name, business_url, description,
+                                   target_audience, status, created_by)
+        VALUES ($1, $2, $3, $4, $5, 'pending', 'api')
+        RETURNING id, slug, status, preview_url
+        """,
+        slug, body.business_name, body.business_url,
+        body.description, body.target_audience,
+    )
+
+    page_id = row["id"]
+
+    # Start the async pipeline
+    background_tasks.add_task(
+        _run_pipeline,
+        page_id=page_id,
+        business_name=body.business_name,
+        business_url=body.business_url or "",
+        description=body.description or "",
+        target_audience=body.target_audience or "",
+    )
+
+    logger.info("Pipeline started for %s (id=%s)", body.business_name, page_id)
+
+    return GenerateResponse(
+        id=page_id,
+        slug=slug,
+        status="pending",
+        preview_url=None,
+        estimated_time_seconds=120,
+        status_url=f"/landing-pages/{page_id}/status",
+    )
+
+
+# ── Research Endpoints (standalone — also called by workflow steps) ───────────
 
 @router.post("/research/business")
 async def api_research_business(body: ResearchBusinessRequest):
@@ -121,7 +437,6 @@ async def api_research_business(body: ResearchBusinessRequest):
         )
         if not exists:
             raise HTTPException(404, "Landing page not found")
-        # Mark as researching
         await pool.execute(
             "UPDATE landing_pages SET status = 'researching', updated_at = now() "
             "WHERE id = $1::uuid AND status = 'pending'",
@@ -175,28 +490,7 @@ async def api_research_competitors(body: ResearchCompetitorsRequest):
     return {"success": True, "data": data}
 
 
-# ── POST /landing-pages/generate ─────────────────────────────────
-
-@router.post("/generate", status_code=201)
-async def generate_landing_page(body: LandingPageCreate):
-    """Create a landing page record. Workflow start is handled externally."""
-    pool = await get_pool()
-    slug = _slugify(body.business_name)
-    slug = await _ensure_unique_slug(pool, slug)
-
-    row = await pool.fetchrow(
-        """
-        INSERT INTO landing_pages (slug, business_name, business_url, description, target_audience)
-        VALUES ($1, $2, $3, $4, $5)
-        RETURNING *
-        """,
-        slug, body.business_name, body.business_url,
-        body.description, body.target_audience,
-    )
-    return _row_to_out(row)
-
-
-# ── GET /landing-pages ───────────────────────────────────────────
+# ── GET /landing-pages ───────────────────────────────────────────────────────
 
 @router.get("")
 async def list_landing_pages(
@@ -204,6 +498,7 @@ async def list_landing_pages(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
 ):
+    """List all landing pages with optional status filter."""
     pool = await get_pool()
     if status:
         rows = await pool.fetch(
@@ -237,10 +532,14 @@ async def list_landing_pages(
     }
 
 
-# ── GET /landing-pages/{id} ─────────────────────────────────────
+# ── GET /landing-pages/{id} ─────────────────────────────────────────────────
 
 @router.get("/{page_id}")
 async def get_landing_page(page_id: UUID):
+    """
+    Get full landing page record including all research data, design decisions,
+    and generated HTML path.
+    """
     pool = await get_pool()
     row = await pool.fetchrow("SELECT * FROM landing_pages WHERE id = $1", page_id)
     if not row:
@@ -248,16 +547,25 @@ async def get_landing_page(page_id: UUID):
     return _row_to_out(row)
 
 
-# ── GET /landing-pages/{id}/status ───────────────────────────────
+# ── GET /landing-pages/{id}/status ───────────────────────────────────────────
 
 @router.get("/{page_id}/status")
 async def get_landing_page_status(page_id: UUID):
-    """Lightweight status check for polling."""
+    """
+    Lightweight status polling endpoint.
+
+    Returns current pipeline stage, progress indicator, and preview_url
+    (populated once generation completes). Poll every 5-10 seconds.
+
+    Status progression: pending → researching → designing → generating → review
+
+    If error_text is non-null, the pipeline failed at the current stage.
+    """
     pool = await get_pool()
     row = await pool.fetchrow(
         """
-        SELECT lp.id, lp.status, lp.preview_url, lp.workflow_instance_id,
-               lp.created_at, lp.updated_at
+        SELECT lp.id, lp.status, lp.preview_url, lp.error_text,
+               lp.workflow_instance_id, lp.created_at, lp.updated_at
         FROM landing_pages lp
         WHERE lp.id = $1
         """,
@@ -266,14 +574,28 @@ async def get_landing_page_status(page_id: UUID):
     if not row:
         raise HTTPException(404, "Landing page not found")
 
+    # Map status to progress percentage
+    progress_map = {
+        "pending": 0,
+        "researching": 25,
+        "designing": 50,
+        "generating": 75,
+        "review": 100,
+        "published": 100,
+        "archived": 100,
+    }
+
     result = {
         "id": row["id"],
         "status": row["status"],
+        "progress_percent": progress_map.get(row["status"], 0),
         "preview_url": row["preview_url"],
-        "workflow_instance_id": row["workflow_instance_id"],
+        "error_text": row["error_text"],
+        "created_at": row["created_at"].isoformat() if row["created_at"] else None,
+        "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None,
     }
 
-    # If linked to a workflow, try to get step progress
+    # If linked to a workflow, enrich with step progress
     if row["workflow_instance_id"]:
         wf_row = await pool.fetchrow(
             """
@@ -299,16 +621,15 @@ async def get_landing_page_status(page_id: UUID):
     return result
 
 
-# ── PATCH /landing-pages/{id}/status ─────────────────────────────
+# ── PATCH /landing-pages/{id}/status ─────────────────────────────────────────
 
 @router.patch("/{page_id}/status")
 async def update_landing_page_status(page_id: UUID, body: LandingPageStatusUpdate):
+    """Update landing page status (admin/workflow use)."""
     if body.status not in VALID_STATUSES:
         raise HTTPException(400, f"Invalid status. Must be one of: {VALID_STATUSES}")
 
     pool = await get_pool()
-
-    # Build dynamic SET clause
     sets = ["status = $2"]
     params = [page_id, body.status]
     idx = 3
@@ -332,19 +653,18 @@ async def update_landing_page_status(page_id: UUID, body: LandingPageStatusUpdat
     return _row_to_out(row)
 
 
-# ── PATCH /landing-pages/{id}/data ───────────────────────────────
+# ── PATCH /landing-pages/{id}/data ───────────────────────────────────────────
 
 @router.patch("/{page_id}/data")
 async def update_landing_page_data(page_id: UUID, body: LandingPageDataUpdate):
     """Update research/competitor/design JSONB fields (called by workflow steps)."""
     pool = await get_pool()
-
     sets = []
     params = [page_id]
     idx = 2
 
     if body.research_data is not None:
-        sets.append(f"research_data = ${ idx}")
+        sets.append(f"research_data = ${idx}")
         params.append(body.research_data)
         idx += 1
 
@@ -370,7 +690,7 @@ async def update_landing_page_data(page_id: UUID, body: LandingPageDataUpdate):
     return _row_to_out(row)
 
 
-# ── PATCH /landing-pages/{id}/workflow ───────────────────────────
+# ── PATCH /landing-pages/{id}/workflow ───────────────────────────────────────
 
 @router.patch("/{page_id}/workflow")
 async def link_workflow(page_id: UUID, workflow_instance_id: UUID = Query(...)):
@@ -390,7 +710,7 @@ async def link_workflow(page_id: UUID, workflow_instance_id: UUID = Query(...)):
     return _row_to_out(row)
 
 
-# ── DELETE /landing-pages/{id} ───────────────────────────────────
+# ── DELETE /landing-pages/{id} ───────────────────────────────────────────────
 
 @router.delete("/{page_id}")
 async def archive_landing_page(page_id: UUID):
@@ -409,26 +729,24 @@ async def archive_landing_page(page_id: UUID):
     return {"id": row["id"], "slug": row["slug"], "status": "archived"}
 
 
-# ── POST /landing-pages/{id}/generate ────────────────────────────
+# ── POST /landing-pages/{id}/generate (re-generate HTML from stored data) ───
 
 @router.post("/{page_id}/generate")
 async def generate_landing_page_html(page_id: UUID):
-    """Generate the HTML file for a landing page from stored design_decisions, research_data, copy.
-
-    Reads design_decisions, competitor_data (for copy), and research_data from the DB.
-    Calls generate_and_save() which builds the HTML and saves to /var/www/webassist/{id}/index.html.
-    Updates html_path and preview_url. Sets status='review'.
-
-    Returns: {"html_path": str, "preview_url": str, "size_bytes": int, "status": "review"}
     """
-    import sys
+    Re-generate HTML for an existing landing page from stored design_decisions
+    and research data. Use this to regenerate after manual edits to design or copy.
+
+    Requires design_decisions to be populated (run design synthesis first).
+    """
     sys.path.insert(0, "/home/web3relic/otto")
-    from ..services.landing_page.generator import generate_and_save
+    from services.landing_page.generator import generate_and_save
 
     pool = await get_pool()
 
     row = await pool.fetchrow(
-        "SELECT id, research_data, competitor_data, design_decisions, status FROM landing_pages WHERE id = $1",
+        "SELECT id, research_data, competitor_data, design_decisions, status "
+        "FROM landing_pages WHERE id = $1",
         page_id,
     )
     if not row:
@@ -438,13 +756,13 @@ async def generate_landing_page_html(page_id: UUID):
     competitor_data = dict(row["competitor_data"] or {})
     design_decisions = dict(row["design_decisions"] or {})
 
-    # copy_data lives inside design_decisions if stored there, else try competitor_data
-    copy_data = design_decisions.pop("_copy_data", None) or competitor_data.get("_copy_data") or {}
+    copy_data = (design_decisions.pop("_copy_data", None)
+                 or competitor_data.get("_copy_data")
+                 or {})
 
     if not design_decisions:
         raise HTTPException(422, "design_decisions is empty — run design synthesis first")
 
-    # Merge copy from research if not separately stored
     if not copy_data:
         copy_data = research_data.get("_copy_data", {})
 
@@ -466,5 +784,5 @@ async def generate_landing_page_html(page_id: UUID):
             "UPDATE landing_pages SET status = 'review', error_text = $2 WHERE id = $1",
             page_id, str(exc)[:500],
         )
-        logger.exception(f"HTML generation failed for {page_id}")
+        logger.exception("HTML generation failed for %s", page_id)
         raise HTTPException(500, f"HTML generation failed: {exc}")
