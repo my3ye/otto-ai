@@ -38,6 +38,10 @@ from ..models import (
 )
 from ..services.landing_page.research import research_business, research_competitors
 
+# Ensure Otto services are importable (used by design + agent_generator modules)
+if "/home/web3relic/otto" not in sys.path:
+    sys.path.insert(0, "/home/web3relic/otto")
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/landing-pages", tags=["landing-pages"])
 
@@ -215,8 +219,6 @@ async def _run_pipeline(page_id: UUID, business_name: str, business_url: str,
         logger.info("[pipeline:%s] Step 3: Design selection", page_id)
         await _update_status(pool, page_id, "designing")
 
-        # Import design modules (different path from memory package)
-        sys.path.insert(0, "/home/web3relic/otto")
         from services.landing_page.design import design_synthesizer
 
         # LLM picks the best design from the prompts.md catalog
@@ -751,7 +753,7 @@ async def archive_landing_page(page_id: UUID):
 # ── POST /landing-pages/{id}/generate (re-generate HTML from stored data) ───
 
 @router.post("/{page_id}/generate")
-async def generate_landing_page_html(page_id: UUID):
+async def generate_landing_page_html(page_id: UUID, _key=Depends(verify_api_key)):
     """
     Re-generate HTML for an existing landing page using the agent pipeline.
 
@@ -760,8 +762,6 @@ async def generate_landing_page_html(page_id: UUID):
 
     Requires design_decisions to be populated (run design synthesis first).
     """
-    sys.path.insert(0, "/home/web3relic/otto")
-
     pool = await get_pool()
 
     row = await pool.fetchrow(

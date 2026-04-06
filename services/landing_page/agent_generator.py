@@ -209,7 +209,8 @@ async def generate_with_agent(
     # Invoke Claude Code CLI as subprocess
     cmd = [
         "claude",
-        "--model", "claude-sonnet-4-20250514",
+        "--bare",
+        "--model", "claude-sonnet-4-6",
         "-p", prompt,
         "--max-turns", "5",
         "--allowedTools", "Write,Read,Bash",
@@ -265,9 +266,9 @@ async def generate_with_agent(
         )
 
     file_size = html_path.stat().st_size
-    if file_size < 1024:
-        log.warning("[agent:%s] HTML too small: %d bytes", page_id, file_size)
-        raise RuntimeError(f"Generated HTML too small ({file_size} bytes) — likely incomplete")
+    if file_size < 10 * 1024:
+        log.warning("[agent:%s] HTML too small: %d bytes (min 10KB)", page_id, file_size)
+        raise RuntimeError(f"Generated HTML too small ({file_size} bytes, min 10KB) — likely incomplete")
 
     preview_url = f"{BASE_URL}/{page_id}"
 
