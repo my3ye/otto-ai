@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_lp_agent_pipeline_review.md](project_lp_agent_pipeline_review.md) — LP agent pipeline (b24d828, 2026-04-06, LIVE VALIDATED): PARTIAL PASS. Pipeline works (~90s). DESIGN_34 selected, custom colors/fonts, real content. 3 remaining issues: spurious nav as cards, empty trust signals/stats, centered hero not split.
 - [project_landing_page_integration_review.md](project_landing_page_integration_review.md) — WebAssist landing page pipeline integration review (2026-04-06): NEEDS_CHANGES. 3 criticals: auth gap (all routes except /generate unauthenticated), stored XSS in generator.py body sections, copy_data never persisted (re-generate produces placeholder). API_DOCS.md written.
 - [project_openclaw_research_validation.md](project_openclaw_research_validation.md) — OpenClaw + 2026 AI harness synthesis (2026-04-05, WF Step 2): APPROVE 8.5/10. All codebase claims verified. OTel+A2A RESOLVED. 3 warnings: star count conflict (use >150K), single-source framework table, semantic/remember failed (episodic fallback).
 - [project_linkedin_otto_arch_article_review.md](project_linkedin_otto_arch_article_review.md) — LinkedIn "We've Been Building an AI OS" (45407c6d, 2026-04-05, FINAL): APPROVE 8.5/10. All criticals fixed. 8 formatting/SEO changes applied (commit 2ef0673). 3 caption variants in task c4f87d33 output. Publish-day note: replace `---` with blank lines in LinkedIn editor.
