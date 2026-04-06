@@ -17,6 +17,7 @@ logs/
 
 # Node
 node_modules/
+dist/
 
 # Derived binary data (generated, not source)
 memory/svc_components.npz
