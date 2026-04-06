@@ -197,6 +197,15 @@ DB Memory ID: da77499a | Research file: ~/otto/.claude/agent-memory/researcher/p
 - **Crawl layer (stages 3-6)**: OpenAlex + Semantic Scholar + arXiv with query expansion — better than Otto's ad-hoc WebFetch
 - **Problem**: 23-stage paper generator. Otto needs implementation signal, not papers. Requires OpenAI key.
 
+## Frontend Job Market 2026 — Senior FE + Engineering Lead (2026-04-06)
+
+File: project_frontend_job_market_2026.md
+- **SALARIES:** Senior FE median $145K–$181K base ($181K–$240K total). Engineering Lead $181K–$205K base ($220K–$300K total). FAANG senior FE: $400K–$700K+ total. Coinbase FE: $415K total. Web3 infra: $180K–$350K + token grants.
+- **SKILLS:** TypeScript + React + Next.js = non-negotiable. AI API integration (streaming UIs, MCP) = rapidly required. ethers.js/viem/wagmi = Web3 differentiator.
+- **TOP TARGETS:** Chainlink Labs + Alchemy (Web3, highest probability). Anthropic + Vercel (AI-first, highest prestige). Coinbase (61 active FE roles). xAI ($240K+ base, actively recruiting).
+- **MARKET:** Employer's market overall (5.8% tech unemployment). 90K+ cuts in 2026. BUT: scarcity premium for senior AI + Web3 specialists. Candidate leverage exists in this carve-out.
+- **MEV ANCHOR:** $200K–$280K base for Web3 infra lead. $400K+ total comp target for AI labs. Lead CV with oracle infrastructure + agent systems, not "15yr frontend."
+
 ## Decentralized Intelligence Layer Architecture (2026-03-17)
 
 Design doc: ~/otto/projects/capital/decentralized_intelligence_layer.md
