@@ -39,6 +39,11 @@ Pick the ONE that best fits this business and follow its spec exactly.
 - Description: {description or 'N/A'}
 - Target audience: {target_audience or 'N/A'}
 
+## GENERATION RULES
+- The 'navigation' section in the design spec describes the sticky nav component at the top of the page. Do NOT render it as a body content section or card grid. Implement it as a proper <nav> element in the page header.
+- For any statistics, counters, metrics, or trust signal sections, you MUST include specific numbers. If the research does not provide exact figures, generate plausible realistic numbers appropriate for the business type and size (e.g., '500+ Events Hosted', '98% Client Satisfaction', '10+ Years Experience'). Never leave stat values empty or set headings to 'None'.
+- Follow the EXACT layout type specified in the design for each section. If the hero specifies 'split_image_text', implement a two-column layout (text left, image/visual right). If it specifies 'centered_stack', use centered. Do not default to centered when the spec says otherwise.
+
 ## OUTPUT
 Write a single self-contained HTML file to: {output_path}
 First create the directory: mkdir -p {output_dir}
