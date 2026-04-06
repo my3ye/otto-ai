@@ -1,13 +1,20 @@
 """
 Landing Pages API — CRUD for generated landing page entities.
 Workflow orchestration is separate; this table tracks the product lifecycle.
+
+Research endpoints (standalone — also called by workflow steps):
+  POST /landing-pages/research/business      → research_business()
+  POST /landing-pages/research/competitors   → research_competitors()
 """
 
+import json
 import re
 import logging
+from typing import Optional
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
 from ..db import get_pool
 from ..models import (
@@ -17,6 +24,7 @@ from ..models import (
     LandingPageStatusUpdate,
     LandingPageDataUpdate,
 )
+from ..services.landing_page.research import research_business, research_competitors
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/landing-pages", tags=["landing-pages"])
@@ -49,12 +57,122 @@ async def _ensure_unique_slug(pool, slug: str) -> str:
         slug = f"{base}-{suffix}"
 
 
+def _parse_row(row) -> dict:
+    """Convert asyncpg Record to dict, parsing JSONB string fields."""
+    d = dict(row)
+    for field in ("research_data", "competitor_data", "design_decisions"):
+        if field in d and isinstance(d[field], str):
+            try:
+                d[field] = json.loads(d[field])
+            except (json.JSONDecodeError, TypeError):
+                d[field] = {}
+    return d
+
+
 def _row_to_out(row) -> LandingPageOut:
-    return LandingPageOut(**dict(row))
+    return LandingPageOut(**_parse_row(row))
 
 
 def _row_to_list_item(row) -> LandingPageListItem:
     return LandingPageListItem(**dict(row))
+
+
+# ── Research request models ───────────────────────────────────────────────────
+
+class ResearchBusinessRequest(BaseModel):
+    business_name: str
+    business_url: Optional[str] = None
+    description: Optional[str] = None
+    target_audience: Optional[str] = None
+    # If provided, update landing_pages.research_data and set status=researching
+    landing_page_id: Optional[str] = None
+
+
+class ResearchCompetitorsRequest(BaseModel):
+    business_name: str
+    target_audience: Optional[str] = None
+    description: Optional[str] = None
+    # industry hint — pass from business research result if available
+    industry: Optional[str] = None
+    # If provided, update landing_pages.competitor_data
+    landing_page_id: Optional[str] = None
+
+
+# ── Research endpoints ────────────────────────────────────────────────────────
+
+@router.post("/research/business")
+async def api_research_business(body: ResearchBusinessRequest):
+    """
+    Research a business for landing page creation.
+
+    Uses DuckDuckGo search + BeautifulSoup scraping to gather:
+    - Value proposition, tagline, products/services
+    - Tone of voice, pricing tier, brand colors
+    - Social presence, reviews/press mentions
+
+    Returns structured JSON. Optionally persists to landing_pages.research_data
+    if landing_page_id is provided.
+    """
+    pool = await get_pool()
+
+    if body.landing_page_id:
+        exists = await pool.fetchval(
+            "SELECT 1 FROM landing_pages WHERE id = $1::uuid", body.landing_page_id
+        )
+        if not exists:
+            raise HTTPException(404, "Landing page not found")
+        # Mark as researching
+        await pool.execute(
+            "UPDATE landing_pages SET status = 'researching', updated_at = now() "
+            "WHERE id = $1::uuid AND status = 'pending'",
+            body.landing_page_id,
+        )
+
+    data = await research_business(
+        business_name=body.business_name,
+        business_url=body.business_url,
+        description=body.description,
+        target_audience=body.target_audience,
+        landing_page_id=body.landing_page_id,
+        db_pool=pool if body.landing_page_id else None,
+    )
+
+    return {"success": True, "data": data}
+
+
+@router.post("/research/competitors")
+async def api_research_competitors(body: ResearchCompetitorsRequest):
+    """
+    Research competitors for landing page positioning.
+
+    Uses DuckDuckGo search + BeautifulSoup scraping to find 3-5 competitors,
+    then extracts:
+    - Visual style, messaging strategy, CTA approach
+    - Strengths and weaknesses
+    - Market trends, positioning gaps, recommended angles
+
+    Returns structured JSON. Optionally persists to landing_pages.competitor_data
+    if landing_page_id is provided.
+    """
+    pool = await get_pool()
+
+    if body.landing_page_id:
+        exists = await pool.fetchval(
+            "SELECT 1 FROM landing_pages WHERE id = $1::uuid", body.landing_page_id
+        )
+        if not exists:
+            raise HTTPException(404, "Landing page not found")
+
+    data = await research_competitors(
+        business_name=body.business_name,
+        target_audience=body.target_audience,
+        description=body.description,
+        industry=body.industry,
+        landing_page_id=body.landing_page_id,
+        db_pool=pool if body.landing_page_id else None,
+    )
+
+    return {"success": True, "data": data}
 
 
 # ── POST /landing-pages/generate ─────────────────────────────────
