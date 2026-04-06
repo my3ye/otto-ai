@@ -7,6 +7,35 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def _server_request_hook(span, scope):
+    """Enrich auto-instrumented spans with route-specific attributes.
+
+    Called by FastAPIInstrumentor for every request. Adds business context
+    to key routes: /tasks, /semantic/search, /episodic/timeline, /kernel/status.
+    """
+    if not span or not span.is_recording():
+        return
+    path = scope.get("path", "")
+    method = scope.get("method", "")
+
+    # Tag high-value routes for easier filtering in trace analysis
+    if "/tasks" in path:
+        span.set_attribute("otto.domain", "tasks")
+        span.set_attribute("otto.route_group", "task_queue")
+    elif "/semantic" in path:
+        span.set_attribute("otto.domain", "semantic_memory")
+        span.set_attribute("otto.route_group", "memory")
+    elif "/episodic" in path:
+        span.set_attribute("otto.domain", "episodic_memory")
+        span.set_attribute("otto.route_group", "memory")
+    elif "/kernel" in path:
+        span.set_attribute("otto.domain", "kernel")
+        span.set_attribute("otto.route_group", "agentos")
+    elif "/workflows" in path:
+        span.set_attribute("otto.domain", "workflows")
+        span.set_attribute("otto.route_group", "orchestration")
+
+
 def setup_telemetry(app, settings) -> bool:
     """Initialize OTel tracing. Returns True if enabled, False otherwise.
 
@@ -59,7 +88,8 @@ def setup_telemetry(app, settings) -> bool:
     FastAPIInstrumentor.instrument_app(
         app,
         tracer_provider=provider,
-        excluded_urls="health,hello,mcp-status,kernel/status",
+        excluded_urls="hello,mcp-status",
+        server_request_hook=_server_request_hook,
     )
 
     # Prune old trace files on startup

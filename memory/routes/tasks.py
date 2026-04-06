@@ -8,6 +8,7 @@ from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
+from ..tracing import get_tracer
 from pydantic import BaseModel
 from ..db import get_pool
 from ..models import TaskCreate, TaskOut, TaskComplete, TaskRunResponse, MevTaskUpdate, TaskPlanRequest, TaskPlanResponse, ApproachCandidate, TaskRouteRequest, TaskRouteResponse, PlanCacheMatch, PreflectResult, PreflectResultOut, JitRLOptimizeRequest, DecomposeRequest, HandoffRequest
@@ -757,18 +758,33 @@ async def run_task(task_id: UUID):
     task_env.setdefault("USER", "web3relic")
     task_env["PATH"] = "/home/web3relic/.local/bin:/usr/local/bin:/usr/bin:/bin"
 
-    try:
-        proc = subprocess.Popen(
-            [TASK_RUNNER, str(task_id)],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            stdin=subprocess.DEVNULL,
-            start_new_session=True,
-            env=task_env,
-        )
-        pid = proc.pid
-    except Exception as e:
-        raise HTTPException(500, f"Failed to spawn task runner: {e}")
+    # Propagate OTel trace context to child process
+    from ..tracing import inject_trace_headers
+    trace_headers = inject_trace_headers()
+    if trace_headers.get("traceparent"):
+        task_env["TRACEPARENT"] = trace_headers["traceparent"]
+
+    tracer = get_tracer("otto.tasks")
+    with tracer.start_as_current_span("tasks.spawn_runner", attributes={
+        "task.id": str(task_id),
+        "task.title": row["title"] or "",
+        "task.cli": task_cli,
+    }) as span:
+        try:
+            proc = subprocess.Popen(
+                [TASK_RUNNER, str(task_id)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+                env=task_env,
+            )
+            pid = proc.pid
+        except Exception as e:
+            span.record_exception(e)
+            raise HTTPException(500, f"Failed to spawn task runner: {e}")
+
+        span.set_attribute("task.pid", pid)
 
     await pool.execute(
         """UPDATE tasks SET status = 'running', pid = $2, started_at = now()
