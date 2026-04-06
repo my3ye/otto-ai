@@ -407,3 +407,64 @@ async def archive_landing_page(page_id: UUID):
     if not row:
         raise HTTPException(404, "Landing page not found or already archived")
     return {"id": row["id"], "slug": row["slug"], "status": "archived"}
+
+
+# ── POST /landing-pages/{id}/generate ────────────────────────────
+
+@router.post("/{page_id}/generate")
+async def generate_landing_page_html(page_id: UUID):
+    """Generate the HTML file for a landing page from stored design_decisions, research_data, copy.
+
+    Reads design_decisions, competitor_data (for copy), and research_data from the DB.
+    Calls generate_and_save() which builds the HTML and saves to /var/www/webassist/{id}/index.html.
+    Updates html_path and preview_url. Sets status='review'.
+
+    Returns: {"html_path": str, "preview_url": str, "size_bytes": int, "status": "review"}
+    """
+    import sys
+    sys.path.insert(0, "/home/web3relic/otto")
+    from ..services.landing_page.generator import generate_and_save
+
+    pool = await get_pool()
+
+    row = await pool.fetchrow(
+        "SELECT id, research_data, competitor_data, design_decisions, status FROM landing_pages WHERE id = $1",
+        page_id,
+    )
+    if not row:
+        raise HTTPException(404, "Landing page not found")
+
+    research_data = dict(row["research_data"] or {})
+    competitor_data = dict(row["competitor_data"] or {})
+    design_decisions = dict(row["design_decisions"] or {})
+
+    # copy_data lives inside design_decisions if stored there, else try competitor_data
+    copy_data = design_decisions.pop("_copy_data", None) or competitor_data.get("_copy_data") or {}
+
+    if not design_decisions:
+        raise HTTPException(422, "design_decisions is empty — run design synthesis first")
+
+    # Merge copy from research if not separately stored
+    if not copy_data:
+        copy_data = research_data.get("_copy_data", {})
+
+    try:
+        await pool.execute(
+            "UPDATE landing_pages SET status = 'generating' WHERE id = $1",
+            page_id,
+        )
+        result = await generate_and_save(
+            page_id=page_id,
+            design_decisions=design_decisions,
+            copy_data=copy_data,
+            research_data=research_data,
+            pool=pool,
+        )
+        return result
+    except Exception as exc:
+        await pool.execute(
+            "UPDATE landing_pages SET status = 'review', error_text = $2 WHERE id = $1",
+            page_id, str(exc)[:500],
+        )
+        logger.exception(f"HTML generation failed for {page_id}")
+        raise HTTPException(500, f"HTML generation failed: {exc}")
