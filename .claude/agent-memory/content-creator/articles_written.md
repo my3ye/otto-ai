@@ -456,3 +456,26 @@ type: project
 - Q1 2026 angles remaining: AI+Web3 convergence (deeper), L2 ecosystem maturation, developer credentialing shift
 - Sri Lanka: government response article (for when the proposal gets traction)
 - Sri Lanka: diaspora-specific piece (more emotional, less technical — for the WhatsApp groups)
+
+## Mev Job Search Materials — Resume Variants (2026-04-06)
+
+### Resume — Senior Frontend Engineer (e12c5b92)
+- **Content type**: note (personal document, not a published article)
+- **File**: /mnt/media/projects/mev-personal/resume-senior-frontend-engineer-2026.md
+- **DB ID**: e12c5b92-f1ee-46ba-996d-4e371f3bc132
+- **Target role**: Senior Frontend Engineer at Web3, AI lab, or high-craft product companies
+- **Key positioning**: "Infrastructure engineer who builds products" — WebAssist as showcase project, Otto as full-stack depth signal, Supra Oracles as Web3 credibility anchor
+- **ATS keywords loaded**: TypeScript, Next.js 15, React 18, Tailwind, Supabase, Vercel, Stripe, FastAPI, pgvector, Docker, systemd, Claude API, Gemini, WebSocket, VAD, WCAG 2.2, Core Web Vitals, wagmi, ethers.js
+- **Needs from Mev**: Supra Oracles dates, prior employment (2010–Supra), education, contact info
+- **Status**: draft
+
+### Resume — Engineering Lead / Tech Lead (98572a29)
+- **Content type**: note (personal document, not a published article)
+- **File**: /mnt/media/projects/mev-personal/resume-engineering-lead-2026.md
+- **DB ID**: 98572a29-59f7-40f6-ac79-fa59347ee959
+- **Target role**: Engineering Lead / Tech Lead at Web3 infra, AI product, or blockchain companies
+- **Key positioning**: Solo architect of 21-agent autonomous team = demonstrated engineering leadership depth without requiring traditional management context. Supra Oracles establishes the prior lead pedigree.
+- **Key reframe**: 21 specialist Otto sub-agents directed = engineering team led. DAG task queue = sprint/dependency management. Workflow engine = CI/CD pipeline ownership. All real, technically credible.
+- **Leadership approach section**: included — covers AI workflow leadership, architecture decision philosophy, code review as mentoring. Mev should review and adjust voice.
+- **Needs from Mev**: Supra Oracles team size, dates, specific wins; prior employment; education; contact info
+- **Status**: draft
