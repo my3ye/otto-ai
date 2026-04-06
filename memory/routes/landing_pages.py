@@ -210,36 +210,31 @@ async def _run_pipeline(page_id: UUID, business_name: str, business_url: str,
         return
 
     try:
-        # ── Step 3: Design Synthesis + Copy Generation ───────────────
+        # ── Step 3: Design Selection ────────────────────────────────
         step3_start = time.time()
-        logger.info("[pipeline:%s] Step 3: Design synthesis + copy", page_id)
+        logger.info("[pipeline:%s] Step 3: Design selection", page_id)
         await _update_status(pool, page_id, "designing")
 
         # Import design modules (different path from memory package)
         sys.path.insert(0, "/home/web3relic/otto")
-        from services.landing_page.design import design_synthesizer, copy_generator
+        from services.landing_page.design import design_synthesizer
 
-        # 3a: Design decisions
+        # LLM picks the best design from the prompts.md catalog
         design_decisions = await design_synthesizer(
             research_data=research_data,
             competitor_data=competitor_data,
         )
 
-        # 3b: Copy generation (runs in parallel conceptually, but sequential
-        # since copy depends on design decisions for section structure)
-        copy_data = await copy_generator(
-            business_data=research_data,
-            design_decisions=design_decisions,
-        )
-
-        # Persist both to DB
+        # Persist design decisions to DB
         await pool.execute(
             "UPDATE landing_pages SET design_decisions = $2::jsonb, updated_at = now() "
             "WHERE id = $1",
             page_id, json.dumps(design_decisions),
         )
 
-        logger.info("[pipeline:%s] Step 3 complete (%.1fs)", page_id, time.time() - step3_start)
+        logger.info("[pipeline:%s] Step 3 complete (%.1fs) — design=%s",
+                     page_id, time.time() - step3_start,
+                     design_decisions.get("selected_design_id", "?"))
 
     except Exception as exc:
         logger.exception("[pipeline:%s] Step 3 failed: %s", page_id, exc)
@@ -248,22 +243,22 @@ async def _run_pipeline(page_id: UUID, business_name: str, business_url: str,
         return
 
     try:
-        # ── Step 4: HTML Generation ──────────────────────────────────
+        # ── Step 4: Agent-Driven HTML Generation ─────────────────────
         step4_start = time.time()
-        logger.info("[pipeline:%s] Step 4: HTML generation", page_id)
+        logger.info("[pipeline:%s] Step 4: Agent HTML generation", page_id)
         await _update_status(pool, page_id, "generating")
 
-        from services.landing_page.generator import generate_and_save
+        from services.landing_page.agent_generator import generate_with_agent
 
-        result = await generate_and_save(
+        result = await generate_with_agent(
             page_id=page_id,
             design_decisions=design_decisions,
-            copy_data=copy_data,
             research_data=research_data,
+            competitor_data=competitor_data,
             pool=pool,
         )
 
-        # generate_and_save sets status='review', html_path, and preview_url
+        # generate_with_agent sets status='review', html_path, and preview_url
         total_time = time.time() - start
         logger.info(
             "[pipeline:%s] Pipeline complete in %.1fs — preview: %s",
@@ -271,10 +266,34 @@ async def _run_pipeline(page_id: UUID, business_name: str, business_url: str,
         )
 
     except Exception as exc:
-        logger.exception("[pipeline:%s] Step 4 failed: %s", page_id, exc)
-        await _update_status(pool, page_id, "generating",
-                             f"HTML generation failed: {exc}")
-        return
+        # Fallback: try the old template generator
+        logger.warning("[pipeline:%s] Agent failed (%s), falling back to template generator",
+                       page_id, exc)
+        try:
+            from services.landing_page.design import copy_generator
+            from services.landing_page.generator import generate_and_save
+
+            copy_data = await copy_generator(
+                business_data=research_data,
+                design_decisions=design_decisions,
+            )
+            result = await generate_and_save(
+                page_id=page_id,
+                design_decisions=design_decisions,
+                copy_data=copy_data,
+                research_data=research_data,
+                pool=pool,
+            )
+            total_time = time.time() - start
+            logger.info(
+                "[pipeline:%s] Fallback complete in %.1fs — preview: %s",
+                page_id, total_time, result.get("preview_url"),
+            )
+        except Exception as fallback_exc:
+            logger.exception("[pipeline:%s] Fallback also failed: %s", page_id, fallback_exc)
+            await _update_status(pool, page_id, "generating",
+                                 f"HTML generation failed (agent: {exc}, fallback: {fallback_exc})")
+            return
 
 
 # ── Request/Response Models ──────────────────────────────────────────────────
@@ -734,13 +753,14 @@ async def archive_landing_page(page_id: UUID):
 @router.post("/{page_id}/generate")
 async def generate_landing_page_html(page_id: UUID):
     """
-    Re-generate HTML for an existing landing page from stored design_decisions
-    and research data. Use this to regenerate after manual edits to design or copy.
+    Re-generate HTML for an existing landing page using the agent pipeline.
+
+    Uses stored design_decisions and research data. Falls back to template
+    generator if the agent fails.
 
     Requires design_decisions to be populated (run design synthesis first).
     """
     sys.path.insert(0, "/home/web3relic/otto")
-    from services.landing_page.generator import generate_and_save
 
     pool = await get_pool()
 
@@ -756,33 +776,51 @@ async def generate_landing_page_html(page_id: UUID):
     competitor_data = dict(row["competitor_data"] or {})
     design_decisions = dict(row["design_decisions"] or {})
 
-    copy_data = (design_decisions.pop("_copy_data", None)
-                 or competitor_data.get("_copy_data")
-                 or {})
-
     if not design_decisions:
         raise HTTPException(422, "design_decisions is empty — run design synthesis first")
-
-    if not copy_data:
-        copy_data = research_data.get("_copy_data", {})
 
     try:
         await pool.execute(
             "UPDATE landing_pages SET status = 'generating' WHERE id = $1",
             page_id,
         )
-        result = await generate_and_save(
+
+        # Try agent-driven generation first
+        from services.landing_page.agent_generator import generate_with_agent
+
+        result = await generate_with_agent(
             page_id=page_id,
             design_decisions=design_decisions,
-            copy_data=copy_data,
             research_data=research_data,
+            competitor_data=competitor_data,
             pool=pool,
         )
         return result
-    except Exception as exc:
-        await pool.execute(
-            "UPDATE landing_pages SET status = 'review', error_text = $2 WHERE id = $1",
-            page_id, str(exc)[:500],
-        )
-        logger.exception("HTML generation failed for %s", page_id)
-        raise HTTPException(500, f"HTML generation failed: {exc}")
+
+    except Exception as agent_exc:
+        logger.warning("Agent failed for %s (%s), trying template fallback", page_id, agent_exc)
+
+        # Fallback to old template generator
+        try:
+            from services.landing_page.design import copy_generator
+            from services.landing_page.generator import generate_and_save
+
+            copy_data = await copy_generator(
+                business_data=research_data,
+                design_decisions=design_decisions,
+            )
+            result = await generate_and_save(
+                page_id=page_id,
+                design_decisions=design_decisions,
+                copy_data=copy_data,
+                research_data=research_data,
+                pool=pool,
+            )
+            return result
+        except Exception as fallback_exc:
+            await pool.execute(
+                "UPDATE landing_pages SET status = 'review', error_text = $2 WHERE id = $1",
+                page_id, f"Agent: {agent_exc}; Fallback: {fallback_exc}"[:500],
+            )
+            logger.exception("Both agent and fallback failed for %s", page_id)
+            raise HTTPException(500, f"HTML generation failed: {fallback_exc}")

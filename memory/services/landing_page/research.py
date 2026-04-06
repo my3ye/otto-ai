@@ -383,6 +383,12 @@ async def research_business(
             result["notable_reviews_or_press"].append(f"{title}: {snippet} [{href}]")
 
     # ── Finalize ───────────────────────────────────────────────────────────────
+    # Ensure user-provided fields survive even when scraping returns nothing
+    if description and not result.get("value_proposition"):
+        result["value_proposition"] = description
+    if target_audience and not result.get("target_audience"):
+        result["target_audience"] = target_audience
+
     if not result["industry"] and description:
         result["industry"] = "business"
     if not result["differentiator"] and result["value_proposition"]:
