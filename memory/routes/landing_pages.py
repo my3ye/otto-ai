@@ -1,0 +1,291 @@
+"""
+Landing Pages API — CRUD for generated landing page entities.
+Workflow orchestration is separate; this table tracks the product lifecycle.
+"""
+
+import re
+import logging
+from uuid import UUID
+
+from fastapi import APIRouter, HTTPException, Query
+
+from ..db import get_pool
+from ..models import (
+    LandingPageCreate,
+    LandingPageOut,
+    LandingPageListItem,
+    LandingPageStatusUpdate,
+    LandingPageDataUpdate,
+)
+
+logger = logging.getLogger(__name__)
+router = APIRouter(prefix="/landing-pages", tags=["landing-pages"])
+
+VALID_STATUSES = {
+    "pending", "researching", "designing", "generating",
+    "review", "published", "archived",
+}
+
+
+def _slugify(name: str) -> str:
+    """Convert business name to URL-safe slug."""
+    slug = name.lower().strip()
+    slug = re.sub(r"[^a-z0-9\s-]", "", slug)
+    slug = re.sub(r"[\s-]+", "-", slug).strip("-")
+    return slug[:60] or "landing-page"
+
+
+async def _ensure_unique_slug(pool, slug: str) -> str:
+    """Append -2, -3, etc. if slug already exists."""
+    base = slug
+    suffix = 1
+    while True:
+        exists = await pool.fetchval(
+            "SELECT 1 FROM landing_pages WHERE slug = $1", slug
+        )
+        if not exists:
+            return slug
+        suffix += 1
+        slug = f"{base}-{suffix}"
+
+
+def _row_to_out(row) -> LandingPageOut:
+    return LandingPageOut(**dict(row))
+
+
+def _row_to_list_item(row) -> LandingPageListItem:
+    return LandingPageListItem(**dict(row))
+
+
+# ── POST /landing-pages/generate ─────────────────────────────────
+
+@router.post("/generate", status_code=201)
+async def generate_landing_page(body: LandingPageCreate):
+    """Create a landing page record. Workflow start is handled externally."""
+    pool = await get_pool()
+    slug = _slugify(body.business_name)
+    slug = await _ensure_unique_slug(pool, slug)
+
+    row = await pool.fetchrow(
+        """
+        INSERT INTO landing_pages (slug, business_name, business_url, description, target_audience)
+        VALUES ($1, $2, $3, $4, $5)
+        RETURNING *
+        """,
+        slug, body.business_name, body.business_url,
+        body.description, body.target_audience,
+    )
+    return _row_to_out(row)
+
+
+# ── GET /landing-pages ───────────────────────────────────────────
+
+@router.get("")
+async def list_landing_pages(
+    status: str | None = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+):
+    pool = await get_pool()
+    if status:
+        rows = await pool.fetch(
+            """
+            SELECT id, slug, business_name, status, preview_url, created_at, updated_at
+            FROM landing_pages
+            WHERE status = $1
+            ORDER BY created_at DESC
+            LIMIT $2 OFFSET $3
+            """,
+            status, limit, offset,
+        )
+        count = await pool.fetchval(
+            "SELECT COUNT(*) FROM landing_pages WHERE status = $1", status
+        )
+    else:
+        rows = await pool.fetch(
+            """
+            SELECT id, slug, business_name, status, preview_url, created_at, updated_at
+            FROM landing_pages
+            ORDER BY created_at DESC
+            LIMIT $1 OFFSET $2
+            """,
+            limit, offset,
+        )
+        count = await pool.fetchval("SELECT COUNT(*) FROM landing_pages")
+
+    return {
+        "count": count,
+        "landing_pages": [_row_to_list_item(r) for r in rows],
+    }
+
+
+# ── GET /landing-pages/{id} ─────────────────────────────────────
+
+@router.get("/{page_id}")
+async def get_landing_page(page_id: UUID):
+    pool = await get_pool()
+    row = await pool.fetchrow("SELECT * FROM landing_pages WHERE id = $1", page_id)
+    if not row:
+        raise HTTPException(404, "Landing page not found")
+    return _row_to_out(row)
+
+
+# ── GET /landing-pages/{id}/status ───────────────────────────────
+
+@router.get("/{page_id}/status")
+async def get_landing_page_status(page_id: UUID):
+    """Lightweight status check for polling."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        SELECT lp.id, lp.status, lp.preview_url, lp.workflow_instance_id,
+               lp.created_at, lp.updated_at
+        FROM landing_pages lp
+        WHERE lp.id = $1
+        """,
+        page_id,
+    )
+    if not row:
+        raise HTTPException(404, "Landing page not found")
+
+    result = {
+        "id": row["id"],
+        "status": row["status"],
+        "preview_url": row["preview_url"],
+        "workflow_instance_id": row["workflow_instance_id"],
+    }
+
+    # If linked to a workflow, try to get step progress
+    if row["workflow_instance_id"]:
+        wf_row = await pool.fetchrow(
+            """
+            SELECT current_step, status as wf_status
+            FROM workflow_instances
+            WHERE id = $1
+            """,
+            row["workflow_instance_id"],
+        )
+        if wf_row:
+            step_names = {
+                0: "Business Research",
+                1: "Market & Competitor Scan",
+                2: "Design Synthesis",
+                3: "HTML Generation",
+                4: "Deploy & Notify",
+            }
+            step = wf_row["current_step"] or 0
+            result["current_step"] = step
+            result["total_steps"] = 5
+            result["step_name"] = step_names.get(step, f"Step {step}")
+
+    return result
+
+
+# ── PATCH /landing-pages/{id}/status ─────────────────────────────
+
+@router.patch("/{page_id}/status")
+async def update_landing_page_status(page_id: UUID, body: LandingPageStatusUpdate):
+    if body.status not in VALID_STATUSES:
+        raise HTTPException(400, f"Invalid status. Must be one of: {VALID_STATUSES}")
+
+    pool = await get_pool()
+
+    # Build dynamic SET clause
+    sets = ["status = $2"]
+    params = [page_id, body.status]
+    idx = 3
+
+    if body.preview_url is not None:
+        sets.append(f"preview_url = ${idx}")
+        params.append(body.preview_url)
+        idx += 1
+
+    if body.error_text is not None:
+        sets.append(f"error_text = ${idx}")
+        params.append(body.error_text)
+        idx += 1
+
+    row = await pool.fetchrow(
+        f"UPDATE landing_pages SET {', '.join(sets)} WHERE id = $1 RETURNING *",
+        *params,
+    )
+    if not row:
+        raise HTTPException(404, "Landing page not found")
+    return _row_to_out(row)
+
+
+# ── PATCH /landing-pages/{id}/data ───────────────────────────────
+
+@router.patch("/{page_id}/data")
+async def update_landing_page_data(page_id: UUID, body: LandingPageDataUpdate):
+    """Update research/competitor/design JSONB fields (called by workflow steps)."""
+    pool = await get_pool()
+
+    sets = []
+    params = [page_id]
+    idx = 2
+
+    if body.research_data is not None:
+        sets.append(f"research_data = ${ idx}")
+        params.append(body.research_data)
+        idx += 1
+
+    if body.competitor_data is not None:
+        sets.append(f"competitor_data = ${idx}")
+        params.append(body.competitor_data)
+        idx += 1
+
+    if body.design_decisions is not None:
+        sets.append(f"design_decisions = ${idx}")
+        params.append(body.design_decisions)
+        idx += 1
+
+    if not sets:
+        raise HTTPException(400, "No data fields provided")
+
+    row = await pool.fetchrow(
+        f"UPDATE landing_pages SET {', '.join(sets)} WHERE id = $1 RETURNING *",
+        *params,
+    )
+    if not row:
+        raise HTTPException(404, "Landing page not found")
+    return _row_to_out(row)
+
+
+# ── PATCH /landing-pages/{id}/workflow ───────────────────────────
+
+@router.patch("/{page_id}/workflow")
+async def link_workflow(page_id: UUID, workflow_instance_id: UUID = Query(...)):
+    """Link a workflow instance to a landing page record."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        UPDATE landing_pages
+        SET workflow_instance_id = $2
+        WHERE id = $1
+        RETURNING *
+        """,
+        page_id, workflow_instance_id,
+    )
+    if not row:
+        raise HTTPException(404, "Landing page not found")
+    return _row_to_out(row)
+
+
+# ── DELETE /landing-pages/{id} ───────────────────────────────────
+
+@router.delete("/{page_id}")
+async def archive_landing_page(page_id: UUID):
+    """Soft-delete: set status to archived."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """
+        UPDATE landing_pages SET status = 'archived'
+        WHERE id = $1 AND status != 'archived'
+        RETURNING id, slug, status
+        """,
+        page_id,
+    )
+    if not row:
+        raise HTTPException(404, "Landing page not found or already archived")
+    return {"id": row["id"], "slug": row["slug"], "status": "archived"}

@@ -70,7 +70,8 @@ class SemanticMemoryOut(BaseModel):
     score: float | None = None  # similarity score for search results
     importance_score: float | None = None  # AgeMem importance weight
     summary_content: str | None = None  # HyMem: summary tier content
-    tier_used: str | None = None  # HyMem: which tier was used for retrieval (summary|detailed)
+    tier_used: str | None = None  # HyMem: which tier was used for retrieval (summary|detailed|bm25)
+    retrieval_strategies: list[str] = Field(default_factory=list)  # BM25 hybrid: which strategies found this result
 
 
 class SemanticSearchQuery(BaseModel):
@@ -81,6 +82,8 @@ class SemanticSearchQuery(BaseModel):
     # HyMem: dual-granularity retrieval options
     force_tier: str | None = Field(default=None, pattern="^(summary|detailed)$")  # force specific tier
     complexity_threshold: int = Field(default=8, ge=3, le=20)  # word count threshold for detailed tier
+    # BM25 hybrid search (OmniMem paper): set-union merge of pgvector + full-text search
+    hybrid: bool = Field(default=True, description="Enable BM25 hybrid search (set-union merge with pgvector)")
 
 
 # ── AgeMem: explicit memory management ────────────────────────────
@@ -627,10 +630,11 @@ class ARAGSearchRequest(BaseModel):
     min_importance: float | None = Field(default=None, ge=0.0, le=1.0)
     date_after: datetime | None = None
     date_before: datetime | None = None
-    # Strategy weights (default: A-RAG paper recommendation)
-    semantic_weight: float = Field(default=0.5, ge=0.0, le=1.0)
-    keyword_weight: float = Field(default=0.3, ge=0.0, le=1.0)
-    structured_weight: float = Field(default=0.2, ge=0.0, le=1.0)
+    # Strategy weights (default: A-RAG paper recommendation, adjusted for BM25)
+    semantic_weight: float = Field(default=0.4, ge=0.0, le=1.0)
+    keyword_weight: float = Field(default=0.2, ge=0.0, le=1.0)
+    bm25_weight: float = Field(default=0.25, ge=0.0, le=1.0)
+    structured_weight: float = Field(default=0.15, ge=0.0, le=1.0)
 
 
 class ARAGResult(BaseModel):
@@ -645,6 +649,7 @@ class ARAGResult(BaseModel):
     arag_score: float               # combined weighted score (0.0–1.0)
     semantic_score: float = 0.0    # normalized pgvector cosine contribution
     keyword_score: float = 0.0     # normalized pg_trgm trigram contribution
+    bm25_score: float = 0.0       # normalized BM25 full-text search contribution
     structured_score: float = 0.0  # normalized structured/importance contribution
     retrieval_strategies: list[str] = Field(default_factory=list)  # which strategies found this
 
@@ -657,6 +662,7 @@ class ARAGSearchResponse(BaseModel):
     total_candidates: int    # unique memories across all strategies before trim
     semantic_count: int      # candidates from semantic strategy
     keyword_count: int       # candidates from keyword strategy
+    bm25_count: int = 0      # candidates from BM25 full-text strategy
     structured_count: int    # candidates from structured strategy
 
 
@@ -917,6 +923,59 @@ class DecisionProposalOut(BaseModel):
 
 class DecisionProposalResolve(BaseModel):
     resolution: str                        # Mev's chosen option or free-text answer
+
+
+# ── Landing Pages ─────────────────────────────────────────────────
+
+class LandingPageCreate(BaseModel):
+    business_name: str
+    business_url: str | None = None
+    description: str | None = None
+    target_audience: str | None = None
+
+
+class LandingPageOut(BaseModel):
+    id: UUID
+    slug: str
+    business_name: str
+    business_url: str | None = None
+    description: str | None = None
+    target_audience: str | None = None
+    research_data: dict = Field(default_factory=dict)
+    competitor_data: dict = Field(default_factory=dict)
+    design_decisions: dict = Field(default_factory=dict)
+    html_path: str | None = None
+    preview_url: str | None = None
+    status: str
+    error_text: str | None = None
+    workflow_instance_id: UUID | None = None
+    created_by: str = "otto"
+    created_at: datetime
+    updated_at: datetime
+
+
+class LandingPageListItem(BaseModel):
+    """Lightweight item for list view."""
+    id: UUID
+    slug: str
+    business_name: str
+    status: str
+    preview_url: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class LandingPageStatusUpdate(BaseModel):
+    status: str
+    preview_url: str | None = None
+    error_text: str | None = None
+
+
+class LandingPageDataUpdate(BaseModel):
+    """Update research/competitor/design data from workflow steps."""
+    research_data: dict | None = None
+    competitor_data: dict | None = None
+    design_decisions: dict | None = None
 
 
 # ── WhatsApp ───────────────────────────────────────────────────────
