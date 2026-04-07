@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated_at": "2026-04-07T00:00:00.000000+00:00",
+  "updated_at": "2026-04-07T12:00:00.000000+00:00",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
     {
@@ -253,6 +253,33 @@
       "change": "Research patch: tp_sl.sl_pct 0.03 \u2192 0.025",
       "rationale": "Add allowed_wallets=['SM_10','SM_5'] to restrict publication to proven performers only (87.5% and 100% wallet win rates). Raise TP1 from 4% to 5% because SM_10's 6.08% avg PnL indicates 4% target is too conservative (only 25% of SM_10 trades hit it). Lower SL from 3% to 2.5% to maintain 1:2 risk:rew",
       "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-07T06:31:52.817953+00:00",
+      "field": "single_wallet.min_quality_score",
+      "old": 0.75,
+      "new": 0.65,
+      "change": "Research patch: single_wallet.min_quality_score 0.75 \u2192 0.65",
+      "rationale": "Current 0 signals/24h with 30 total unique signals indicates allowed_wallets whitelist (if deployed) is too restrictive at just 2 wallets, or min_quality_score=0.75 blocks 95%+ signal volume. SM_10/SM_5 combined 90% win rate with 6.08% avg PnL proves wallet-filtering improves quality; expanding to t",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-07T09:31:35.619710+00:00",
+      "field": "tp_sl.sl_pct",
+      "old": 0.025,
+      "new": 0.035,
+      "change": "Research patch: tp_sl.sl_pct 0.025 \u2192 0.035",
+      "rationale": "SL increase from 0.025 to 0.035: 80% SL hit rate vs 87.5% wallet-level win rate = lag-induced false stops on natural pullbacks. SM_10 holds through 2-3% retracements; current 2.5% SL exits before recovery. Increasing to 3.5% tolerates normal volatility without reducing win quality. Whitelist deploym",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-07T12:00:00.000000+00:00",
+      "field": "single_wallet.allowed_wallets",
+      "old": ["SM_10", "SM_5"],
+      "new": ["SM_10", "SM_5", "SM_6", "SM_3", "SM_8"],
+      "change": "Expanded allowed_wallets from 2 to 5 proven performers",
+      "rationale": "Research pipeline (2 consecutive iterations): system publishing 129 signals/24h from 100+ unvetted wallets but only 1-1-1 from proven performers. Signal-level 80% SL hit rate vs wallet-level 87.5% win rate (67.5-point gap) confirms publication lag as binding constraint. SM_10/SM_5 (87.5-100% win rate, 6.08% avg PnL) plus SM_6/SM_3/SM_8 (proven performers) form the 5-wallet allowlist. Expects signal volume drop to 5-15/24h, eliminating 80%+ low-quality noise.",
+      "source": "task_autofix"
     }
   ],
   "observation_window_minutes": 360,
@@ -266,8 +293,14 @@
     ]
   },
   "single_wallet": {
-    "allowed_wallets": ["SM_10", "SM_5"],
-    "min_quality_score": 0.75,
+    "allowed_wallets": [
+      "SM_10",
+      "SM_5",
+      "SM_6",
+      "SM_3",
+      "SM_8"
+    ],
+    "min_quality_score": 0.65,
     "min_buy_usd": 0,
     "noisy_wallets": [
       "SM_1",
@@ -293,7 +326,7 @@
     "tp1_pct": 0.05,
     "tp2_pct": 0.07,
     "tp3_pct": 0.12,
-    "sl_pct": 0.025
+    "sl_pct": 0.035
   },
   "auto_update": {
     "enabled": true,
