@@ -67,6 +67,12 @@ type: project
 - **Font fix**: CTA H2 bumped from `lg:text-4xl` → `lg:text-5xl` for consistency with Mechanism/Protocols H2s.
 - **What NOT to repeat**: watching/seeing distinction as hero frame, "Decentralized Eye" as section title, "The Core Principle" as Proof of Grit callout eyebrow.
 
+## MY3YE Landing Page — Diagnosis/Declaration/Build/Call arc (2026-04-07)
+- **DB ID**: caa61929-98ae-4988-b6c8-e1125f97fd50
+- **Angle**: 4-beat movement structure. REMOVES the 9-paragraph arc prose letter from hero. DIAGNOSIS uses "design framing" (not wound framing — "The game was designed this way. Not broken. Designed."). DECLARATION uses canonical "Power is not a lake" as H1. THE BUILD names categories not individual protocols. THE CALL uses canonical three-line build ask.
+- **What NOT to repeat**: design-framing of diagnosis (this owns it), "your contribution starts the record" kicker in CTA
+- **Status**: draft (ready for implementation)
+
 ## MY3YE Landing Page — Scroll Copy v3 (2026-03-28, per Mev directive)
 - **DB ID**: 0e1b9c85-d8b5-4de3-baa0-9e106f99ed85
 - **Commit**: 1fd6d30
