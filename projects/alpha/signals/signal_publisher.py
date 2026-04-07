@@ -104,6 +104,10 @@ SW_MIN_BUY_USD = _SW_CFG.get("min_buy_usd", 100)         # Minimum buy size for 
 # 2026-03-10: SM_10 REMOVED — confirmed 83% WR directional trader. Dust problem
 # was fixed by SW_MIN_BUY_USD=$100. SM_10 is now Tier 1 (publish immediately).
 SW_NOISY_WALLETS = set(_SW_CFG.get("noisy_wallets", ["SM_1", "SM_2", "SM_4", "SM_7"]))
+# Allowlist: if set, only signals from these wallets are published. Empty = no restriction.
+# 2026-04-07: Research pipeline confirmed SM_10 (87.5% WR) and SM_5 (100% WR) as the only
+# proven performers. Restricting to these two eliminates noise from 100+ unvetted wallets.
+SW_ALLOWED_WALLETS = set(_SW_CFG.get("allowed_wallets", []))
 
 # --- Single-wallet DexScreener filters (more permissive than convergence mode) ---
 # Convergence hunts for micro-cap pumps. Single-wallet tracks smart money broadly.
@@ -169,7 +173,7 @@ CONVERGENCE_SEEN_TTL_HOURS = 72  # Prune entries older than 72h
 # Tier 1 — proven directional traders: publish immediately
 # Tier 2 — convergence (4+ wallets): publish with convergence tag
 # Tier 3 — single unvetted wallet: log but DO NOT publish to @OttoSignals
-TIER_1_WALLETS = {"SM_10"}           # Proven 83% WR — highest confidence
+TIER_1_WALLETS = {"SM_10", "SM_5"}   # SM_10: 87.5% WR; SM_5: 100% WR — both proven performers
 MIN_PUBLISHER_QUALITY_SCORE = 50     # Gate: only publish signals scoring >= 50/100
 
 
@@ -788,6 +792,9 @@ def get_new_single_wallet_signals(state: dict) -> list[dict]:
 
         wallet = r.get("wallet", "")
         if not wallet or wallet in SW_NOISY_WALLETS:
+            continue
+        # Allowlist gate: if SW_ALLOWED_WALLETS is set, reject any wallet not in it.
+        if SW_ALLOWED_WALLETS and wallet not in SW_ALLOWED_WALLETS:
             continue
 
         # --- Wallet quality tier gate ---

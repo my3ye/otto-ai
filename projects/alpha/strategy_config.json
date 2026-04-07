@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "updated_at": "2026-04-03T18:32:04.590546+00:00",
+  "updated_at": "2026-04-07T00:00:00.000000+00:00",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
     {
@@ -136,6 +136,123 @@
       "change": "Research patch: tp_sl.tp3_pct 0.05 \u2192 0.2",
       "rationale": "Secondary change ONLY\u2014after service restart. SM_10's 6.38% avg PnL across 7 trades shows current TP targets (8%, 15%, 50%) are unrealistic: 0 TP3 hits (50% is too high), only 1 TP1 hit in 9 signals (8% is above avg), TP2 at 15% is also too high. Revised targets TP1=0.5%, TP2=1.0%, TP3=20% better ali",
       "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-03T21:31:10.630990+00:00",
+      "field": "tp_sl.tp1_pct",
+      "old": 0.005,
+      "new": 0.03,
+      "change": "Research patch: tp_sl.tp1_pct 0.005 \u2192 0.03",
+      "rationale": "SM_10's 6.38% avg PnL across 7 proven trades is the signal profile we optimize for. Current TP1 (0.5%) and TP2 (1%) are too aggressive given typical 5-10min signal publication delay; they are hit in 11% of signals (1/9 TP1, 1/9 TP2). Recalibrating to TP1=3%, TP2=6%, TP3=15% aligns targets to SM_10's",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-03T21:31:10.630990+00:00",
+      "field": "tp_sl.tp2_pct",
+      "old": 0.01,
+      "new": 0.06,
+      "change": "Research patch: tp_sl.tp2_pct 0.01 \u2192 0.06",
+      "rationale": "SM_10's 6.38% avg PnL across 7 proven trades is the signal profile we optimize for. Current TP1 (0.5%) and TP2 (1%) are too aggressive given typical 5-10min signal publication delay; they are hit in 11% of signals (1/9 TP1, 1/9 TP2). Recalibrating to TP1=3%, TP2=6%, TP3=15% aligns targets to SM_10's",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-03T21:31:10.630990+00:00",
+      "field": "tp_sl.tp3_pct",
+      "old": 0.2,
+      "new": 0.15,
+      "change": "Research patch: tp_sl.tp3_pct 0.2 \u2192 0.15",
+      "rationale": "SM_10's 6.38% avg PnL across 7 proven trades is the signal profile we optimize for. Current TP1 (0.5%) and TP2 (1%) are too aggressive given typical 5-10min signal publication delay; they are hit in 11% of signals (1/9 TP1, 1/9 TP2). Recalibrating to TP1=3%, TP2=6%, TP3=15% aligns targets to SM_10's",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-04T00:32:38.305125+00:00",
+      "field": "tp_sl.tp1_pct",
+      "old": 0.03,
+      "new": 0.025,
+      "change": "Research patch: tp_sl.tp1_pct 0.03 \u2192 0.025",
+      "rationale": "SM_10's 6.38% avg PnL across 7 wins shows TP1=3% is achievable but TP3=15% is unrealistic (>2\u00d7 average). Retuning to TP1=2.5% (aggressive entry tier), TP2=5% (near average), TP3=10% (upper bound for best-case trades) matches realized profit distribution. Current TP3=15% never hits (0/9 signals)\u2014remo",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-04T00:32:38.305125+00:00",
+      "field": "tp_sl.tp2_pct",
+      "old": 0.06,
+      "new": 0.05,
+      "change": "Research patch: tp_sl.tp2_pct 0.06 \u2192 0.05",
+      "rationale": "SM_10's 6.38% avg PnL across 7 wins shows TP1=3% is achievable but TP3=15% is unrealistic (>2\u00d7 average). Retuning to TP1=2.5% (aggressive entry tier), TP2=5% (near average), TP3=10% (upper bound for best-case trades) matches realized profit distribution. Current TP3=15% never hits (0/9 signals)\u2014remo",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-04T00:32:38.305125+00:00",
+      "field": "tp_sl.tp3_pct",
+      "old": 0.15,
+      "new": 0.1,
+      "change": "Research patch: tp_sl.tp3_pct 0.15 \u2192 0.1",
+      "rationale": "SM_10's 6.38% avg PnL across 7 wins shows TP1=3% is achievable but TP3=15% is unrealistic (>2\u00d7 average). Retuning to TP1=2.5% (aggressive entry tier), TP2=5% (near average), TP3=10% (upper bound for best-case trades) matches realized profit distribution. Current TP3=15% never hits (0/9 signals)\u2014remo",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-04T06:31:11.461985+00:00",
+      "field": "tp_sl.tp1_pct",
+      "old": 0.025,
+      "new": 0.04,
+      "change": "Research patch: tp_sl.tp1_pct 0.025 \u2192 0.04",
+      "rationale": "SM_10's 6.38% avg PnL across 7 trades proves current TP targets (2.5%/5%/10%) are misaligned to realized profit distribution. New targets set to SM_10's observable tiers: TP1=4% (conservative, below average to capture early momentum despite 5-15min publishing delay), TP2=7% (aligned to SM_10's 6.38%",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-04T06:31:11.461985+00:00",
+      "field": "tp_sl.tp2_pct",
+      "old": 0.05,
+      "new": 0.07,
+      "change": "Research patch: tp_sl.tp2_pct 0.05 \u2192 0.07",
+      "rationale": "SM_10's 6.38% avg PnL across 7 trades proves current TP targets (2.5%/5%/10%) are misaligned to realized profit distribution. New targets set to SM_10's observable tiers: TP1=4% (conservative, below average to capture early momentum despite 5-15min publishing delay), TP2=7% (aligned to SM_10's 6.38%",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-04T06:31:11.461985+00:00",
+      "field": "tp_sl.tp3_pct",
+      "old": 0.1,
+      "new": 0.12,
+      "change": "Research patch: tp_sl.tp3_pct 0.1 \u2192 0.12",
+      "rationale": "SM_10's 6.38% avg PnL across 7 trades proves current TP targets (2.5%/5%/10%) are misaligned to realized profit distribution. New targets set to SM_10's observable tiers: TP1=4% (conservative, below average to capture early momentum despite 5-15min publishing delay), TP2=7% (aligned to SM_10's 6.38%",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-04T21:31:12.116987+00:00",
+      "field": "single_wallet.min_quality_score",
+      "old": 0.55,
+      "new": 0.7,
+      "change": "Research patch: single_wallet.min_quality_score 0.55 \u2192 0.7",
+      "rationale": "Current min_quality_score: 0.55 appears to admit marginal wallets. SM_5 (100% win, 4.5% avg) and SM_10 (85.7% win, 6.38% avg) are the only wallets listed in performance stats; all others are absent or show no PnL data. Raising threshold to 0.70 will filter to only high-confidence sources and elimina",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-05T06:31:01.289424+00:00",
+      "field": "single_wallet.min_quality_score",
+      "old": 0.7,
+      "new": 0.75,
+      "change": "Research patch: single_wallet.min_quality_score 0.7 \u2192 0.75",
+      "rationale": "Current min_quality_score=0.7 has failed to reduce 343 signal/24h volume because noise comes from wallet dispersion (20+ low-quality wallets), not quality threshold tuning. Explicit allowlist ['SM_10', 'SM_5'] targets the 2 wallets with highest proven win rates (87.5% and 100%, respectively) and exp",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-06T03:32:30.619639+00:00",
+      "field": "tp_sl.tp1_pct",
+      "old": 0.04,
+      "new": 0.05,
+      "change": "Research patch: tp_sl.tp1_pct 0.04 \u2192 0.05",
+      "rationale": "Add allowed_wallets=['SM_10','SM_5'] to restrict publication to proven performers only (87.5% and 100% wallet win rates). Raise TP1 from 4% to 5% because SM_10's 6.08% avg PnL indicates 4% target is too conservative (only 25% of SM_10 trades hit it). Lower SL from 3% to 2.5% to maintain 1:2 risk:rew",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-06T03:32:30.619639+00:00",
+      "field": "tp_sl.sl_pct",
+      "old": 0.03,
+      "new": 0.025,
+      "change": "Research patch: tp_sl.sl_pct 0.03 \u2192 0.025",
+      "rationale": "Add allowed_wallets=['SM_10','SM_5'] to restrict publication to proven performers only (87.5% and 100% wallet win rates). Raise TP1 from 4% to 5% because SM_10's 6.08% avg PnL indicates 4% target is too conservative (only 25% of SM_10 trades hit it). Lower SL from 3% to 2.5% to maintain 1:2 risk:rew",
+      "source": "research_pipeline"
     }
   ],
   "observation_window_minutes": 360,
@@ -149,7 +266,8 @@
     ]
   },
   "single_wallet": {
-    "min_quality_score": 0.55,
+    "allowed_wallets": ["SM_10", "SM_5"],
+    "min_quality_score": 0.75,
     "min_buy_usd": 0,
     "noisy_wallets": [
       "SM_1",
@@ -172,10 +290,10 @@
     "min_token_age_days": 7
   },
   "tp_sl": {
-    "tp1_pct": 0.005,
-    "tp2_pct": 0.01,
-    "tp3_pct": 0.2,
-    "sl_pct": 0.03
+    "tp1_pct": 0.05,
+    "tp2_pct": 0.07,
+    "tp3_pct": 0.12,
+    "sl_pct": 0.025
   },
   "auto_update": {
     "enabled": true,

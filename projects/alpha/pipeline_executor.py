@@ -397,7 +397,8 @@ def apply_strategy_updates(metrics: dict) -> list[dict]:
 PATCHABLE_KEYS = {
     "tp_sl": {"tp1_pct", "tp2_pct", "tp3_pct", "sl_pct"},
     "single_wallet": {"min_quality_score", "min_buy_usd", "volume_spike_min",
-                       "min_market_cap", "min_liquidity", "max_pump_6h", "min_token_age_days"},
+                       "min_market_cap", "min_liquidity", "max_pump_6h", "min_token_age_days",
+                       "allowed_wallets", "noisy_wallets"},
     "quality_filters": {"min_market_cap", "max_market_cap", "min_liquidity",
                          "volume_spike_min", "max_pump_1h", "min_token_age_days"},
 }
