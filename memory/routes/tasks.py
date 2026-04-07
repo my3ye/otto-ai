@@ -1621,6 +1621,19 @@ async def stop_task(task_id: UUID):
         task_id,
     )
     log.info(f"Task {task_id} ({row['title']}) stopped (killed={killed})")
+
+    # ── Advance plan/workflow DAGs so they don't get stuck ────────
+    # stop_task() bypasses complete_task(), so we must fire the same
+    # downstream hooks here.  Without this, a plan with a stopped task
+    # never finalizes (the plan counter never increments and dependents
+    # are never skipped or unblocked).  SIGTERM from timeout or manual
+    # stop both hit this path.
+    from .workflows import check_workflow_advance
+    asyncio.create_task(check_workflow_advance(pool, task_id, "failed"))
+
+    from .task_plans import on_plan_task_complete
+    asyncio.create_task(on_plan_task_complete(pool, task_id, "failed"))
+
     return TaskOut(**dict(r))
 
 
@@ -1963,6 +1976,11 @@ async def reconcile_and_fix():
         )
         fixed_zombies += 1
         log.info(f"Reconciled zombie task {z['id']}")
+        # Advance plan/workflow DAGs — same hooks that complete_task() fires
+        from .task_plans import on_plan_task_complete
+        from .workflows import check_workflow_advance
+        asyncio.create_task(check_workflow_advance(pool, z["id"], "failed"))
+        asyncio.create_task(on_plan_task_complete(pool, z["id"], "failed"))
 
     # Fix missed callbacks: running but has exit_code
     missed = await pool.fetch(
@@ -1979,6 +1997,11 @@ async def reconcile_and_fix():
         )
         fixed_callbacks += 1
         log.info(f"Reconciled missed callback task {m['id']} → {new_status}")
+        # Advance plan/workflow DAGs for missed callbacks too
+        from .task_plans import on_plan_task_complete
+        from .workflows import check_workflow_advance
+        asyncio.create_task(check_workflow_advance(pool, m["id"], new_status))
+        asyncio.create_task(on_plan_task_complete(pool, m["id"], new_status))
 
     return {
         "fixed_zombies": fixed_zombies,

@@ -13,3 +13,4 @@
 - [dag_executor_unmet_deps.md](dag_executor_unmet_deps.md) — DAG plan tasks launched before deps complete: /tasks/{id}/run endpoint had no dependency check, heartbeat bypassed plan executor
 - [context_loss_triple_bug.md](context_loss_triple_bug.md) — Context loss triple bug: streaming handler had zero history, persistence race on rapid msgs, conversation buried in lost-in-middle zone
 - [my3ye_origin_remote_broken.md](my3ye_origin_remote_broken.md) — my3ye-web origin remote pointed to non-existent ottomev/my3ye-web; 60 commits unpushed. Fix: update origin URL to PipiAgent/my3ye-web, push
+- [dag_sigterm_plan_stuck.md](dag_sigterm_plan_stuck.md) — stop_task() and reconcile_and_fix() bypassed plan/workflow hooks, leaving plans stuck forever. Fix: fire on_plan_task_complete + check_workflow_advance in both paths.
