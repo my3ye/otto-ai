@@ -179,7 +179,8 @@ async def list_landing_pages(
     pool = await get_pool()
     if status:
         rows = await pool.fetch(
-            """SELECT id, slug, business_name, status, preview_url, created_at, updated_at
+            """SELECT id, slug, business_name, status, preview_url, project_id,
+                      created_at, updated_at
                FROM landing_pages WHERE status = $1
                ORDER BY created_at DESC LIMIT $2 OFFSET $3""",
             status, limit, offset,
@@ -187,7 +188,8 @@ async def list_landing_pages(
         count = await pool.fetchval("SELECT COUNT(*) FROM landing_pages WHERE status = $1", status)
     else:
         rows = await pool.fetch(
-            """SELECT id, slug, business_name, status, preview_url, created_at, updated_at
+            """SELECT id, slug, business_name, status, preview_url, project_id,
+                      created_at, updated_at
                FROM landing_pages ORDER BY created_at DESC LIMIT $1 OFFSET $2""",
             limit, offset,
         )
