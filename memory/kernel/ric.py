@@ -15,6 +15,7 @@ Phase 5 (POST) does not block the response — it runs in background.
 import asyncio
 import logging
 import os
+import re
 import time
 from uuid import UUID
 
@@ -179,11 +180,11 @@ async def _handle_admin_message(interrupt: dict) -> dict:
     from ..kernel.provider import provider_chat
 
     is_voice = content.startswith("[Voice]") or content.startswith("[voice]")
-    system_prompt = _build_system_prompt(context_text, channel, is_voice=is_voice)
 
     # Build proper multi-turn messages from recent conversation history
     # This gives the LLM actual user/assistant turns instead of flat text
-    messages = [{"role": "system", "content": system_prompt}]
+    history_rows_chrono = []  # chronological order for confirmed-facts extraction
+    messages_history = []     # role/content pairs for LLM multi-turn
     try:
         history_rows = await pool.fetch(
             """SELECT direction, content FROM whatsapp_messages
@@ -198,13 +199,22 @@ async def _handle_admin_message(interrupt: dict) -> dict:
                 history_rows = history_rows[1:]
             else:
                 history_rows = history_rows[:16]
-            for row in reversed(history_rows):
+            history_rows_chrono = list(reversed(history_rows))
+            for row in history_rows_chrono:
                 role = "user" if row["direction"] == "incoming" else "assistant"
-                msg_text = (row["content"] or "")[:600]
+                msg_text = (row["content"] or "")[:1000]
                 if msg_text:
-                    messages.append({"role": role, "content": msg_text})
+                    messages_history.append({"role": role, "content": msg_text})
     except Exception as e:
         log.warning(f"Failed to load conversation turns: {e}")
+
+    # Extract confirmed facts from conversation history (no LLM call — pattern match)
+    confirmed_facts = _extract_confirmed_facts(history_rows_chrono)
+
+    system_prompt = _build_system_prompt(
+        context_text, channel, is_voice=is_voice, confirmed_facts=confirmed_facts,
+    )
+    messages = [{"role": "system", "content": system_prompt}] + messages_history
 
     # Add the current message as the final user turn
     # If there's an attached document, extract its text and include it
@@ -253,7 +263,62 @@ async def _handle_admin_message(interrupt: dict) -> dict:
     }
 
 
-def _build_system_prompt(context_text: str, channel: str, is_voice: bool = False) -> str:
+# Patterns that indicate Mev confirmed/acknowledged something
+_CONFIRM_PATTERNS = re.compile(
+    r"(?:^|\. )"                                     # start or sentence boundary
+    r"(?:"
+    r"(?:I(?:'ve| have))?\s*(?:already|just)\s+"     # "I already ...", "I've just ..."
+    r"|(?:that'?s?\s+)?(?:done|sorted|handled|set up|completed|finished|deployed|fixed|live)"
+    r"|(?:yes|yeah|yep|yup|correct|confirmed|agreed|exactly|right|perfect|noted)"
+    r"|no need to\b"
+    r"|all (?:set|good|done)"
+    r"|got it"
+    r")",
+    re.IGNORECASE,
+)
+
+
+def _extract_confirmed_facts(history_rows: list) -> str:
+    """Scan recent conversation for facts Mev has confirmed or acknowledged.
+
+    Looks at user (Mev) messages that match confirmation patterns and pairs
+    them with the preceding assistant (Otto) message to identify what was
+    confirmed. Returns a formatted block for the system prompt, or empty string.
+
+    This is lightweight pattern matching — no LLM call. It catches the most
+    common cases: "I already did X", "done", "yes", "all set", etc.
+    """
+    confirmed = []
+    # history_rows are in chronological order (oldest first)
+    prev_otto_msg = ""
+    for row in history_rows:
+        if row["direction"] == "outgoing":
+            prev_otto_msg = (row["content"] or "")[:200]
+        elif row["direction"] == "incoming":
+            text = row["content"] or ""
+            if _CONFIRM_PATTERNS.search(text):
+                # Extract what was confirmed: combine Otto's prior message context + Mev's reply
+                fact = text[:200].strip()
+                if prev_otto_msg:
+                    # Take first sentence of Otto's message as the topic
+                    topic = prev_otto_msg.split(".")[0].strip()[:120]
+                    confirmed.append(f"- Mev said: \"{fact}\" (re: {topic})")
+                else:
+                    confirmed.append(f"- Mev said: \"{fact}\"")
+
+    if not confirmed:
+        return ""
+
+    # Keep only the 5 most recent confirmed facts (end of list = most recent)
+    recent = confirmed[-5:]
+    return (
+        "ESTABLISHED FACTS (Mev already confirmed these — do NOT repeat or re-explain):\n"
+        + "\n".join(recent)
+    )
+
+
+def _build_system_prompt(context_text: str, channel: str, is_voice: bool = False,
+                         confirmed_facts: str = "") -> str:
     """Build system prompt for conversational messages."""
     channel_voice = {
         "whatsapp": (
@@ -289,14 +354,21 @@ def _build_system_prompt(context_text: str, channel: str, is_voice: bool = False
             "Do not ask for clarification on obvious transcription noise — just interpret and respond."
         )
 
+    confirmed_block = f"\n\n{confirmed_facts}" if confirmed_facts else ""
+
     return (
         f"You are Otto, a persistent AI entity. You're talking to Mev (your Admin).\n\n"
         f"=== CONTEXT ===\n{context_text}\n=== END CONTEXT ===\n\n"
         f"Channel guidelines: {voice}{voice_note_guidance}\n\n"
         f"CONVERSATION CONTINUITY: The conversation history follows as user/assistant turns. "
-        f"NEVER repeat information Mev has already confirmed or acknowledged. "
-        f"If Mev said 'yes', 'done', 'I already did that', or confirmed a fact, "
-        f"treat it as established and move forward. Do not re-explain what Mev already knows.\n\n"
+        f"Read the history carefully BEFORE responding. Rules:\n"
+        f"1. NEVER repeat information Mev has already confirmed, acknowledged, or told you.\n"
+        f"2. If Mev said 'done', 'already did that', 'all set', 'yes', or confirmed a fact — "
+        f"treat it as ESTABLISHED. Do not re-explain, re-ask, or re-suggest it.\n"
+        f"3. If you asked a question and Mev answered it, do not ask again.\n"
+        f"4. If Mev corrected you, accept the correction — do not restate your original claim.\n"
+        f"5. Build on what was said, don't restart the conversation.\n"
+        f"{confirmed_block}\n\n"
         f"Be direct, warm, concise. Address Mev by name when natural."
     )
 
@@ -343,7 +415,6 @@ async def _handle_admin_message_stream(interrupt: dict):
     from ..kernel.provider import provider_chat_stream
 
     is_voice = content.startswith("[Voice]") or content.startswith("[voice]")
-    system_prompt = _build_system_prompt(context_text, channel, is_voice=is_voice)
 
     # Inject document content if present
     user_content = content
@@ -363,7 +434,8 @@ async def _handle_admin_message_stream(interrupt: dict):
     # Build proper multi-turn messages from recent conversation history
     # (mirrors _handle_admin_message — without this, streaming has zero context
     # of prior conversation, causing Otto to repeat confirmed information)
-    messages = [{"role": "system", "content": system_prompt}]
+    history_rows_chrono = []
+    messages_history = []
     try:
         history_rows = await pool.fetch(
             """SELECT direction, content FROM whatsapp_messages
@@ -378,14 +450,22 @@ async def _handle_admin_message_stream(interrupt: dict):
                 history_rows = history_rows[1:]
             else:
                 history_rows = history_rows[:16]
-            for row in reversed(history_rows):
+            history_rows_chrono = list(reversed(history_rows))
+            for row in history_rows_chrono:
                 role = "user" if row["direction"] == "incoming" else "assistant"
-                msg_text = (row["content"] or "")[:600]
+                msg_text = (row["content"] or "")[:1000]
                 if msg_text:
-                    messages.append({"role": role, "content": msg_text})
+                    messages_history.append({"role": role, "content": msg_text})
     except Exception as e:
         log.warning(f"Failed to load conversation turns (stream): {e}")
 
+    # Extract confirmed facts from conversation history (no LLM call — pattern match)
+    confirmed_facts = _extract_confirmed_facts(history_rows_chrono)
+
+    system_prompt = _build_system_prompt(
+        context_text, channel, is_voice=is_voice, confirmed_facts=confirmed_facts,
+    )
+    messages = [{"role": "system", "content": system_prompt}] + messages_history
     messages.append({"role": "user", "content": user_content})
 
     full_reply = []
