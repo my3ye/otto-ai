@@ -91,7 +91,22 @@ class GenerateRequest(BaseModel):
     business_url: Optional[str] = Field(None, max_length=500)
     description: Optional[str] = Field(None, max_length=2000)
     target_audience: Optional[str] = Field(None, max_length=500)
+    project_id: Optional[str] = Field(None, max_length=100)
     api_key: Optional[str] = Field(None, exclude=True)
+
+
+class WizardCompleteRequest(BaseModel):
+    """Payload from WebAssist wizard submission."""
+    project_id: str = Field(..., min_length=1, max_length=100)
+    name: Optional[str] = Field(None, max_length=200)
+    email: Optional[str] = Field(None, max_length=300)
+    company: str = Field(..., min_length=1, max_length=200)
+    industry: Optional[str] = Field(None, max_length=200)
+    websiteType: Optional[str] = Field(None, max_length=100)
+    websitePurpose: Optional[str] = Field(None, max_length=1000)
+    designStyle: Optional[str] = Field(None, max_length=100)
+    features: Optional[list[str]] = None
+    pagesNeeded: Optional[list[str]] = None
 
 
 class GenerateResponse(BaseModel):
@@ -124,11 +139,11 @@ async def generate_landing_page(
 
     row = await pool.fetchrow(
         """INSERT INTO landing_pages (slug, business_name, business_url, description,
-                                     target_audience, status, created_by)
-           VALUES ($1, $2, $3, $4, $5, 'pending', 'api')
+                                     target_audience, project_id, status, created_by)
+           VALUES ($1, $2, $3, $4, $5, $6, 'pending', 'api')
            RETURNING id, slug, status, preview_url""",
         slug, body.business_name, body.business_url,
-        body.description, body.target_audience,
+        body.description, body.target_audience, body.project_id,
     )
 
     page_id = row["id"]
@@ -248,6 +263,116 @@ async def archive_landing_page(page_id: UUID):
     if not row:
         raise HTTPException(404, "Landing page not found or already archived")
     return dict(row)
+
+
+# ── GET /landing-pages/by-project/{project_id} ────────────────────────────────
+
+@router.get("/by-project/{project_id}")
+async def get_landing_page_by_project(project_id: str):
+    """Lookup landing page by WebAssist project ID. Returns the most recent one."""
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """SELECT id, slug, business_name, status, preview_url, error_text,
+                  created_at, updated_at
+           FROM landing_pages
+           WHERE project_id = $1 AND status != 'archived'
+           ORDER BY created_at DESC LIMIT 1""",
+        project_id,
+    )
+    if not row:
+        raise HTTPException(404, "No landing page for this project")
+
+    progress = {"pending": 0, "generating": 50, "review": 100, "published": 100}
+    result = dict(row)
+    result["progress_percent"] = progress.get(row["status"], 0)
+    return result
+
+
+# ── POST /landing-pages/webhook/wizard-complete ──────────────────────────────
+
+@router.post("/webhook/wizard-complete", status_code=202)
+async def webhook_wizard_complete(
+    body: WizardCompleteRequest,
+    background_tasks: BackgroundTasks,
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+):
+    """Receive WebAssist wizard submission and auto-generate a landing page."""
+    configured_key = settings.landing_page_api_key
+    if configured_key:
+        if not x_api_key or x_api_key != configured_key:
+            raise HTTPException(401, "Invalid or missing API key.")
+
+    # Map wizard data to landing page fields
+    business_name = body.company
+    description_parts = []
+    if body.industry:
+        description_parts.append(f"Industry: {body.industry}")
+    if body.websitePurpose:
+        description_parts.append(f"Purpose: {body.websitePurpose}")
+    if body.features:
+        description_parts.append(f"Features: {', '.join(body.features)}")
+    if body.pagesNeeded:
+        description_parts.append(f"Pages: {', '.join(body.pagesNeeded)}")
+    if body.designStyle:
+        description_parts.append(f"Design style: {body.designStyle}")
+    description = ". ".join(description_parts) if description_parts else None
+
+    target_audience = None
+    if body.websiteType:
+        type_map = {
+            "business": "Business customers and potential clients",
+            "ecommerce": "Online shoppers",
+            "portfolio": "Potential employers and collaborators",
+            "blog": "Readers and subscribers",
+            "nonprofit": "Donors, volunteers, and community members",
+            "education": "Students and learners",
+        }
+        target_audience = type_map.get(body.websiteType, f"{body.websiteType} audience")
+
+    pool = await get_pool()
+
+    # Check if a landing page already exists for this project
+    existing = await pool.fetchval(
+        "SELECT id FROM landing_pages WHERE project_id = $1 AND status != 'archived' LIMIT 1",
+        body.project_id,
+    )
+    if existing:
+        return {
+            "id": existing,
+            "status": "already_exists",
+            "status_url": f"/landing-pages/{existing}/status",
+        }
+
+    slug = _slugify(business_name)
+    slug = await _ensure_unique_slug(pool, slug)
+
+    row = await pool.fetchrow(
+        """INSERT INTO landing_pages (slug, business_name, description,
+                                     target_audience, project_id, status, created_by)
+           VALUES ($1, $2, $3, $4, $5, 'pending', 'webassist')
+           RETURNING id, slug, status""",
+        slug, business_name, description, target_audience, body.project_id,
+    )
+
+    page_id = row["id"]
+
+    background_tasks.add_task(
+        _run_pipeline,
+        page_id=page_id,
+        business_name=business_name,
+        business_url="",
+        description=description or "",
+        target_audience=target_audience or "",
+    )
+
+    logger.info("Wizard-triggered generation for %s (project=%s, page=%s)",
+                business_name, body.project_id, page_id)
+
+    return {
+        "id": page_id,
+        "status": "pending",
+        "status_url": f"/landing-pages/{page_id}/status",
+    }
 
 
 # ── POST /landing-pages/{id}/regenerate ─────────────────────────────────────
