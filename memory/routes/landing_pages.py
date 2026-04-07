@@ -25,7 +25,7 @@ if "/home/web3relic/otto" not in sys.path:
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/landing-pages", tags=["landing-pages"])
 
-VALID_STATUSES = {"pending", "generating", "review", "published", "archived"}
+VALID_STATUSES = {"pending", "generating", "review", "published", "archived", "failed"}
 
 
 # ── Helpers ─────────────────────────────────────────────────────────────────
@@ -79,7 +79,7 @@ async def _run_pipeline(page_id: UUID, business_name: str, business_url: str,
     except Exception as exc:
         logger.exception("[pipeline:%s] Failed: %s", page_id, exc)
         await pool.execute(
-            "UPDATE landing_pages SET error_text = $2, updated_at = now() WHERE id = $1",
+            "UPDATE landing_pages SET status = 'failed', error_text = $2, updated_at = now() WHERE id = $1",
             page_id, str(exc)[:1000],
         )
 
@@ -224,7 +224,7 @@ async def get_landing_page_status(page_id: UUID):
     if not row:
         raise HTTPException(404, "Landing page not found")
 
-    progress = {"pending": 0, "generating": 50, "review": 100, "published": 100, "archived": 100}
+    progress = {"pending": 0, "generating": 50, "review": 100, "published": 100, "archived": 100, "failed": 0}
 
     return {
         "id": row["id"],
@@ -270,8 +270,16 @@ async def archive_landing_page(page_id: UUID):
 # ── GET /landing-pages/by-project/{project_id} ────────────────────────────────
 
 @router.get("/by-project/{project_id}")
-async def get_landing_page_by_project(project_id: str):
+async def get_landing_page_by_project(
+    project_id: str,
+    x_api_key: Optional[str] = Header(None, alias="X-API-Key"),
+):
     """Lookup landing page by WebAssist project ID. Returns the most recent one."""
+    configured_key = settings.landing_page_api_key
+    if configured_key:
+        if not x_api_key or x_api_key != configured_key:
+            raise HTTPException(401, "Invalid or missing API key.")
+
     pool = await get_pool()
     row = await pool.fetchrow(
         """SELECT id, slug, business_name, status, preview_url, error_text,
@@ -284,7 +292,7 @@ async def get_landing_page_by_project(project_id: str):
     if not row:
         raise HTTPException(404, "No landing page for this project")
 
-    progress = {"pending": 0, "generating": 50, "review": 100, "published": 100}
+    progress = {"pending": 0, "generating": 50, "review": 100, "published": 100, "failed": 0}
     result = dict(row)
     result["progress_percent"] = progress.get(row["status"], 0)
     return result
@@ -333,28 +341,30 @@ async def webhook_wizard_complete(
 
     pool = await get_pool()
 
-    # Check if a landing page already exists for this project
-    existing = await pool.fetchval(
-        "SELECT id FROM landing_pages WHERE project_id = $1 AND status != 'archived' LIMIT 1",
-        body.project_id,
-    )
-    if existing:
-        return {
-            "id": existing,
-            "status": "already_exists",
-            "status_url": f"/landing-pages/{existing}/status",
-        }
-
     slug = _slugify(business_name)
     slug = await _ensure_unique_slug(pool, slug)
 
-    row = await pool.fetchrow(
-        """INSERT INTO landing_pages (slug, business_name, description,
-                                     target_audience, project_id, status, created_by)
-           VALUES ($1, $2, $3, $4, $5, 'pending', 'webassist')
-           RETURNING id, slug, status""",
-        slug, business_name, description, target_audience, body.project_id,
-    )
+    # Wrap check + insert in a transaction to prevent TOCTOU race (double-click)
+    async with pool.acquire() as conn:
+        async with conn.transaction():
+            existing = await conn.fetchval(
+                "SELECT id FROM landing_pages WHERE project_id = $1 AND status != 'archived' LIMIT 1",
+                body.project_id,
+            )
+            if existing:
+                return {
+                    "id": existing,
+                    "status": "already_exists",
+                    "status_url": f"/landing-pages/{existing}/status",
+                }
+
+            row = await conn.fetchrow(
+                """INSERT INTO landing_pages (slug, business_name, description,
+                                             target_audience, project_id, status, created_by)
+                   VALUES ($1, $2, $3, $4, $5, 'pending', 'webassist')
+                   RETURNING id, slug, status""",
+                slug, business_name, description, target_audience, body.project_id,
+            )
 
     page_id = row["id"]
 
