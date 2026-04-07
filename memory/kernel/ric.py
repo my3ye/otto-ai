@@ -148,6 +148,23 @@ async def _handle_admin_message(interrupt: dict) -> dict:
     sender_name = payload.get("sender_name", "Mev")
 
     pool = await get_pool()
+    sender_id = payload.get("sender_id", "")
+
+    # ── Early-persist incoming message (without embedding) ──────────────
+    # This ensures rapid follow-up messages see prior messages in history.
+    # Embeddings are added later in Phase 5 via _hook_persist_messages.
+    # Without this, Phase 5 async persistence creates a race condition:
+    # Message B arrives before Message A's Phase 5 completes, so B's
+    # history query misses A entirely.
+    try:
+        await pool.execute(
+            """INSERT INTO whatsapp_messages
+                   (direction, content, jid, push_name, channel)
+               VALUES ('incoming', $1, $2, $3, $4)""",
+            content, sender_id, sender_name, channel,
+        )
+    except Exception as e:
+        log.warning(f"Early-persist incoming message failed: {e}")
 
     # Phase 1 — SAVE: snapshot L1 (delegated to S-MMU)
     from .smmu import get_smmu
@@ -171,10 +188,16 @@ async def _handle_admin_message(interrupt: dict) -> dict:
         history_rows = await pool.fetch(
             """SELECT direction, content FROM whatsapp_messages
                WHERE channel = $1
-               ORDER BY created_at DESC LIMIT 16""",
+               ORDER BY created_at DESC LIMIT 17""",
             channel,
         )
         if history_rows:
+            # Skip the most recent row if it's the just-early-persisted current message
+            if (history_rows[0]["direction"] == "incoming"
+                    and history_rows[0]["content"] == content):
+                history_rows = history_rows[1:]
+            else:
+                history_rows = history_rows[:16]
             for row in reversed(history_rows):
                 role = "user" if row["direction"] == "incoming" else "assistant"
                 msg_text = (row["content"] or "")[:600]
@@ -270,6 +293,10 @@ def _build_system_prompt(context_text: str, channel: str, is_voice: bool = False
         f"You are Otto, a persistent AI entity. You're talking to Mev (your Admin).\n\n"
         f"=== CONTEXT ===\n{context_text}\n=== END CONTEXT ===\n\n"
         f"Channel guidelines: {voice}{voice_note_guidance}\n\n"
+        f"CONVERSATION CONTINUITY: The conversation history follows as user/assistant turns. "
+        f"NEVER repeat information Mev has already confirmed or acknowledged. "
+        f"If Mev said 'yes', 'done', 'I already did that', or confirmed a fact, "
+        f"treat it as established and move forward. Do not re-explain what Mev already knows.\n\n"
         f"Be direct, warm, concise. Address Mev by name when natural."
     )
 
@@ -288,6 +315,20 @@ async def _handle_admin_message_stream(interrupt: dict):
     sender_name = payload.get("sender_name", "Mev")
 
     pool = await get_pool()
+    sender_id = payload.get("sender_id", "")
+
+    # ── Early-persist incoming message (without embedding) ──────────────
+    # Same as non-streaming handler: prevents race condition where rapid
+    # messages miss prior history because Phase 5 hasn't persisted yet.
+    try:
+        await pool.execute(
+            """INSERT INTO whatsapp_messages
+                   (direction, content, jid, push_name, channel)
+               VALUES ('incoming', $1, $2, $3, $4)""",
+            content, sender_id, sender_name, channel,
+        )
+    except Exception as e:
+        log.warning(f"Early-persist incoming message failed (stream): {e}")
 
     # Phase 1 — SAVE
     from .smmu import get_smmu
@@ -319,10 +360,33 @@ async def _handle_admin_message_stream(interrupt: dict):
                 f"--- End of Document ---"
             )
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": user_content},
-    ]
+    # Build proper multi-turn messages from recent conversation history
+    # (mirrors _handle_admin_message — without this, streaming has zero context
+    # of prior conversation, causing Otto to repeat confirmed information)
+    messages = [{"role": "system", "content": system_prompt}]
+    try:
+        history_rows = await pool.fetch(
+            """SELECT direction, content FROM whatsapp_messages
+               WHERE channel = $1
+               ORDER BY created_at DESC LIMIT 17""",
+            channel,
+        )
+        if history_rows:
+            # Skip the most recent row if it's the just-early-persisted current message
+            if (history_rows[0]["direction"] == "incoming"
+                    and history_rows[0]["content"] == content):
+                history_rows = history_rows[1:]
+            else:
+                history_rows = history_rows[:16]
+            for row in reversed(history_rows):
+                role = "user" if row["direction"] == "incoming" else "assistant"
+                msg_text = (row["content"] or "")[:600]
+                if msg_text:
+                    messages.append({"role": role, "content": msg_text})
+    except Exception as e:
+        log.warning(f"Failed to load conversation turns (stream): {e}")
+
+    messages.append({"role": "user", "content": user_content})
 
     full_reply = []
     async for chunk in provider_chat_stream(

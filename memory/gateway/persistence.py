@@ -154,21 +154,45 @@ async def log_conversation(pool, channel: str, user_message: str, reply: str, ma
 
 async def persist_messages(pool, channel: str, sender_id: str, sender_name: str | None,
                            user_message: str, reply: str, episode_id, match=None):
-    """Persist incoming + outgoing messages with embeddings."""
+    """Persist outgoing reply + backfill embedding on the early-persisted incoming message.
+
+    The incoming message is now persisted early (before LLM call) in ric.py
+    to prevent the race condition where rapid follow-up messages miss prior
+    history. This Phase 5 hook:
+    1. Backfills the embedding on the already-persisted incoming message
+    2. Persists the outgoing reply with embedding
+    """
     try:
         matched_q_id = match["question"]["id"] if match else None
 
+        # Backfill embedding + metadata on the early-persisted incoming message
         in_embedding = await get_embedding(user_message)
         in_embed_str = "[" + ",".join(str(x) for x in in_embedding) + "]"
-        await pool.execute(
-            """INSERT INTO whatsapp_messages
-                   (direction, content, jid, push_name, embedding,
-                    matched_pending_question_id, episodic_event_id, channel)
-               VALUES ('incoming', $1, $2, $3, $4::halfvec, $5, $6, $7)""",
-            user_message, sender_id, sender_name,
-            in_embed_str, matched_q_id, episode_id, channel,
+        updated = await pool.execute(
+            """UPDATE whatsapp_messages
+               SET embedding = $1::halfvec,
+                   matched_pending_question_id = $2,
+                   episodic_event_id = $3
+               WHERE id = (
+                   SELECT id FROM whatsapp_messages
+                   WHERE direction = 'incoming' AND content = $4 AND channel = $5
+                     AND embedding IS NULL
+                   ORDER BY created_at DESC LIMIT 1
+               )""",
+            in_embed_str, matched_q_id, episode_id, user_message, channel,
         )
+        # Fallback: if UPDATE matched nothing (edge case), INSERT as before
+        if updated and "UPDATE 0" in str(updated):
+            await pool.execute(
+                """INSERT INTO whatsapp_messages
+                       (direction, content, jid, push_name, embedding,
+                        matched_pending_question_id, episodic_event_id, channel)
+                   VALUES ('incoming', $1, $2, $3, $4::halfvec, $5, $6, $7)""",
+                user_message, sender_id, sender_name,
+                in_embed_str, matched_q_id, episode_id, channel,
+            )
 
+        # Persist the outgoing reply
         out_embedding = await get_embedding(reply)
         out_embed_str = "[" + ",".join(str(x) for x in out_embedding) + "]"
         await pool.execute(
