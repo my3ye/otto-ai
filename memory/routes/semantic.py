@@ -481,15 +481,27 @@ async def remember(req: SemanticMemoryCreate):
     # Mutate the request category field for downstream use
     req = req.model_copy(update={"category": cat})
 
-    embedding = await get_embedding(req.content)
-    embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+    # Generate embedding — gracefully degrade if OpenAI API is unavailable
+    embedding = None
+    embedding_str = None
+    _embedding_failed = False
+    try:
+        embedding = await get_embedding(req.content)
+        embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+    except Exception as e:
+        _embedding_failed = True
+        logger.warning(f"Embedding generation failed (storing without vector): {e}")
 
     pool = await get_pool()
 
     # AgeMem: compute importance score and check for near-duplicates
-    importance, duplicate_id = await _compute_importance(
-        pool, req.category, embedding_str, override=req.importance_score
-    )
+    # (requires embedding — skip dedup check if embedding unavailable)
+    importance = req.importance_score if req.importance_score is not None else 0.5
+    duplicate_id = None
+    if embedding_str is not None:
+        importance, duplicate_id = await _compute_importance(
+            pool, req.category, embedding_str, override=req.importance_score
+        )
 
     if duplicate_id is not None:
         # Near-duplicate exists — update its importance to the max, return existing
@@ -506,24 +518,32 @@ async def remember(req: SemanticMemoryCreate):
         )
         return SemanticMemoryOut(**{**dict(row), "importance_score": importance, "tier_used": None})
 
-    # BMAM: compute salience score before insert
-    salience = await _compute_salience(pool, importance, embedding)
+    # BMAM: compute salience score before insert (requires embedding — use default if unavailable)
+    salience = 0.5
+    if embedding is not None:
+        salience = await _compute_salience(pool, importance, embedding)
 
     # HyMem: Generate summary for dual-granularity storage
     summary_content = SummaryGenerator.generate(req.content, req.category)
     summary_embedding_str = None
-    
-    # Only generate summary embedding if summary differs from content
-    if summary_content != req.content:
-        summary_embedding = await get_embedding(summary_content)
-        summary_embedding_str = "[" + ",".join(str(x) for x in summary_embedding) + "]"
+
+    # Only generate summary embedding if summary differs from content AND embedding API is working
+    if summary_content != req.content and not _embedding_failed:
+        try:
+            summary_embedding = await get_embedding(summary_content)
+            summary_embedding_str = "[" + ",".join(str(x) for x in summary_embedding) + "]"
+        except Exception as e:
+            logger.warning(f"Summary embedding failed (non-fatal): {e}")
 
     row = await pool.fetchrow(
         """INSERT INTO semantic_memories
                (content, category, confidence, source, embedding, embedding_hv, metadata,
                 importance_score, ttl_days, salience_score,
                 summary_content, summary_embedding, summary_embedding_hv)
-           VALUES ($1, $2, $3, $4, $5::text::vector, $5::text::halfvec(1536), $6, $7, $8, $9, $10,
+           VALUES ($1, $2, $3, $4,
+                   CASE WHEN ($5::text) IS NOT NULL THEN ($5::text)::vector ELSE NULL END,
+                   CASE WHEN ($5::text) IS NOT NULL THEN ($5::text)::halfvec(1536) ELSE NULL END,
+                   $6, $7, $8, $9, $10,
                    CASE WHEN ($11::text) IS NOT NULL THEN ($11::text)::vector ELSE NULL END,
                    CASE WHEN ($11::text) IS NOT NULL THEN ($11::text)::halfvec(1536) ELSE NULL END)
            RETURNING id, content, category, confidence, source, created_at, importance_score, summary_content""",
@@ -531,27 +551,34 @@ async def remember(req: SemanticMemoryCreate):
         embedding_str, req.metadata, importance, req.ttl_days, salience,
         summary_content, summary_embedding_str,
     )
-    logger.info(
-        f"AgeMem+BMAM+HyMem: stored memory {row['id']} category={req.category} "
-        f"importance={importance:.3f} salience={salience:.3f} summary_len={len(summary_content)}"
-    )
+    if _embedding_failed:
+        logger.warning(
+            f"Stored memory {row['id']} WITHOUT embedding (category={req.category}) — "
+            f"record saved for text-based lookup, vector search unavailable until embeddings restored"
+        )
+    else:
+        logger.info(
+            f"AgeMem+BMAM+HyMem: stored memory {row['id']} category={req.category} "
+            f"importance={importance:.3f} salience={salience:.3f} summary_len={len(summary_content)}"
+        )
 
-    # A-Mem: auto-link new memory to similar existing memories
+    # A-Mem: auto-link new memory to similar existing memories (requires embedding)
     new_id = row["id"]
-    try:
-        n_links = await _amem_create_links(pool, new_id, embedding_str)
-        if n_links:
-            logger.info(f"A-Mem: created {n_links} bidirectional links for memory {new_id}")
-    except Exception as e:
-        logger.warning(f"A-Mem linking failed (non-fatal): {e}")
+    if embedding_str is not None:
+        try:
+            n_links = await _amem_create_links(pool, new_id, embedding_str)
+            if n_links:
+                logger.info(f"A-Mem: created {n_links} bidirectional links for memory {new_id}")
+        except Exception as e:
+            logger.warning(f"A-Mem linking failed (non-fatal): {e}")
 
-    # A-MEM cross-linking: boost salience of strongly related existing memories
-    try:
-        n_updated = await _amem_update_related(pool, new_id, req.content, embedding)
-        if n_updated:
-            logger.info(f"A-MEM cross-link: boosted {n_updated} related memories for {new_id}")
-    except Exception as e:
-        logger.warning(f"A-MEM cross-link update failed (non-fatal): {e}")
+        # A-MEM cross-linking: boost salience of strongly related existing memories
+        try:
+            n_updated = await _amem_update_related(pool, new_id, req.content, embedding)
+            if n_updated:
+                logger.info(f"A-MEM cross-link: boosted {n_updated} related memories for {new_id}")
+        except Exception as e:
+            logger.warning(f"A-MEM cross-link update failed (non-fatal): {e}")
 
     return SemanticMemoryOut(**dict(row))
 
@@ -765,7 +792,11 @@ async def _hymem_search(
     """Internal HyMem dual-granularity search implementation."""
 
     # Embed query first — embedding is always $1 to avoid param index shifting
-    query_embedding = await get_embedding(req.query)
+    try:
+        query_embedding = await get_embedding(req.query)
+    except Exception as e:
+        logger.warning(f"HyMem search: embedding failed, returning empty vector results: {e}")
+        return []
     embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
 
     # Build dynamic WHERE clause — exclude archived and soft-deleted
@@ -916,7 +947,11 @@ async def _amem_expand_links(pool, memory_ids: list) -> list[SemanticMemoryOut]:
 async def search_with_links(req: SemanticSearchQuery) -> dict:
     """Search with A-Mem associative expansion. Returns primary results AND
     1-hop linked context as a separate field. Does not modify primary result format."""
-    query_embedding = await get_embedding(req.query)
+    try:
+        query_embedding = await get_embedding(req.query)
+    except Exception as e:
+        logger.warning(f"search/linked: embedding failed, returning empty: {e}")
+        return {"results": [], "linked": [], "warning": "Embedding API unavailable"}
     embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
 
     pool = await get_pool()
