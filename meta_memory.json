@@ -1,139 +1,138 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-03-29T04:09:44.726903Z",
+  "last_updated": "2026-04-07T04:05:47.159885Z",
   "rl2f_trend": {
-    "last_7d_accuracy": 0.36,
+    "last_7d_accuracy": 0.56,
     "direction": "stable",
-    "cycles_since_improvement": 58,
+    "cycles_since_improvement": 4,
     "last_improvement_date": null,
     "historical": [
       {
-        "date": "2026-03-26",
-        "accuracy": 0.22
+        "date": "2026-04-05",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-26",
-        "accuracy": 0.22
+        "date": "2026-04-05",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-26",
-        "accuracy": 0.22
+        "date": "2026-04-05",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-26",
-        "accuracy": 0.22
+        "date": "2026-04-05",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-26",
-        "accuracy": 0.22
+        "date": "2026-04-05",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-26",
-        "accuracy": 0.22
+        "date": "2026-04-05",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-26",
-        "accuracy": 0.24
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-26",
-        "accuracy": 0.26
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.26
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.28
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.28
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.28
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.28
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.3
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.32
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.32
+        "date": "2026-04-05",
+        "accuracy": 0.58
       },
       {
-        "date": "2026-03-27",
-        "accuracy": 0.32
+        "date": "2026-04-05",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.32
+        "date": "2026-04-06",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.34
+        "date": "2026-04-06",
+        "accuracy": 0.54
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.36
+        "date": "2026-04-06",
+        "accuracy": 0.52
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.38
+        "date": "2026-04-06",
+        "accuracy": 0.52
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.4
+        "date": "2026-04-06",
+        "accuracy": 0.54
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.4
+        "date": "2026-04-06",
+        "accuracy": 0.54
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.4
+        "date": "2026-04-06",
+        "accuracy": 0.54
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.38
+        "date": "2026-04-06",
+        "accuracy": 0.54
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.38
+        "date": "2026-04-06",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-28",
-        "accuracy": 0.38
+        "date": "2026-04-06",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-29",
-        "accuracy": 0.38
+        "date": "2026-04-06",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-29",
-        "accuracy": 0.36
+        "date": "2026-04-07",
+        "accuracy": 0.56
       },
       {
-        "date": "2026-03-29",
-        "accuracy": 0.36
+        "date": "2026-04-07",
+        "accuracy": 0.56
       }
     ]
   },
   "autoevolve_state": {
-    "generation": 3,
-    "active_experiment_id": null,
-    "last_experiment_date": null,
-    "experiments_this_generation": 1,
+    "generation": 7,
+    "active_experiment_id": "6e39d0ae-b6f2-4fab-a261-badb3a8c3686",
+    "experiments_this_generation": 0,
     "outcomes": {
       "keep": 0,
       "discard": 0
