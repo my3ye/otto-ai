@@ -286,6 +286,18 @@ type: project
 - **What NOT to repeat**: 3-phase sequencing with exact milestone tables, RaaS framing as institutional preference, Lemnos as P0, Kembara as Phase 3, "Capital cannot make this real. Contribution does." kicker sentiment
 - **Critical unknowns documented**: EIC Sri Lanka eligibility (unverified), EIB geographic mandate (unverified)
 
+## LinkedIn Profile Bio (Job Market Positioning)
+
+### LinkedIn Profile Bio — Mev (EM / Senior FE / AI Consulting) ← NEW 2026-04-08
+- **DB ID**: 5af8bf90-7e10-42c6-ae08-9bb7f8e4ac70
+- **Content type**: note (LinkedIn About section copy)
+- **Angle covered**: Three-audience positioning (EM / Senior FE / AI Readiness Consultant). Jobs-first structure: track record → current work (Ottolabs/Otto/WebAssist) → skills bullets → open-to signal → MY3YE mission closer
+- **Voice**: LinkedIn practitioner voice (NOT ecosystem voice) — first-person Mev, short paragraphs, no river metaphor, no ecosystem brand lines
+- **Status**: draft — Mev review/publish
+- **Word count**: 318
+- **Constraint applied**: Revenue claim softened (Stripe-pending) — "live, operational, running without daily intervention" not "generates revenue"
+- **What NOT to repeat**: jobs-first → proof → open-to structure with Ottolabs/Otto/WebAssist as proof points; MY3YE as mission closer framing
+
 ## Campaign Reference Documents
 
 ### Campaign Messaging Bible — Open System vs Empire ← NEW 2026-03-28
