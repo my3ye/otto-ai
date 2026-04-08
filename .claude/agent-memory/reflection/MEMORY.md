@@ -1,50 +1,58 @@
 # Reflection Agent Memory
 
-## System Baselines (updated 2026-03-29 cycle 445)
-- Memory: Evolve healthy (2483 decay, 3 facts, 0 dupes). GLOVE: 0/15 clean.
-- Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Docker: postgres, neo4j, graphiti.
-- Disk: 44% boot. RAM: 4.3GB/15GB. Queue ACTIVE (3 running, 5 pending).
-- Queue: 3 running (contributor compensation contracts), 1 Otto-owned pending (Solidity), 4 Mev-owned pending, 1 unreviewed.
-- RL2F accuracy: 36% (18/50) — STABLE. 58 cycles without improvement.
-- **AutoEvolve**: Gen 4, experiment ac43fbb0 ACTIVE (activated from proposed state in cycle 445 via DB) — tracking RL2F prediction fix.
-- Workflows: feature-dev v9 (0.82), content-publishing v17 (0.83), social-content v5 (0.80), research-pipeline v11 (0.79).
-- Agents: Researcher 334L, coder 81L, reviewer 76L, architect 34L, content-creator 13L, debugger 12L.
-- **API pagination gotcha**: Session hook `/tasks?reviewed=false` returns max 20 — always use `limit=50` to get true count.
+## System Baselines (updated 2026-04-08 cycle 559)
+- **CRITICAL: OpenAI API QUOTA EXCEEDED** since Apr 1 (~32 days). semantic/remember fails. Evolve timeouts. Mev confirmed no funding.
+- **CRITICAL: Zoho email DOWN** — trial expired. admin@otto.lk non-functional. Mev confirmed no funding.
+- **BM25 HYBRID SEARCH: DEPLOYED & VERIFIED** (cycle 532). Uses PostgreSQL full-text search + pg_trgm. Does NOT need OpenAI.
+- **Memory functional**: Evolve timing out (OpenAI quota for embeddings). GLOVE: returned empty this cycle (Kimi may be unavailable). 19 null-embedding memories persist (fix task 227555af unreviewed).
+- **Memory stats (cycle 559)**: **1488 active, 16 categories.** Infra: 423, Research: 388, Observation: 224, Project: 159, Directive: 67, Decision: 57, Mission: 55, Capability: 39. 0 text-level duplicates. Natural decay from 1489 (1 memory).
+- Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Disk: 47% boot. RAM: 8.7Gi available.
+- Queue: 1 running (db10b063 LinkedIn WF), 8 Mev pending, 4 unreviewed completed.
+- RL2F accuracy: **active-only 58% w=50** (29/50 matched). meta_memory: **stable** (0.58→0.58), cycles_since_improvement=3. Plateau confirmed 4+ cycles.
+- **Anomaly detector false-positive**: Sync pulse 17x/6h matches scheduled cadence — NOT a loop bug.
+- **AutoEvolve**: Gen 7. 0 experiments. Deferred until active work resumes.
+- **Procedures**: 69 exist, 51 actively used. 18 zero-use procedures are cleanup candidates (age 4c).
+- **WF notify step bug**: ALL 8 workflow templates have EMPTY notify step prompts (age 27 cycles).
+- **Kernel routing issue (NEW cycle 559)**: Mev said "Don't deploy a task" at 02:57 UTC, kernel responded inline ✓, but follow-up at 03:00 triggered WF task db10b063. "No task" context not carried across messages.
+- **Context loss recurring (Apr 7)**: Mev complained "How do you not have context of that, that was just 3 messages before." Goldfish fix (Mar) helped but didn't eliminate.
+- **Agent perf**: 100% success across all agent types (last 30 completed tasks).
+- **TODO next cycle**: (1) Review 4 unreviewed tasks (priority: 227555af null-embed fix). (2) Investigate kernel routing — "don't deploy" directive not carried across messages. (3) When OpenAI restored: re-embed 19 null-vector memories, run full evolve+dedup. (4) Review 18 zero-use procedures — archive or retire (age 4c). (5) Context loss investigation (recurring Mev complaints).
 
 ## Known Gaps (persistent)
-- **RL2F accuracy: 36% (18/50) STABLE** — stalled 57 cycles. ROOT CAUSE IDENTIFIED (cycle 444): All 5/5 recent predictions violate normative principle by including Mev-timing predictions ("IF Mev responds within 6h"). Self-patch applied to heartbeat.md — hard ban on Mev mentions in EXPECTED field. AutoEvolve Gen 4 experiment ac43fbb0 tracking. Expected: accuracy should rise toward 50%+ within 10 cycles IF orchestrator follows the new instruction.
-- **Crashed-at-line-1 failures (NEW cycle 428)**: 5 failures across blockchain-security-auditor, reviewer, coder, content-creator. Not agent-specific — task_runner.sh issue. Needs debugger investigation. Priority: HIGH (25% failure rate).
-- **AutoEvolve template contamination (FIXED cycle 408)**: content-publishing-pipeline v9 had hardcoded project-specific guard. SYSTEMIC: AutoEvolve needs validation that mutations don't inject project-specific references into generic templates.
-- **Annotation WF paused at step 1**: Part of on-chain annotation plan (5/7 done, 2 failed). Needs retry when slots free.
-- **v1 workflow templates untested (dormant)**: 4 templates (outbound-sales, smart-contract, grant-application, product-sprint). Accepted as dormant — will be tested when relevant work arrives.
-- **Zombie task gap (FIXED cycle 323)**: trap handler added. Secondary fix (|| true guards on git commands) still pending.
-- **LLM fallback chain**: Kimi->OpenAI->Claude CLI. Working since cycle 93.
-- **Agent swarm**: 6 agents have memory (researcher 266L, coder 81L, reviewer 54L, architect 27L, content-creator 13L, debugger 10L). All healthy.
-- **Eval baseline**: No eval runs exist. Deferred until active work cycle.
-- **Self-patch mechanism gap**: heartbeat.md has no step to check/apply pending self-patches. Reflection applied patch directly this cycle as workaround.
-- **Plan DAG executor bug (NEW cycle 445)**: Tasks in plan 9a40a60f launched with unmet dependencies. Security audit (fba08c82) ran while Solidity contracts (866f1984) were still pending. Reviewer (d6a45578) launched with 2/3 deps unmet, then FAILED. Suspected root cause: race in create_plan_with_tasks() or alternative launch path. Stored as semantic memory + normative principle. Needs P7 debugger task.
+- **OpenAI quota exceeded (cycle 479+)**: `insufficient_quota` error, still down as of cycle 499 (Apr 4). Mev confirmed no funding. When restored: run full evolve + dedup cycle.
+- **Semantic memory bloat (RESOLVED cycle 480)**: Archived 2,304 floor-relevance memories via DB-level archival. 4,420→2,116 active. No longer critical.
+- **Claude Code quota exhaustion (cycle 480)**: All heartbeats/reflections failed Apr 1 13:03 → Apr 3 12:30 (48h). Future risk: if quota is exhausted again, same 24h+ blackout.
+- **RL2F accuracy: active-only 58% w=50 (cycle 558)** — plateau confirmed at 58% across 3+ cycles (not window noise). Up from 56% (cycle 556). 78% all-entries confirms idle inflation gap (ALWAYS use `?active_only=true`). AE gen 7. Next improvement likely requires active work (new reasoning entries) or system changes.
+- **OpenAI silent degradation (CONFIRMED cycle 482)**: 20 null-embedding memories found. When restored: (1) re-embed, (2) full dedup. GLOVE accuracy unaffected (uses Kimi, not OpenAI).
+- **Crashed-at-line-1 failures (cycle 428)**: 5 failures across agents. task_runner.sh issue. Needs debugger investigation. Priority: HIGH (25% failure rate). Not seen recently — may be stale.
+- **AutoEvolve template contamination (FIXED cycle 408)**: Always verify after AutoEvolve runs.
+- **Self-patch mechanism gap**: heartbeat.md has no step to check/apply pending self-patches. Reflection applies directly as workaround.
+- **Plan DAG executor bug (FIXED cycle 447, SIGTERM variant FIXED cycle 551)**: Original DAG execution fixed cycle 447. SIGTERM variant (stop_task/reconcile_and_fix missing hooks) fixed cycle 551 via task 822a11b2. Commit 2a95fce.
+- **Trust score EMA divergence (FIXED cycle 551)**: Burst failures during outages caused compound EMA decay (95% success rate → 0.35 trust). Fix: recalibration guard in procedural.py blends toward actual rate when divergence >0.3. 4 procs corrected. Monitor threshold.
 
 ## Recurring Patterns
+- **Claude Code quota exhaustion kills workflow steps** — step fails with "out of extra usage · resets [time]", coordinator task becomes zombie (no PID, running indefinitely). Principle created: don't retry until after stated reset time.
 - System enters idle holds when awaiting Mev. This is correct behavior per budget discipline directive.
 - Open proposals typically take 12-48h for Mev response. Nudge threshold: >24h.
-- Memory evolve pipeline RESTORED (cycle 93, OpenAI fallback). GLOVE over-flagging FIXED (cycle 94). Both working correctly.
+- Memory evolve pipeline working. GLOVE working correctly.
 - Handoff timestamps from orchestrator/reflection can be days old if system is idle — normal.
 - **AutoEvolve mutations can contaminate generic templates** — always verify after AutoEvolve runs.
-- **Reflection can and should apply patches directly** when orchestrator doesn't pick them up within 1 cycle — proven in cycle 428.
+- **Reflection can and should apply patches directly** when orchestrator doesn't pick them up within 1 cycle.
 
 ## Anti-Patterns to Watch
 - **Double decay**: NEVER apply manual relevance_score decay on top of evolve endpoint's 0.99x.
 - **Stale blockers**: If a blocker appears 2+ cycles without progress, verify via API.
 - **Task creation during rate limit**: Respect rate limit alerts. Memory consolidation only.
-- **Empty TraceMem narratives**: Episodic consolidation sometimes creates empty summaries. Archive when found.
-- **False observation propagation**: Always verify field names against the actual model before reporting. False alarms propagate indefinitely through persistent memory.
+- **RL2F metric confusion**: ALWAYS use `?active_only=true`. The all-entry metric inflates by idle matches.
+- **RL2F idle inflation**: During extended idle holds, RL2F accuracy improves because "idle hold" predictions trivially match. This is NOT real reasoning improvement — must re-baseline when active work resumes.
+- **Task timeline assumption**: When checking if a validation task is "redundant," always verify task timestamps against commit dates. A validation that ran BEFORE a fix is NOT the same as validating the fix. Compare task.created_at vs git log dates.
+- **Procedure use_count diagnostic bug (RESOLVED cycle 547)**: ProcedureOut model has NO `use_count` field. Usage is tracked via `success_count` + `failure_count`. Checking `use_count` always returns 0. This caused a false 4-cycle carry-forward of "0 uses" alarm.
+- **RL2F trend label confusion (RESOLVED cycle 537)**: The API trend label compares 50-entry current window vs prior 50-entry window. "improving" means current > prior + 5pp. It does NOT track cycle-over-cycle changes. For short-term monitoring, use meta_memory.json rl2f_trend.direction (uses 0.02 threshold on consecutive readings). Do NOT re-flag the API label as a bug.
 
 ## Priority Context
-- P10 WebAssist: LIVE at webassist.ink. BLOCKER: Stripe/Wise keys needed from Mev.
-- P9 Management System: LIVE at mev.otto.lk
+- P10 WebAssist: LIVE at webassist.ink. Stripe payment flow VALIDATED READY (task b0eaddc5 Apr 5). Only Mev live keys block revenue.
+- P9 Management System: LIVE at mev.otto.lk. Push to ottomev/otto-ui COMPLETED.
 - P8 Broadcast System: MVP complete, awaiting Mev credentials
-- Current emphasis: Ship over perfection, budget discipline, ACTIVE EXECUTION
-- **Directive burst (Mar 27-29)**: 50+ tasks completed across governance, annotation, Sri Lanka movement, DPC Dashboard, articles. All done.
-- **QA external repo blind spot**: Tasks modifying /mnt/media/projects/* get QA auto-approved. Must verify manually.
-- All tasks reviewed+approved (prior to this cycle). Queue now active with salary contract plan.
-- **Mev directive (Mar 29)**: Salary contract — 9k/month from treasury reserve, capped, for all contributors. Plan created (5 tasks), executing with DAG issues.
+- Current emphasis: Ship over perfection, budget discipline. All Mev-blocked.
+- **Mev directive (Apr 4)**: No funding for OpenAI/Zoho. OMS repo = ottomev/otto-ui. Stripe confirmed in WebAssist.
+- 5 LinkedIn consulting articles in content DB. Awaiting Mev response on whether to publish.
