@@ -159,7 +159,9 @@ FILTER_MIN_TOKEN_AGE_DAYS = _QF_CFG.get("min_token_age_days", 7)
 FILTER_MAX_VOL_LIQ_RATIO = 20.0      # 24h_vol / liquidity cap (wash-trade guard)
 
 # --- Quality gate: max signals per day ---
-MAX_SIGNALS_PER_DAY = 3
+# 2026-04-08: Raised from 3 to 10. allowed_wallets filter (line ~797) limits to proven
+# performers only; daily limit was the binding constraint preventing 5-15/day target.
+MAX_SIGNALS_PER_DAY = 10
 
 # --- Repeat convergence tracking ---
 # Tokens that appear as convergence signals 2+ times within 72h get upgraded to ULTRA tier.
@@ -768,6 +770,7 @@ def get_new_single_wallet_signals(state: dict) -> list[dict]:
 
     # token → best signal record for that token
     best_per_token: dict[str, dict] = {}
+    allowlist_rejected = 0  # Track rejections for diagnostics
 
     if not SIGNALS_JSONL.exists():
         print(f"[publisher] signals.jsonl not found at {SIGNALS_JSONL}")
@@ -795,6 +798,7 @@ def get_new_single_wallet_signals(state: dict) -> list[dict]:
             continue
         # Allowlist gate: if SW_ALLOWED_WALLETS is set, reject any wallet not in it.
         if SW_ALLOWED_WALLETS and wallet not in SW_ALLOWED_WALLETS:
+            allowlist_rejected += 1
             continue
 
         # --- Wallet quality tier gate ---
@@ -838,6 +842,8 @@ def get_new_single_wallet_signals(state: dict) -> list[dict]:
 
     signals = list(best_per_token.values())
     signals.sort(key=lambda s: s.get("quality_score", 0), reverse=True)
+    allowed_list = sorted(SW_ALLOWED_WALLETS) if SW_ALLOWED_WALLETS else ["(no filter)"]
+    print(f"[publisher] allowed_wallets filter ACTIVE: {allowed_list} — rejected {allowlist_rejected} raw entries")
     print(f"[publisher] Single-wallet: found {len(signals)} unique grade-A tokens in last {SW_LOOKBACK_HOURS}h")
     return signals
 
