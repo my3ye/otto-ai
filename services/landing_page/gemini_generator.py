@@ -1,7 +1,7 @@
 """Landing page generation via Gemini CLI.
 
 Mirror of agent_generator.py but uses `gemini` CLI with
-gemini-3.1-flash-lite-preview model. Cheaper/faster alternative.
+gemini-3.1-pro-preview model. Cheaper/faster alternative.
 """
 
 import asyncio
@@ -191,7 +191,7 @@ async def generate_with_gemini(
     gen_cmd = [
         "/usr/bin/gemini",
         "-y",
-        "-m", "gemini-3.1-flash-lite-preview",
+        "-m", "gemini-3.1-pro-preview",
         "--include-directories", "/var/www/webassist,/mnt/media",
         "-p", prompt,
     ]
@@ -215,7 +215,7 @@ async def generate_with_gemini(
     qa_cmd = [
         "/usr/bin/gemini",
         "-y",
-        "-m", "gemini-3.1-flash-lite-preview",
+        "-m", "gemini-3.1-pro-preview",
         "--include-directories", "/var/www/webassist,/mnt/media",
         "-p", qa_prompt,
     ]
