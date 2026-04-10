@@ -10,7 +10,7 @@ type: project
 
 2. **SP1 is the production-ready ZK toolchain to use NOW** — Confidence: HIGH | Sources: 3 (semantic memory ID bdb5e743, ecosystem research doc, memory ID 8e014cd3). 99.7% ETH block coverage <12s, $4B+ assets secured, MIT license, Optimism/Base/Unichain prover. Proving cost dropped 45x in 2025 ($1.69→$0.0376/proof). No blockers.
 
-3. **Aztec/Noir is BLOCKED until July 2026** — Confidence: HIGH | Sources: 3 (semantic memory ID 8e014cd3, chain landscape doc, memory ID 873df1fd cross-validates Midnight vuln timing). Critical proving system vulnerability disclosed Mar 17 2026; v5 fix expected July 2026. Do not use for any production work before then.
+3. **Aztec/Noir is BLOCKED until July 2026** — Confidence: HIGH | Sources: 3 (semantic memory ID 8e014cd3, chain landscape doc, ecosystem research doc `zk-ecosystem-research-2026-04-10.md` §1 Noir weakness paragraph). Critical proving system vulnerability disclosed Mar 17 2026; v5 fix expected July 2026. Do not use for any production work before then. *(Patched: removed erroneous memory ID 873df1fd cite — that memory is about Midnight GitHub dependency failure, not Aztec/Noir vuln; validator correction 2026-04-10)*
 
 4. **Lens Chain is the exact ONEON precedent** — Confidence: MEDIUM | Sources: 2 (build/fork analysis doc, embedded URLs). ZK Stack L3, identity/social use case, Avail DA, GHO gas token, $31M raised, $22.4M ZK grant received. Launched April 4 2025. Direct template for ONEON chain phase.
 
@@ -34,7 +34,7 @@ type: project
 
 ## Recommended Actions (top 3, specific and implementable)
 
-1. **P0 NOW: Build SP1-based ZK credential proofs on Base** — Spin up SP1 circuit for ONEON identity credential (e.g., wallet→identity proof without revealing underlying data). No chain deployment needed. Timeline: 2-4 weeks. Expected impact: ONEON gets ZK capability immediately; proves the privacy story before chain work starts.
+1. **P0 NOW: Build SP1-based ZK credential proofs on Base** — Spin up SP1 circuit for ONEON identity credential (e.g., wallet→identity proof without revealing underlying data). No chain deployment needed. Timeline: 2-4 weeks. Expected impact: ONEON gets ZK capability immediately; proves the privacy story before chain work starts. ⚠️ **Design step required first**: The specific predicate (wallet-to-identity binding? selective attribute disclosure? anonymous credentials?) must be defined before development starts — SP1 is best for general Rust computation but specific predicates may favour circom or Noir post-July. ⚠️ **Prover dependency**: Succinct Prover Network is Testnet Stage 2.5 only — P0 must run a self-hosted prover or accept centralized proving initially. Assumes Rust capability on ONEON team; if TypeScript-native, revisit Noir after July 2026.
 
 2. **PARALLEL: Apply for Midnight Aliit Fellowship** — Submit application at Midnight Network Aliit Fellowship program (9.6B NIGHT grant pool). Frame ONEON as the application layer Midnight lacks. Expected impact: grant funding + ecosystem positioning + partnership access to CI build pipeline (unblocks Midnight integration).
 
@@ -48,7 +48,9 @@ Coverage: PARTIAL — Three high-quality research docs on disk cover build/fork/
 
 Source reliability: HIGH — Semantic memory (6 hits, confidence 0.88-0.92), on-disk research docs (sourced from ZK Stack docs, Lens Chain blog, Midnight GitHub analysis), direct codebase grep verification.
 
-Gaps: (1) Knowledge graph unavailable — may contain prior ZK-related decisions not captured in semantic memory. (2) No Midnight local clone to verify dependency resolution status firsthand (confirmed via memory only). (3) SP1 circuit development effort estimate not quantified — needs a spike task to size properly.
+Gaps: (1) **EXPLICIT BLOCKER**: Knowledge graph returned 500 error during retrieval. Prior ONEON architecture sessions (invisible web3 review, competitive gap analysis, ONEON/Midnight synthesis) were ingested to Neo4j — graph may contain architectural constraints not visible in semantic memory. Do NOT finalize sovereign chain architecture decisions until Neo4j is restored and queried. (2) No Midnight local clone to verify dependency resolution status firsthand (confirmed via memory only). (3) SP1 circuit development effort estimate not quantified — needs a spike task to size properly.
+
+**Source doc note**: `zk-ecosystem-research-2026-04-10.md` executive summary (line 13) states "Aztec + Noir is the strongest path for adding ZK privacy" — this was pre-vulnerability framing (before Mar 17 2026 disclosure). This synthesis correctly overrides it: SP1 is the primary path; Noir/Aztec resumes after July 2026 v5 fix.
 
 ---
 
@@ -77,7 +79,7 @@ Gaps: (1) Knowledge graph unavailable — may contain prior ZK-related decisions
 | No trusted setup + recursion | Halo2 |
 | General Rust computation | SP1 (production leader) |
 | Post-quantum | STARK/FRI |
-| Private smart contracts | Aztec (WAIT until July 2026) |
+| Private smart contracts | Noir/Honk (UltraHonk) (WAIT until July 2026) |
 
 **ZK auditors when ready**: Veridise (specialist), Trail of Bits (circomspect), Nethermind Security (Noir/Aztec), ZK Security (Halo2).
 
