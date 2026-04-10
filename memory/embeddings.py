@@ -1,3 +1,4 @@
+import contextvars
 import logging
 import time
 from pathlib import Path
@@ -10,12 +11,88 @@ from .config import settings
 _client: AsyncOpenAI | None = None
 logger = logging.getLogger(__name__)
 
+# ── Provider tracking (async-safe via contextvars) ─────────────────────────
+# After calling get_embedding(), callers can check which provider was used
+# to decide which DB column to store in / search against.
+
+_current_provider: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "embedding_provider", default="openai"
+)
+
+
+def get_embedding_provider() -> str:
+    """Return the provider used by the last get_embedding() call in this async context."""
+    return _current_provider.get()
+
+
+def get_embedding_dim() -> int:
+    """Return embedding dimension for current provider."""
+    return 1536 if _current_provider.get() == "openai" else 384
+
+
+def emb_col() -> str:
+    """Return the DB column name for the current embedding provider.
+
+    'embedding_hv' for OpenAI (halfvec 1536-dim),
+    'embedding_local' for local model (halfvec 384-dim).
+    """
+    return "embedding_hv" if _current_provider.get() == "openai" else "embedding_local"
+
+
+def emb_cast(param: str = "$1") -> str:
+    """Return SQL cast expression for the current embedding provider.
+
+    e.g. '$1::halfvec(1536)' for OpenAI, '$1::halfvec(384)' for local.
+    """
+    if _current_provider.get() == "openai":
+        return f"{param}::halfvec(1536)"
+    return f"{param}::halfvec(384)"
+
+
+def emb_summary_col() -> str:
+    """Return the summary embedding column for current provider."""
+    return "summary_embedding_hv" if _current_provider.get() == "openai" else "summary_embedding_local"
+
 
 def _get_client() -> AsyncOpenAI:
     global _client
     if _client is None:
         _client = AsyncOpenAI(api_key=settings.openai_api_key)
     return _client
+
+
+# ── Local Model (lazy singleton) ──────────────────────────────────────────
+_local_model = None
+_local_model_lock = None  # initialized lazily
+
+
+def _get_local_model():
+    """Load sentence-transformer model on first use (lazy, ~80MB for MiniLM)."""
+    global _local_model
+    if _local_model is not None:
+        return _local_model
+
+    try:
+        from sentence_transformers import SentenceTransformer
+        logger.info(f"Loading local embedding model: {settings.local_embedding_model}")
+        _local_model = SentenceTransformer(settings.local_embedding_model)
+        logger.info(f"Local embedding model loaded: {settings.local_embedding_model} "
+                     f"(dim={_local_model.get_embedding_dimension()})")
+        return _local_model
+    except Exception as e:
+        logger.error(f"Failed to load local embedding model: {e}")
+        raise
+
+
+def _local_embed(text: str) -> list[float]:
+    """Generate embedding using local sentence-transformer model.
+
+    Returns 384-dim vector (for all-MiniLM-L6-v2).
+    No SVC calibration — SVC is fitted to OpenAI's embedding space.
+    """
+    model = _get_local_model()
+    embedding = model.encode(text, normalize_embeddings=True)
+    return embedding.tolist()
 
 
 # ── SVC: Singular Value Calibration ──────────────────────────────────────────
@@ -29,6 +106,7 @@ def _get_client() -> AsyncOpenAI:
 #
 # Components are fitted offline via POST /memory/svc/fit and saved to .npz file.
 # Reloaded at most every hour from disk.
+# NOTE: SVC is only applied to OpenAI embeddings (fitted to that space).
 
 _SVC_CACHE: dict = {"mean": None, "components": None, "ts": 0.0}
 _SVC_CACHE_TTL_S = 3600.0  # reload from disk at most hourly
@@ -127,7 +205,8 @@ except ImportError:
     pass
 
 
-async def get_embedding(text: str) -> list[float]:
+async def _openai_embed(text: str) -> list[float]:
+    """Generate embedding via OpenAI API. Raises on failure."""
     client = _get_client()
 
     if _embedding_tracer:
@@ -148,5 +227,39 @@ async def get_embedding(text: str) -> list[float]:
             model="text-embedding-3-small",
         )
 
-    embedding = resp.data[0].embedding
-    return apply_svc(embedding)
+    return resp.data[0].embedding
+
+
+async def get_embedding(text: str) -> list[float]:
+    """Generate an embedding vector for text.
+
+    Tries OpenAI first (1536-dim). On failure, falls back to local model (384-dim)
+    if LOCAL_EMBEDDING_ENABLED is set. After calling this, use get_embedding_provider()
+    to check which provider was used, and emb_col()/emb_cast() for SQL generation.
+
+    SVC calibration is only applied to OpenAI embeddings.
+    """
+    # Try OpenAI first
+    try:
+        raw = await _openai_embed(text)
+        _current_provider.set("openai")
+        logger.debug("Embedding generated via OpenAI (1536-dim)")
+        return apply_svc(raw)
+    except Exception as openai_err:
+        logger.warning(f"OpenAI embedding failed: {openai_err}")
+
+    # Fallback to local model
+    if settings.local_embedding_enabled:
+        try:
+            result = _local_embed(text)
+            _current_provider.set("local")
+            logger.info(f"Embedding generated via local model (384-dim, fallback)")
+            return result
+        except Exception as local_err:
+            logger.error(f"Local embedding also failed: {local_err}")
+            raise RuntimeError(
+                f"All embedding providers failed. OpenAI: {openai_err}, Local: {local_err}"
+            ) from local_err
+
+    # Local not enabled and OpenAI failed
+    raise RuntimeError(f"OpenAI embedding failed and local fallback is disabled: {openai_err}")
