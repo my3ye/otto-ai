@@ -1,5 +1,27 @@
 # Researcher Agent Memory
 
+## Panik Technical Direction & Chain Fit (2026-04-10) — VALIDATED 8/10
+
+DB Note ID: c7659d99 | Semantic IDs: edd5a543, 0982a6ee, d35381d3, d737e671, 2f05e4c3, bc873b20, 24b2e5a6, cf46049f, be05b011
+- **Base = primary chain** (CONFIRMED, code-verified). OP Retro Funding $3B pool = P0 grant path (public safety public good). No chain migration.
+- **DPCRegistry.sol LazyDecay = REUSABLE** — `computeDecay()` on `getScore()` read in `/mnt/media/projects/oprlp-contracts/src/core/DPCRegistry.sol`. Extend for Panik trust scores.
+- **Contract GAPS (all grep-verified absent)**: $PNK ERC-20, ERC-5484 soulbound badges, ZK credential verification, sybil resistance contract.
+- **ZK path**: SP1 NOW (Aztec blocked July 2026) → Midnight Q3 2026+ (anonymous mode, EVM bridge Hua phase).
+- **Polygon zkEVM BLOCKED** — sunsetting 2026. Do not deploy Panik contracts on zkEVM.
+- **Celo = viable co-deployment** (MEDIUM) — 11M MiniPay wallets, phone-number DID, OP Stack L2. Grant amounts unconfirmed.
+- **UI vs. reality gap**: OnChainTrust.tsx (DID+ZK), AgentNetwork.tsx (levels), PrivacyControl.tsx ($PNK rewards, AI on blockchain) — ALL aspirational, zero contract/backend behind them.
+
+## ZK ONEON Architectural Decision Framework (2026-04-10) — VALIDATED 7.5/10
+
+DB Note ID: 37279aaa | Semantic IDs: d06d8fa0, e4a48430, 7dcfaffc, e24e37df, f54ad20e, 380e2646 | File: ~/otto/.claude/agent-memory/research-synthesizer/zk_oneon_synthesis_2026_04_10.md
+- **ONEON = zero ZK today** (grep-verified). AES-256-GCM + ECDSA only. No circuits/provers/verifiers anywhere.
+- **SP1 = P0 NOW** — MIT, $4B+ secured, $0.04/proof. ⚠️ Prover Network testnet-only → self-host required. ⚠️ Predicate design step needed FIRST.
+- **Aztec/Noir BLOCKED until July 2026** — critical vuln Mar 17 2026. Proof system = Noir/Honk (UltraHonk) NOT "Aztec" in matrices.
+- **3-phase path**: SP1 on Base (NOW) → L3 RaaS ZK Stack (Q3 2026, Lens Chain = exact precedent) → sovereign chain (long-term)
+- **Midnight = partner** (Aliit Fellowship, 9.6B NIGHT) — NOT a fork target (GitHub unresolvable deps)
+- **⚠️ EXPLICIT BLOCKER**: Neo4j returned 500 during retrieval — do NOT finalize sovereign chain decisions until graph restored
+- **Patches**: Claim 3 source attribution fixed (873df1fd → ecosystem doc); proof system matrix category fixed (Aztec→Noir/Honk)
+
 ## ZK Developer Ecosystem (2026-04-10) — RESEARCHED 8/10
 
 DB Note ID: 8e098a84 | Semantic IDs: 8e014cd3, d9ce2470, 04133c5c, 888ec141 | File: ~/otto/docs/zk-ecosystem-research-2026-04-10.md
