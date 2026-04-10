@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_zk_oneon_decision_framework_validation.md](project_zk_oneon_decision_framework_validation.md) — ZK ONEON decision framework synthesis (2026-04-10, WF Step 2): MINOR_CHANGES 7.5/10. 2 criticals: source attribution error (873df1fd ≠ Aztec vuln); "Aztec" in proof system matrix is a chain not a proof system. Core conclusions solid.
 - [project_linkedin_bio_mev_review.md](project_linkedin_bio_mev_review.md) — LinkedIn bio Mev EM/FE/AI Consulting (5af8bf90, 2026-04-08, WF Step 1): MINOR_CHANGES 7.5/10. 2 criticals: "AI operating system" overclaim; thin EM signal (no team size). 3 warnings: human-loop scope imprecise, jargon (heartbeat/5-layer), consulting proof absent.
 - [project_lp_agent_pipeline_review.md](project_lp_agent_pipeline_review.md) — LP agent pipeline (b24d828, 2026-04-06, LIVE VALIDATED): PARTIAL PASS. Pipeline works (~90s). DESIGN_34 selected, custom colors/fonts, real content. 3 remaining issues: spurious nav as cards, empty trust signals/stats, centered hero not split.
 - [project_landing_page_integration_review.md](project_landing_page_integration_review.md) — WebAssist landing page pipeline integration review (2026-04-06): NEEDS_CHANGES. 3 criticals: auth gap (all routes except /generate unauthenticated), stored XSS in generator.py body sections, copy_data never persisted (re-generate produces placeholder). API_DOCS.md written.
