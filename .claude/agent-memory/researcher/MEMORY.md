@@ -1,5 +1,19 @@
 # Researcher Agent Memory
 
+## ZK Developer Ecosystem (2026-04-10) — RESEARCHED 8/10
+
+DB Note ID: 8e098a84 | Semantic IDs: 8e014cd3, d9ce2470, 04133c5c, 888ec141 | File: ~/otto/docs/zk-ecosystem-research-2026-04-10.md
+- **Toolchain bifurcation:** DSLs (Noir/Cairo/Circom/Halo2) for circuits; zkVMs (SP1/Risc0/Jolt) for general computation
+- **SP1 Hypercube = PRODUCTION LEADER** — 99.7% ETH blocks <12s, Optimism/Base/Unichain (Feb 2026), $4B+ assets, MIT, 6M+ proofs 2025
+- **Risc0** — zkVM production; Bonsai managed service PRE-ALPHA (don't use); Boundless testnet
+- **Jolt (a16z)** — 5x faster than Risc0 claimed, EXPERIMENTAL, no recursion
+- **Proving infra:** Succinct Prover Network (PROVE token, testnet→mainnet 2026); ZkCloud/Gevulot (PROOF token, Firestarter permissioned live Dec 2024)
+- **Aztec CRITICAL BUG** (Mar 17 2026) — proving system vuln, v5 fix July 2026. Do NOT deploy Noir/Aztec production contracts before July 2026
+- **RPC:** zkSync 6 providers, Starknet 8, Polygon 23, Aztec ZERO; The Graph strong on zkSync/Polygon, weak on Starknet/Aztec
+- **Auditors:** Veridise (top ZK specialist), Trail of Bits (circomspect), Nethermind Security (Noir/Aztec), ZK Security (Halo2)
+- **Grants:** EF $900K, Starknet $25K-$1M STRK, ZKsync 5M ZK tokens, Aztec active, Midnight 9.6B NIGHT (Aliit Fellowship)
+- **ONEON actions:** SP1 for ZK-verified credentials (NOW); Aztec/Noir for private contracts (AFTER July 2026); Midnight for full privacy chain
+
 ## ZK Chain Landscape & Proof Systems (2026-04-10) — RESEARCHED 8/10
 
 DB Note ID: f494d0a4 | Semantic IDs: 33200784, bdb5e743 | File: ~/otto/research/zk-chain-landscape-2026.md
