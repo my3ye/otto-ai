@@ -1,5 +1,14 @@
 # Researcher Agent Memory
 
+## ZK Chain Landscape & Proof Systems (2026-04-10) — RESEARCHED 8/10
+
+DB Note ID: f494d0a4 | Semantic IDs: 33200784, bdb5e743 | File: ~/otto/research/zk-chain-landscape-2026.md
+- **10 chains covered:** zkSync Era (Boojum/Airbender STARK, 15K+ TPS, ZK Stack), Starknet (FRI/STARK, Cairo, decentralized sequencers live), Polygon zkEVM (SUNSETTING 2026→AggLayer/CDK), Scroll (OpenVM RISC-V, Type 3→1), Linea (SNARK, 15min finality, MetaMask), Mina (Kimchi PLONK, 22KB chain, L1), Aztec (**critical vuln March 2026, v5 fix July**), Taiko (Type 1, no sequencer, based rollup), Midnight (Halo2, live March 2026, compliance-native), Aleo (Varuna/Marlin, privacy-by-default L1).
+- **Proof systems:** Groth16 (192B, cheapest verify), PLONK variants (Halo2/Kimchi/Honk), STARK/FRI (post-quantum, no trusted setup), OpenVM/SP1/risc0 (zkVM, replacing hand-written circuits).
+- **CRITICAL:** Polygon zkEVM sunset = SOS Systems must migrate. Aztec vuln = Midnight only viable ZK privacy chain until July 2026.
+- **Cost trend:** Proving 45x cheaper in 2025 ($1.69→$0.0376/proof). Airbender (zkSync) 10x+ over Boojum.
+- **SOS chain recs:** Scroll/Linea for governance, Midnight for privacy, Taiko for decentralized rewards, Polygon CDK for cross-chain.
+
 ## OpenClaw + 2026 AI Landscape (2026-04-05) — VALIDATED 8/10
 
 DB Note ID: 31036364 | Episodic IDs: 37997294, 83a39ec4, c70e7990, f8e19e8d, 5bf2a82a, 87f50acf
@@ -9,27 +18,19 @@ DB Note ID: 31036364 | Episodic IDs: 37997294, 83a39ec4, c70e7990, f8e19e8d, 5bf
 - **2026 LANDSCAPE:** Memory=differentiator (3/9 frameworks). Tool calling=commoditized. MCP=table stakes. Otto RL2F=unique moat.
 - **ACTION:** Update LinkedIn article 45407c6d to add OpenClaw + 4 new frameworks to comparison table.
 
-## Google A2A v1.0 — Spec + Otto Gap Analysis (2026-04-05) — ⚠️ SUPERSEDED: A2A NOW IMPLEMENTED
+## Google A2A v1.0 — IMPLEMENTED (2026-04-05)
 
-DB Note ID: f954bf58 | Episodic IDs: d75eebec, efca08c2, 992d7719, a72f6594, 3f06d407, c56914ff
-- **⚠️ STATUS UPDATE:** a2a_standard.py is FULLY IMPLEMENTED. Agent Card, JSON-RPC 2.0, SSE, task lifecycle — all confirmed. Gap claims below are historical only.
-- **SPEC:** v1.0 released 2026-03-12, Linux Foundation, Apache 2.0, 150+ orgs. Transport: JSON-RPC 2.0/HTTP(S), SSE, gRPC. Discovery: Agent Card at `/.well-known/agent.json`. Task lifecycle: working→input-required→completed/failed/canceled/rejected.
-- **OTTO GAPS (HISTORICAL — now resolved):** well-known, agent.json, jsonrpc, JSON-RPC, SSE at A2A, grpc, protobuf, a2a_tasks, OAuth2, oidc, mtls. Current state: Postgres mailbox only.
-- **REUSABLE:** message types→A2A Parts; channel_id→Task context; rate limiting→extensible. Additive extension, no rewrite.
-- **A2A≠MCP:** MCP=agent↔tool (already at `/mcp/sse`); A2A=agent↔agent (opaque). Both needed.
-- **IMPL PATH (2-3 days):** (1) `GET /.well-known/agent.json` at API ROOT, not /a2a prefix (~2h); (2) `POST /a2a` JSON-RPC dispatcher (~4h); (3) `a2a_tasks` DB table (~2h); (4) SSE tasks/sendSubscribe — budget 6-8h (FastAPI/asyncpg complexity); (5) Auth declaration (~1h).
-- **PATCHED:** QuerySkill() v1.0 downgraded implied HIGH→MEDIUM (blog post only, spec body not read). gRPC "normative" not directly verified from proto file — flag for Phase 2.
-- **RETRIEVAL RISK:** Semantic write BLOCKED (OpenAI quota P8). Use episodic IDs above or research note f954bf58.
+DB Note ID: f954bf58 | a2a_standard.py FULLY IMPLEMENTED. Agent Card, JSON-RPC 2.0, SSE, task lifecycle confirmed.
+- **SPEC:** v1.0 released 2026-03-12, Linux Foundation, Apache 2.0, 150+ orgs. A2A≠MCP: MCP=agent↔tool; A2A=agent↔agent.
+- All gaps RESOLVED. Historical analysis archived in episodic IDs: d75eebec, efca08c2, 992d7719, a72f6594.
 
-## AI Agent & Orchestration Landscape Benchmark (2026-04-05) — ⚠️ PARTIALLY SUPERSEDED
+## AI Agent & Orchestration Landscape Benchmark (2026-04-05) — GAPS CORRECTED
 
-DB Note ID: f838eb95 | Episodic IDs: fbc29257 (Step1), 2e85a02f (Step3) | File: ~/otto/docs/ai-landscape-synthesis-2026-04-05.md
-- **MOATS (code-verified):** 6-layer memory ★★★★★; RL2F+MARS+AutoEvolve ★★★★★ (unique); 182-agent catalog (22 active); DAG task plans; QA budget gate.
-- **⚠️ GAP CORRECTIONS (2026-04-05):** OTel "ABSENT" is WRONG — telemetry.py confirmed. A2A "needs extension" is WRONG — a2a_standard.py confirmed. MCP dynamic tool composition gap still valid.
+DB Note ID: f838eb95 | File: ~/otto/docs/ai-landscape-synthesis-2026-04-05.md
+- **MOATS (code-verified):** 6-layer memory; RL2F+MARS+AutoEvolve (unique); 182-agent catalog; DAG task plans; QA budget gate.
+- **GAP CORRECTIONS:** OTel PRESENT (telemetry.py). A2A PRESENT (a2a_standard.py). MCP dynamic tool composition gap still valid.
 - **TIERS:** Tier-1: LangGraph/CrewAI/Google ADK/AG2. Tier-2: Strands/Pydantic AI/Mastra. Tier-3: Bittensor/Virtuals/OLAS.
-- **PATCHED:** 138→182 agent count; ERC-8004 Phase 3 qualifier (not live); Bittensor mcap KuCoin-sourced.
-- **TOP ACTIONS:** (1) Implement OTel in api.py+routes/. (2) Dispatch LinkedIn article (anchor: otto-vs-ai-harnesses-comparison-2026-03-28.md). (3) Extend routes/a2a.py to Google standard.
-- **NOTE:** Semantic/remember blocked (OpenAI quota P8). Stored episodic + research note only.
+- **REMAINING ACTION:** MCP dynamic tool composition.
 
 ## OmniMem — Lifelong Multimodal Agent Memory (2026-04-05) — RESEARCHED 8/10
 
@@ -275,15 +276,7 @@ OMS Research note ID: 40cdf28a
 ## Crypto Signal Channel Research (2026-03-07) — Alpha Deprioritized
 
 Research files: ~/otto/projects/alpha/SIGNAL_REVENUE_RESEARCH.md, SIGNAL_QUALITY_RESEARCH.md
-**Note: Alpha trading is deprioritized per system state. Details archived in research files.**
-
-### Key Technical Facts (still reusable)
-- **TP/SL structure**: TP1/TP2/TP3 at +10%/+25%/+50%, SL at -12% to -15%. Never time-based exits.
-- **Smart money wallet thresholds**: Min WR 55% (gate), 65% (quality). Min trades 90d: 30 (gate). Avg hold >5min.
-- **Statistical validity**: 27 trades is below 30-trade minimum. Need 385 trades for robust significance.
-- **API capabilities**: DexScreener (price/volume/liquidity, free, 300 req/min, NO OHLCV). Solana Tracker (wallet PnL, 500K credits/month free). Birdeye unreliable. GMGN no free API.
-- **Wallet discovery**: DexScreener trending → Helius first-30min buyers → Solana Tracker PnL scoring
-- **Revenue hierarchy**: Exchange referrals > Paid subscriptions > Copy-trade > Jupiter referral > Tips
+**Deprioritized. Full technical details archived in research files above.**
 
 ## Context Engineering 2026 Research (2026-03-12)
 
@@ -337,14 +330,7 @@ Key figures for decentralized emergency infrastructure narrative:
 ## On-Chain Alpha Strategies Research (2026-03-09) — Alpha Deprioritized
 
 Research file: ~/otto/projects/alpha/ONCHAIN_ALPHA_STRATEGIES_RESEARCH.md
-**Note: Alpha trading is deprioritized. Details archived in research file.**
-
-### Key Technical Facts (reusable for other contexts)
-- **Pump.fun graduation**: ~85 SOL raises token. 50 SOL in <50 trades = very high graduation probability. Detect via Helius websocket on program ID 6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P. Median time: 4.4 min.
-- **Fee-payer cluster**: 3+ "different" wallets sharing same fee payer = ONE entity. Add to convergence processor.
-- **SOL unstaking**: large unstake events = whale liquidity incoming (28h lead time)
-- **Bridge flow**: DefiLlama /api/bridgevolume/solana — free macro regime signal (HOT/NORMAL/COLD)
-- **Kamino SDK**: github.com/Kamino-Finance — reads all position health factors on-chain (open source)
+**Deprioritized. Full technical details archived in research file above.**
 
 ## Claude Dynamic UI System Research (2026-03-16)
 
