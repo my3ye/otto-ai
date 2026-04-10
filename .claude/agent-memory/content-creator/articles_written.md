@@ -4,6 +4,16 @@ description: Topics and angles covered in all articles written — check before 
 type: project
 ---
 
+## Technology / Protocol Explainers
+
+### The Proof That Reveals Nothing ← NEW 2026-04-10
+- **DB ID**: 6038138f-3242-4e48-8a15-251be596f09d
+- **Angle**: ZK proofs explained via MY3YE brand voice — proof and disclosure can be separated (Goldwasser/Micali/Rackoff 1985); SNARKs removed interactive requirement; zkEVM as practical example; closing pivot to the-machine-needs-no-priest architecture
+- **File**: /mnt/media/projects/my3ye-web/content/blog/the-proof-that-reveals-nothing.mdx
+- **Status**: draft
+- **Story beat**: The Law + The Mission
+- **What NOT to repeat**: lock-combination example as the "prove without telling" illustration; keeper-asymmetry as THE argument (owned by The Machine Needs No Priest); "operator is structurally unnecessary" as the blockchain punchline
+
 ## SOS Systems / 505 Systems
 
 ### The Answer Cannot Be Nobody
