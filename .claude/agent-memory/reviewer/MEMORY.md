@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_ecosystem_blockchain_infra_validation.md](project_ecosystem_blockchain_infra_validation.md) — Ecosystem blockchain & infra strategy synthesis (2026-04-10, WF Step 2): MINOR_CHANGES 7.0/10. 3 criticals: $22.4M Lens Chain grant single-source + stored memory corruption; $70M+ grant total math unsupported; paper 2505.09313 not locally verified. Core codebase claims solid.
 - [project_zk_oneon_decision_framework_validation.md](project_zk_oneon_decision_framework_validation.md) — ZK ONEON decision framework synthesis (2026-04-10, WF Step 2): MINOR_CHANGES 7.5/10. 2 criticals: source attribution error (873df1fd ≠ Aztec vuln); "Aztec" in proof system matrix is a chain not a proof system. Core conclusions solid.
 - [project_linkedin_bio_mev_review.md](project_linkedin_bio_mev_review.md) — LinkedIn bio Mev EM/FE/AI Consulting (5af8bf90, 2026-04-08, WF Step 1): MINOR_CHANGES 7.5/10. 2 criticals: "AI operating system" overclaim; thin EM signal (no team size). 3 warnings: human-loop scope imprecise, jargon (heartbeat/5-layer), consulting proof absent.
 - [project_lp_agent_pipeline_review.md](project_lp_agent_pipeline_review.md) — LP agent pipeline (b24d828, 2026-04-06, LIVE VALIDATED): PARTIAL PASS. Pipeline works (~90s). DESIGN_34 selected, custom colors/fonts, real content. 3 remaining issues: spurious nav as cards, empty trust signals/stats, centered hero not split.
