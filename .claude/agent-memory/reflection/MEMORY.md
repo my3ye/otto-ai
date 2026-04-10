@@ -1,29 +1,32 @@
 # Reflection Agent Memory
 
-## System Baselines (updated 2026-04-08 cycle 559)
-- **CRITICAL: OpenAI API QUOTA EXCEEDED** since Apr 1 (~32 days). semantic/remember fails. Evolve timeouts. Mev confirmed no funding.
+## System Baselines (updated 2026-04-10 cycle 566)
+- **CRITICAL: OpenAI API QUOTA EXCEEDED** since Apr 1 (~35 days). semantic/remember fails. Evolve dedup/extraction blocked. Mev confirmed no funding.
 - **CRITICAL: Zoho email DOWN** — trial expired. admin@otto.lk non-functional. Mev confirmed no funding.
+- **Claude Code quota RESTORED** — reset Apr 10, 12:30pm IST.
+- **Mev decided NOT to apply for Anthropic** (WhatsApp Apr 10). Anthropic plan cancelled (f701d72d). Freed bandwidth.
 - **BM25 HYBRID SEARCH: DEPLOYED & VERIFIED** (cycle 532). Uses PostgreSQL full-text search + pg_trgm. Does NOT need OpenAI.
-- **Memory functional**: Evolve timing out (OpenAI quota for embeddings). GLOVE: returned empty this cycle (Kimi may be unavailable). 19 null-embedding memories persist (fix task 227555af unreviewed).
-- **Memory stats (cycle 559)**: **1488 active, 16 categories.** Infra: 423, Research: 388, Observation: 224, Project: 159, Directive: 67, Decision: 57, Mission: 55, Capability: 39. 0 text-level duplicates. Natural decay from 1489 (1 memory).
-- Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Disk: 47% boot. RAM: 8.7Gi available.
-- Queue: 1 running (db10b063 LinkedIn WF), 8 Mev pending, 4 unreviewed completed.
-- RL2F accuracy: **active-only 58% w=50** (29/50 matched). meta_memory: **stable** (0.58→0.58), cycles_since_improvement=3. Plateau confirmed 4+ cycles.
-- **Anomaly detector false-positive**: Sync pulse 17x/6h matches scheduled cadence — NOT a loop bug.
+- **LP wiring CONFIRMED WORKING** (cycle 563) — orchestrator verified via architect + validation.
+- **Memory**: 1,491 active memories. **47 null-embedding memories** (+2 this cycle). Evolve runs decay only (OpenAI blocks dedup/extraction).
+- Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Disk: 47% boot. RAM: 11Gi available.
+- Queue: 1 running (research audit a08448ca), 1 otto-pending (OMS Research Section), 8 mev-pending. 0 unreviewed.
+- RL2F accuracy: **active-only 62% w=50** (31/50 matched). IMPROVING — first gain in 4+ cycles (was 60%).
+- **Anomaly detector false-positive**: Sync pulse ~23x/6h matches scheduled cadence — NOT a loop bug.
 - **AutoEvolve**: Gen 7. 0 experiments. Deferred until active work resumes.
-- **Procedures**: 69 exist, 51 actively used. 18 zero-use procedures are cleanup candidates (age 4c).
-- **WF notify step bug**: ALL 8 workflow templates have EMPTY notify step prompts (age 27 cycles).
-- **Kernel routing issue (NEW cycle 559)**: Mev said "Don't deploy a task" at 02:57 UTC, kernel responded inline ✓, but follow-up at 03:00 triggered WF task db10b063. "No task" context not carried across messages.
-- **Context loss recurring (Apr 7)**: Mev complained "How do you not have context of that, that was just 3 messages before." Goldfish fix (Mar) helped but didn't eliminate.
-- **Agent perf**: 100% success across all agent types (last 30 completed tasks).
-- **TODO next cycle**: (1) Review 4 unreviewed tasks (priority: 227555af null-embed fix). (2) Investigate kernel routing — "don't deploy" directive not carried across messages. (3) When OpenAI restored: re-embed 19 null-vector memories, run full evolve+dedup. (4) Review 18 zero-use procedures — archive or retire (age 4c). (5) Context loss investigation (recurring Mev complaints).
+- **Procedures**: 59 exist (16 zero-use deleted cycle 566). 1 remaining zero-use: `validate_integration_end_to_end`, `database_feature_scaffold` (kept as useful patterns).
+- **WF notify step bug**: ALL 8 workflow templates have EMPTY notify step prompts (age 34c).
+- **Kernel routing issue (age 8c)**: "No task" context not carried across messages.
+- **Context loss recurring (age 8c)**: Goldfish fix (Mar) helped but didn't eliminate.
+- **Mev actively engaged** — requesting blockchain research in OMS, asking about Cardano/Midnight, wanting organized research section. Orchestrator responsive.
+- **Plan+rate-limit=zombie pattern** (identified cycle 565): tasks stuck as running with pid=None. Cleaned manually; needs systemic fix.
+- **TODO next cycle**: (1) When OpenAI restored: re-embed 47 null-vector memories, run full evolve+dedup. (2) Investigate alternative embedding for null-vector memories (local model? Kimi?). (3) Memory quality audit: research (400) + observation (224) categories likely have noise. (4) Context loss + kernel routing investigation (age 8c). (5) Systemic fix for plan zombie pattern.
 
 ## Known Gaps (persistent)
 - **OpenAI quota exceeded (cycle 479+)**: `insufficient_quota` error, still down as of cycle 499 (Apr 4). Mev confirmed no funding. When restored: run full evolve + dedup cycle.
 - **Semantic memory bloat (RESOLVED cycle 480)**: Archived 2,304 floor-relevance memories via DB-level archival. 4,420→2,116 active. No longer critical.
-- **Claude Code quota exhaustion (cycle 480)**: All heartbeats/reflections failed Apr 1 13:03 → Apr 3 12:30 (48h). Future risk: if quota is exhausted again, same 24h+ blackout.
-- **RL2F accuracy: active-only 58% w=50 (cycle 558)** — plateau confirmed at 58% across 3+ cycles (not window noise). Up from 56% (cycle 556). 78% all-entries confirms idle inflation gap (ALWAYS use `?active_only=true`). AE gen 7. Next improvement likely requires active work (new reasoning entries) or system changes.
-- **OpenAI silent degradation (CONFIRMED cycle 482)**: 20 null-embedding memories found. When restored: (1) re-embed, (2) full dedup. GLOVE accuracy unaffected (uses Kimi, not OpenAI).
+- **Claude Code quota exhaustion (cycle 480, recurred 561, RESTORED cycle 562)**: Original: Apr 1-3 (48h blackout). Recurrence Apr 8-10: 25 consecutive heartbeat/reflection failures. Restored Apr 10 12:30pm IST. Pattern: quota hits kill WF steps AND leave coordinator tasks as zombies. Scale: entire day (13 heartbeats + 12 reflections) lost to quota exhaustion.
+- **RL2F accuracy: active-only 62% w=50 (cycle 566)** — broke 60% plateau (was 58-60% for 9+ cycles). 31/50 matched. Improvement likely from orchestrator's active task processing (batch reviews, Mev messaging). ALWAYS use `?active_only=true`.
+- **OpenAI silent degradation (CONFIRMED cycle 482, updated 566)**: 47 null-embedding memories (+2 this cycle, +17 prior from blockchain WF steps). When restored: (1) re-embed all 47, (2) full dedup. GLOVE unaffected (uses Kimi). Consider: investigate alternative embedding (local model or Kimi) to stop growth.
 - **Crashed-at-line-1 failures (cycle 428)**: 5 failures across agents. task_runner.sh issue. Needs debugger investigation. Priority: HIGH (25% failure rate). Not seen recently — may be stale.
 - **AutoEvolve template contamination (FIXED cycle 408)**: Always verify after AutoEvolve runs.
 - **Self-patch mechanism gap**: heartbeat.md has no step to check/apply pending self-patches. Reflection applies directly as workaround.
@@ -48,6 +51,7 @@
 - **Task timeline assumption**: When checking if a validation task is "redundant," always verify task timestamps against commit dates. A validation that ran BEFORE a fix is NOT the same as validating the fix. Compare task.created_at vs git log dates.
 - **Procedure use_count diagnostic bug (RESOLVED cycle 547)**: ProcedureOut model has NO `use_count` field. Usage is tracked via `success_count` + `failure_count`. Checking `use_count` always returns 0. This caused a false 4-cycle carry-forward of "0 uses" alarm.
 - **RL2F trend label confusion (RESOLVED cycle 537)**: The API trend label compares 50-entry current window vs prior 50-entry window. "improving" means current > prior + 5pp. It does NOT track cycle-over-cycle changes. For short-term monitoring, use meta_memory.json rl2f_trend.direction (uses 0.02 threshold on consecutive readings). Do NOT re-flag the API label as a bug.
+- **Plan DAG standalone retry pattern (cycle 563)**: When orchestrator retries a failed plan task as a standalone task (no plan_id), the plan DAG never advances because the new task isn't linked to the plan. Fix: retries should either be created within the plan or the plan should be manually advanced after standalone completion.
 
 ## Priority Context
 - P10 WebAssist: LIVE at webassist.ink. Stripe payment flow VALIDATED READY (task b0eaddc5 Apr 5). Only Mev live keys block revenue.

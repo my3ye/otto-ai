@@ -1,41 +1,13 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-04-08T03:07:24.242453Z",
+  "last_updated": "2026-04-10T14:09:15.227635Z",
   "rl2f_trend": {
-    "last_7d_accuracy": 0.58,
-    "direction": "stable",
-    "cycles_since_improvement": 3,
+    "last_7d_accuracy": 0.62,
+    "direction": "improving",
+    "cycles_since_improvement": 0,
     "last_improvement_date": null,
     "historical": [
       {
-        "date": "2026-04-05",
-        "accuracy": 0.58
-      },
-      {
-        "date": "2026-04-05",
-        "accuracy": 0.58
-      },
-      {
-        "date": "2026-04-05",
-        "accuracy": 0.58
-      },
-      {
-        "date": "2026-04-05",
-        "accuracy": 0.58
-      },
-      {
-        "date": "2026-04-05",
-        "accuracy": 0.58
-      },
-      {
-        "date": "2026-04-05",
-        "accuracy": 0.56
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.56
-      },
-      {
         "date": "2026-04-06",
         "accuracy": 0.54
       },
@@ -126,6 +98,34 @@
       {
         "date": "2026-04-08",
         "accuracy": 0.58
+      },
+      {
+        "date": "2026-04-08",
+        "accuracy": 0.58
+      },
+      {
+        "date": "2026-04-08",
+        "accuracy": 0.6
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.6
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.6
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.6
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.6
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.62
       }
     ]
   },
