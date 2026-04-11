@@ -1,74 +1,95 @@
 # zkPresence
 
-Zero-Knowledge Proof of Attendance using [Succinct SP1](https://docs.succinct.xyz) zkVM.
+**Zero-knowledge proof of attendance protocol.** Prove you were somewhere without revealing who you are.
 
-Prove you were at an event without revealing who you are.
+zkPresence lets event organizers verify attendance while preserving attendee privacy. Using SP1 zero-knowledge proofs, attendees can prove they were at an event without linking their on-chain identity to their real-world identity.
 
-## What It Does
+## How It Works
 
-zkPresence lets attendees generate cryptographic proofs that they attended a specific event, verified on-chain, without leaking their identity. The system uses three attestation modes:
+1. **Organizer** creates an event on-chain with location and time parameters
+2. **Attendee** obtains attestation at the event (QR scan, geo-proximity, or organizer signature)
+3. **Prover** generates a ZK proof that the attendee was present, producing a nullifier (prevents double-claiming) and identity commitment (unlinkable pseudonym)
+4. **Verifier** contract validates the proof on-chain and records attendance
 
-- **QR Code Scan** — Scan a rotating QR at the venue
-- **Geohash Proximity** — Prove you were within range of the event location
-- **Organizer Signature** — Organizer directly attests your presence
+No one — not even the organizer — can link the on-chain attendance record to the attendee's real identity.
 
-Each mode produces a ZK proof that can be verified on Base (Ethereum L2) for ~$0.003.
+## Packages
 
-## Architecture
+### Rust Crates
 
-```
-User Device                     Base L2
-┌─────────────────┐            ┌──────────────────┐
-│ user_secret      │            │ ZkPresence.sol   │
-│ + attestation    │──proof──▶ │   verifyProof()  │
-│                  │            │   nullifier check│
-│ SP1 Prover       │            │   record attend. │
-└─────────────────┘            └──────────────────┘
-```
+| Crate | Path | Description |
+|-------|------|-------------|
+| `zkpresence-core` | `crates/core/` | Shared types (`AttestationData`, `PublicValues`) and identity primitives |
+| `zkpresence-circuit` | `crates/circuit/` | SP1 guest program — the ZK circuit |
+| `zkpresence-prover` | `crates/prover/` | Host-side prover library and CLI |
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full design.
+### TypeScript Packages
 
-## Project Structure
+| Package | Path | Description |
+|---------|------|-------------|
+| `@zkpresence/sdk` | `packages/sdk/` | Core SDK — client, types, chain adapter interface |
+| `@zkpresence/adapter-evm` | `packages/adapter-evm/` | EVM chain adapter (Base, Arbitrum, Ethereum) |
+| `@zkpresence/react` | `packages/react-hooks/` | React hooks for attendance UIs |
+| `@zkpresence/server` | `packages/server/` | Server utilities (proof queue, webhooks) |
 
-```
-zkpresence/
-├── lib/           # Shared types (AttestationData, PublicValues)
-├── program/       # SP1 guest program (ZK circuit logic)
-├── script/        # Host scripts (proof generation, vkey export)
-├── contracts/     # Solidity verifier (Foundry)
-├── ARCHITECTURE.md
-└── README.md
-```
+### Contracts
 
-## Prerequisites
-
-```bash
-# Install SP1 toolchain
-curl -L https://sp1.succinct.xyz | bash
-sp1up
-
-# Install Foundry (for contracts)
-curl -L https://foundry.paradigm.xyz | bash
-foundryup
-```
+| Contract | Path | Description |
+|----------|------|-------------|
+| `ZkPresence.sol` | `contracts/src/` | On-chain verifier and attendance registry |
 
 ## Quick Start
 
+### Build Rust crates
+
 ```bash
-# 1. Build the SP1 program
-cd script && cargo build
+# Requires SP1 toolchain: curl -L https://sp1.succinct.xyz | bash && sp1up
+cargo check --workspace
+```
 
-# 2. Run with mock prover (instant, no real proof)
-SP1_PROVER=mock cargo run --bin prove -- --event-id 1 --mode qr
+### Build TypeScript packages
 
-# 3. Export verification key
-SP1_PROVER=mock cargo run --bin vkey
+```bash
+pnpm install
+pnpm build
+```
 
-# 4. Deploy contract (Base Sepolia)
-cd ../contracts
-forge install succinctlabs/sp1-contracts
+### Build contracts
+
+```bash
+cd contracts
+forge install
 forge build
 ```
+
+### Generate a proof (mock mode)
+
+```bash
+SP1_PROVER=mock cargo run --bin prove -- --event-id 1 --mode qr
+```
+
+## Architecture
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for the full protocol specification, including:
+
+- Circuit design and nullifier scheme
+- Three attestation modes (QR, geo-proximity, organizer signature)
+- On-chain contract interface
+- Privacy properties and threat model
+
+## Attestation Modes
+
+| Mode | How | Privacy Level |
+|------|-----|---------------|
+| **QR Code** | Scan time-limited QR at venue | High — only proves presence |
+| **Geo Proximity** | Geohash match within ~5km | Medium — reveals approximate area |
+| **Organizer Signature** | Organizer signs identity commitment | High — requires organizer trust |
+
+## Privacy Guarantees
+
+- User identity (`user_secret`) never leaves the device
+- On-chain: only `nullifier` (prevents double-claim) and `identity_commitment` are visible
+- Different events produce different nullifiers — attendance is unlinkable across events
 
 ## Environment Variables
 
@@ -76,23 +97,6 @@ forge build
 |---|---|---|
 | `SP1_PROVER` | Prover backend | `mock` (dev), `local` (CPU), `network` (Succinct Network) |
 | `SP1_PRIVATE_KEY` | Prover Network auth | Required for `network` mode |
-
-## Integration Points
-
-- **Otto Music** — Concert attendance proofs → exclusive content unlock
-- **Tusita** — Community session attendance → privacy-preserving reputation
-
-## Privacy Guarantees
-
-- User identity (`user_secret`) never leaves the device
-- On-chain: only `nullifier` (prevents double-claim) and `identity_commitment` (opt-in linkability) are visible
-- Different events produce different nullifiers — attendance is unlinkable across events by default
-
-## Target Chain
-
-Base (Ethereum L2) — gas costs are negligible (~$0.003 per proof verification).
-
-SP1 Groth16 Verifier Gateway: `0x397A5f7f3dBd538f23DE225B51f532c34448dA9B`
 
 ## License
 
