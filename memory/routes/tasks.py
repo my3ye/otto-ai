@@ -923,11 +923,10 @@ async def _propagate_completion(pool, task_id: UUID, status: str):
                 parent_status = "failed"
             else:
                 parent_status = "completed"
-            close_output = (
-                "Auto-closed: all subtasks cancelled."
-                if parent_status == "cancelled"
-                else "Auto-closed: all subtasks completed."
-            )
+            close_output = {
+                "cancelled": "Auto-closed: all subtasks cancelled.",
+                "failed": "Auto-closed: some subtasks failed.",
+            }.get(parent_status, "Auto-closed: all subtasks completed.")
             if parent_status == "cancelled":
                 updated = await pool.fetchval(
                     """UPDATE tasks
@@ -1596,9 +1595,13 @@ async def get_failure_patterns():
     }
 
 
+VALID_CANCELLED_BY = {"admin", "system", "workflow", "plan"}
+
 @router.post("/{task_id}/cancel", response_model=TaskOut)
 async def cancel_task(task_id: UUID, cancelled_by: str = "admin"):
     """Cancel a pending task. Sets cancelled_at timestamp and fires downstream hooks."""
+    if cancelled_by not in VALID_CANCELLED_BY:
+        cancelled_by = "admin"
     pool = await get_pool()
     row = await pool.fetchrow(
         f"""UPDATE tasks SET status = 'cancelled',
@@ -1661,6 +1664,7 @@ async def stop_task(task_id: UUID):
             log.warning(f"Failed to kill PID {pid} for task {task_id}: {e}")
 
     # Mark as cancelled (not failed) — intentional stop is not a failure
+    # Status guard prevents overwriting if task completed between SELECT and UPDATE
     r = await pool.fetchrow(
         f"""UPDATE tasks SET status = 'cancelled', pid = NULL,
                 completed_at = now(),
@@ -1668,9 +1672,17 @@ async def stop_task(task_id: UUID):
                 error = 'Stopped by admin',
                 exit_code = -15,
                 updated_at = now()
-            WHERE id = $1 RETURNING {TASK_COLUMNS}""",
+            WHERE id = $1 AND status = 'running'
+            RETURNING {TASK_COLUMNS}""",
         task_id,
     )
+    if not r:
+        # Task completed between our SELECT and UPDATE — don't overwrite
+        final = await pool.fetchrow(
+            f"SELECT {TASK_COLUMNS} FROM tasks WHERE id = $1", task_id,
+        )
+        log.info(f"Task {task_id} completed before stop could take effect (status={final['status']})")
+        return TaskOut(**dict(final))
     log.info(f"Task {task_id} ({row['title']}) stopped as cancelled (killed={killed})")
 
     # Fire downstream hooks so parents/plans/workflows don't get stuck
