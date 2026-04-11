@@ -1,0 +1,17 @@
+{
+  "name": "zkpresence",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zero-knowledge proof of attendance protocol",
+  "scripts": {
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "typecheck": "turbo run typecheck"
+  },
+  "devDependencies": {
+    "turbo": "^2.0.0",
+    "typescript": "^5.5.0"
+  },
+  "packageManager": "pnpm@9.0.0"
+}

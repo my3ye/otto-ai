@@ -1,0 +1,32 @@
+# Rust
+target/
+Cargo.lock
+
+# Node
+node_modules/
+.turbo/
+dist/
+*.tsbuildinfo
+
+# Foundry
+contracts/out/
+contracts/cache/
+contracts/lib/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Proof artifacts
+*.bin
+proof.json

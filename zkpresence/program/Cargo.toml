@@ -1,8 +1,0 @@
-[package]
-name = "zkpresence-program"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-sp1-zkvm = "6.1"
-zkpresence-lib = { path = "../lib" }

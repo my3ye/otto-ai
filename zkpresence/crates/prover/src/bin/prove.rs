@@ -8,10 +8,10 @@
 
 use clap::Parser;
 use sp1_sdk::{include_elf, ProverClient, SP1Stdin};
-use zkpresence_lib::{AttestationData, PublicValues};
+use zkpresence_core::{AttestationData, PublicValues};
 
 /// The ELF binary of the zkPresence program, compiled at build time.
-const ELF: &[u8] = include_elf!("zkpresence-program");
+const ELF: &[u8] = include_elf!("zkpresence-circuit");
 
 #[derive(Parser, Debug)]
 #[command(name = "zkpresence-prove", about = "Generate attendance proof")]

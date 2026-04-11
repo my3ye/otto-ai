@@ -8,7 +8,7 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
-use zkpresence_lib::{AttestationData, PublicValues};
+use zkpresence_core::{AttestationData, PublicValues};
 
 /// SHA-256 hash via SP1 precompile (accelerated, ~100x faster than software).
 fn sha256(data: &[u8]) -> [u8; 32] {

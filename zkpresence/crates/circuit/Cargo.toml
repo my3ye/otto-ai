@@ -1,0 +1,10 @@
+[package]
+name = "zkpresence-circuit"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "SP1 guest circuit for zkPresence proof generation"
+
+[dependencies]
+sp1-zkvm = "6.1"
+zkpresence-core = { path = "../core", default-features = false, features = [] }

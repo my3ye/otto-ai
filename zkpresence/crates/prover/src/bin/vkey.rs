@@ -4,7 +4,7 @@
 
 use sp1_sdk::{include_elf, ProverClient};
 
-const ELF: &[u8] = include_elf!("zkpresence-program");
+const ELF: &[u8] = include_elf!("zkpresence-circuit");
 
 fn main() {
     let client = ProverClient::from_env();

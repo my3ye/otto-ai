@@ -1,3 +1,3 @@
 [workspace]
-members = ["lib", "program", "script"]
+members = ["crates/core", "crates/circuit", "crates/prover"]
 resolver = "2"

@@ -1,7 +1,4 @@
-//! Shared types for zkPresence — used by both the SP1 guest program and the host script.
-
-#![no_std]
-extern crate alloc;
+//! Core types for zkPresence — used by both the SP1 guest program and the host prover.
 
 use serde::{Deserialize, Serialize};
 
