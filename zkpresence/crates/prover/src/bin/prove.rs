@@ -3,15 +3,13 @@
 //! Generates a Groth16 proof of attendance for on-chain verification.
 //!
 //! Usage:
-//!   SP1_PROVER=mock cargo run --bin prove -- --event-id 1 --mode qr
-//!   SP1_PROVER=network cargo run --bin prove -- --event-id 1 --mode qr  (real proof)
+//!   cargo run --bin prove -- --event-id 1 --mode qr               (execute only, fast)
+//!   cargo run --bin prove -- --event-id 1 --mode qr --proof       (execute + Groth16 proof)
 
 use clap::Parser;
-use sp1_sdk::{include_elf, ProverClient, SP1Stdin};
+use sp1_sdk::{ProverClient, SP1Stdin};
 use zkpresence_core::{AttestationData, PublicValues};
-
-/// The ELF binary of the zkPresence program, compiled at build time.
-const ELF: &[u8] = include_elf!("zkpresence-circuit");
+use zkpresence_prover::ELF;
 
 #[derive(Parser, Debug)]
 #[command(name = "zkpresence-prove", about = "Generate attendance proof")]
@@ -27,6 +25,10 @@ struct Args {
     /// Output file for the proof (default: proof.bin)
     #[arg(long, default_value = "proof.bin")]
     output: String,
+
+    /// Generate a Groth16 proof (slow). Without this flag, only execute (fast, no proof).
+    #[arg(long)]
+    proof: bool,
 }
 
 fn main() {
@@ -98,22 +100,27 @@ fn main() {
     println!("Timestamp:            {}", public_values.timestamp);
 
     // ── Generate Groth16 proof (slow, for on-chain) ─────────────────────
-    println!("\nGenerating Groth16 proof...");
-    let proof = client
-        .prove(&pk, &stdin)
-        .groth16()
-        .run()
-        .expect("proof generation failed");
+    if args.proof {
+        println!("\nGenerating Groth16 proof...");
+        let proof = client
+            .prove(&pk, &stdin)
+            .groth16()
+            .run()
+            .expect("proof generation failed");
 
-    // Verify locally before saving
-    client.verify(&proof, &vk).expect("proof verification failed");
-    println!("Proof verified locally.");
+        // Verify locally before saving
+        client.verify(&proof, &vk).expect("proof verification failed");
+        println!("Proof verified locally.");
 
-    // Save proof to file
-    proof.save(&args.output).expect("failed to save proof");
-    println!("Proof saved to: {}", args.output);
+        // Save proof to file
+        proof.save(&args.output).expect("failed to save proof");
+        println!("Proof saved to: {}", args.output);
 
-    // Print verification key (needed for contract deployment)
-    println!("\nVerification key (for contract constructor):");
-    println!("  vkey: 0x{}", hex::encode(vk.bytes32()));
+        // Print verification key (needed for contract deployment)
+        println!("\nVerification key (for contract constructor):");
+        println!("  vkey: 0x{}", hex::encode(vk.bytes32()));
+    } else {
+        println!("\nSkipping proof generation (use --proof to generate).");
+        println!("Verification key: 0x{}", hex::encode(vk.bytes32()));
+    }
 }

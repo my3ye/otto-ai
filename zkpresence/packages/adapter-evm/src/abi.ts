@@ -95,6 +95,13 @@ export const zkPresenceAbi = [
   },
   {
     type: 'event',
+    name: 'EventDeactivated',
+    inputs: [
+      { name: 'eventId', type: 'uint64', indexed: true },
+    ],
+  },
+  {
+    type: 'event',
     name: 'AttendanceVerified',
     inputs: [
       { name: 'eventId', type: 'uint64', indexed: true },
