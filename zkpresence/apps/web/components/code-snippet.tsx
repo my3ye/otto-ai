@@ -1,3 +1,5 @@
+'use client';
+
 // Manually syntax-highlighted TypeScript code block
 // Uses CSS classes defined in globals.css for coloring
 
