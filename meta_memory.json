@@ -1,16 +1,12 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-04-11T17:09:55.167950Z",
+  "last_updated": "2026-04-11T18:10:20.681109Z",
   "rl2f_trend": {
     "last_7d_accuracy": 0.68,
     "direction": "stable",
-    "cycles_since_improvement": 4,
+    "cycles_since_improvement": 5,
     "last_improvement_date": null,
     "historical": [
-      {
-        "date": "2026-04-07",
-        "accuracy": 0.56
-      },
       {
         "date": "2026-04-07",
         "accuracy": 0.56
@@ -106,6 +102,10 @@
       {
         "date": "2026-04-11",
         "accuracy": 0.66
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.68
       },
       {
         "date": "2026-04-11",
