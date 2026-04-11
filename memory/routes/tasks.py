@@ -30,7 +30,8 @@ TASK_COLUMNS = """id, title, prompt, context, priority, status, model, cli, agen
     parent_id, task_type, position, requires_decomposition, decomposed,
     children_total, children_completed,
     upvotes, dependency_score, chain_id, chain_hash, chain_anchored_at,
-    plan_id, depends_on"""
+    plan_id, depends_on,
+    cancelled_at, cancelled_by"""
 
 # Per-CLI concurrency limits: 3 claude, 1 gemini, 1 kimi (total max 5)
 CLI_CONCURRENCY = {"claude": 3, "gemini": 1, "kimi": 1}
@@ -820,7 +821,7 @@ async def complete_task(task_id: UUID, req: TaskComplete):
             f"""UPDATE tasks
                 SET status = $2, output = $3, error = $4, exit_code = $5,
                     completed_at = now(), pid = NULL, metadata = $6
-                WHERE id = $1
+                WHERE id = $1 AND status NOT IN ('cancelled')
                 RETURNING {TASK_COLUMNS}""",
             task_id, status, req.output, req.error, req.exit_code,
             merged,
@@ -830,11 +831,18 @@ async def complete_task(task_id: UUID, req: TaskComplete):
             f"""UPDATE tasks
                 SET status = $2, output = $3, error = $4, exit_code = $5,
                     completed_at = now(), pid = NULL
-                WHERE id = $1
+                WHERE id = $1 AND status NOT IN ('cancelled')
                 RETURNING {TASK_COLUMNS}""",
             task_id, status, req.output, req.error, req.exit_code,
         )
     if not row:
+        # Check if it was already cancelled (stop_task race) — return 200 no-op
+        existing = await pool.fetchrow(
+            f"SELECT {TASK_COLUMNS} FROM tasks WHERE id = $1", task_id
+        )
+        if existing and existing["status"] == "cancelled":
+            log.info(f"Task {task_id} already cancelled, ignoring complete_task (trap handler race)")
+            return TaskOut(**dict(existing))
         raise HTTPException(404, "Task not found")
 
     # ── JitRL: Feed outcome back into experience buffer ─────────────
@@ -900,12 +908,21 @@ async def _propagate_completion(pool, task_id: UUID, status: str):
         total = sibling_stats["total"]
         done = sibling_stats["done"]
         if total > 0 and total == done:
-            # All children are done — auto-close parent
-            all_succeeded = await pool.fetchval(
-                "SELECT COUNT(*) = 0 FROM tasks WHERE parent_id = $1 AND status = 'failed'",
+            # All children are done — determine parent status
+            any_failed = await pool.fetchval(
+                "SELECT COUNT(*) > 0 FROM tasks WHERE parent_id = $1 AND status = 'failed'",
                 parent_id,
             )
-            parent_status = "completed" if all_succeeded else "failed"
+            all_cancelled = await pool.fetchval(
+                "SELECT COUNT(*) = COUNT(*) FILTER (WHERE status = 'cancelled') FROM tasks WHERE parent_id = $1",
+                parent_id,
+            )
+            if all_cancelled:
+                parent_status = "cancelled"
+            elif any_failed:
+                parent_status = "failed"
+            else:
+                parent_status = "completed"
             updated = await pool.fetchval(
                 """UPDATE tasks
                    SET status = $1, completed_at = now(),
@@ -1557,17 +1574,31 @@ async def get_failure_patterns():
 
 
 @router.post("/{task_id}/cancel", response_model=TaskOut)
-async def cancel_task(task_id: UUID):
-    """Cancel a pending task."""
+async def cancel_task(task_id: UUID, cancelled_by: str = "admin"):
+    """Cancel a pending task. Sets cancelled_at timestamp and fires downstream hooks."""
     pool = await get_pool()
     row = await pool.fetchrow(
-        f"""UPDATE tasks SET status = 'cancelled'
+        f"""UPDATE tasks SET status = 'cancelled',
+                cancelled_at = now(), cancelled_by = $2,
+                updated_at = now()
             WHERE id = $1 AND status = 'pending'
             RETURNING {TASK_COLUMNS}""",
-        task_id,
+        task_id, cancelled_by,
     )
     if not row:
         raise HTTPException(404, "Task not found or not in pending status")
+
+    log.info(f"Task {task_id} cancelled by {cancelled_by}")
+
+    # Fire downstream hooks so parents/plans/workflows don't get stuck
+    asyncio.create_task(_propagate_completion(pool, task_id, "cancelled"))
+
+    from .workflows import check_workflow_advance
+    asyncio.create_task(check_workflow_advance(pool, task_id, "cancelled"))
+
+    from .task_plans import on_plan_task_complete
+    asyncio.create_task(on_plan_task_complete(pool, task_id, "cancelled"))
+
     return TaskOut(**dict(row))
 
 
@@ -1584,15 +1615,9 @@ async def stop_task(task_id: UUID):
     status = row["status"]
     pid = row["pid"]
 
-    # If pending, just cancel it
+    # If pending, delegate to cancel_task() which handles propagation
     if status == "pending":
-        r = await pool.fetchrow(
-            f"""UPDATE tasks SET status = 'cancelled'
-                WHERE id = $1 RETURNING {TASK_COLUMNS}""",
-            task_id,
-        )
-        log.info(f"Task {task_id} ({row['title']}) cancelled (was pending)")
-        return TaskOut(**dict(r))
+        return await cancel_task(task_id, cancelled_by="admin")
 
     if status != "running":
         raise HTTPException(409, f"Task is '{status}', not running or pending")
@@ -1612,27 +1637,27 @@ async def stop_task(task_id: UUID):
         except Exception as e:
             log.warning(f"Failed to kill PID {pid} for task {task_id}: {e}")
 
+    # Mark as cancelled (not failed) — intentional stop is not a failure
     r = await pool.fetchrow(
-        f"""UPDATE tasks SET status = 'failed', pid = NULL,
+        f"""UPDATE tasks SET status = 'cancelled', pid = NULL,
                 completed_at = now(),
+                cancelled_at = now(), cancelled_by = 'admin',
                 error = 'Stopped by admin',
-                exit_code = -15
+                exit_code = -15,
+                updated_at = now()
             WHERE id = $1 RETURNING {TASK_COLUMNS}""",
         task_id,
     )
-    log.info(f"Task {task_id} ({row['title']}) stopped (killed={killed})")
+    log.info(f"Task {task_id} ({row['title']}) stopped as cancelled (killed={killed})")
 
-    # ── Advance plan/workflow DAGs so they don't get stuck ────────
-    # stop_task() bypasses complete_task(), so we must fire the same
-    # downstream hooks here.  Without this, a plan with a stopped task
-    # never finalizes (the plan counter never increments and dependents
-    # are never skipped or unblocked).  SIGTERM from timeout or manual
-    # stop both hit this path.
+    # Fire downstream hooks so parents/plans/workflows don't get stuck
+    asyncio.create_task(_propagate_completion(pool, task_id, "cancelled"))
+
     from .workflows import check_workflow_advance
-    asyncio.create_task(check_workflow_advance(pool, task_id, "failed"))
+    asyncio.create_task(check_workflow_advance(pool, task_id, "cancelled"))
 
     from .task_plans import on_plan_task_complete
-    asyncio.create_task(on_plan_task_complete(pool, task_id, "failed"))
+    asyncio.create_task(on_plan_task_complete(pool, task_id, "cancelled"))
 
     return TaskOut(**dict(r))
 

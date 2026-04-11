@@ -368,6 +368,9 @@ class TaskOut(BaseModel):
     # Plan fields (migration 066)
     plan_id: UUID | None = None
     depends_on: list[UUID] = Field(default_factory=list)
+    # Cancellation fields (migration 087)
+    cancelled_at: datetime | None = None
+    cancelled_by: str | None = None  # 'admin', 'system', 'workflow', 'plan'
 
 
 class TaskComplete(BaseModel):
