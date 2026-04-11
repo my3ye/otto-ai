@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_coral_2604_01658_validation.md](project_coral_2604_01658_validation.md) — CORAL arXiv 2604.01658 synthesis (2026-04-11, WF Step 2): MINOR_CHANGES 8.5/10. 1 critical: Kimi misattributed as "Gemini Flash" in skill extraction. 1 warning: worktree isolation claim scoped to qa_runner.sh only. All gap claims grep-verified correct.
 - [project_panik_chain_fit_validation.md](project_panik_chain_fit_validation.md) — Panik chain fit synthesis (2026-04-10, WF Step 2): MINOR_CHANGES 8.0/10. {topic} template bug (4th instance). $3B Retro Funding single-source vendor bias. All gap claims grep-verified. Strongest technical synthesis in this batch.
 - [project_koink_chain_fit_validation.md](project_koink_chain_fit_validation.md) — Koink chain fit synthesis (2026-04-10, WF Step 2): MINOR_CHANGES 7.5/10. 2 warnings: zero-.sol claim imprecise (ContributorSalary .sol files exist in otto/); ChainMarquee severity understated (full Ctrl Wallet section). {topic} template bug recurs (3rd time). Core conclusions verified solid.
 - [project_webassist_chain_fit_validation.md](project_webassist_chain_fit_validation.md) — WebAssist chain fit synthesis (2026-04-10, WF Step 2): MINOR_CHANGES 7.0/10. 2 confidence downgrades (Circle Nanopayments HIGH→MEDIUM vendor-bias, AgentPay HIGH→MEDIUM 2-day-old product), circular ecosystem matrix, {topic} template bug.
