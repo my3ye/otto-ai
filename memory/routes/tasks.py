@@ -923,14 +923,30 @@ async def _propagate_completion(pool, task_id: UUID, status: str):
                 parent_status = "failed"
             else:
                 parent_status = "completed"
-            updated = await pool.fetchval(
-                """UPDATE tasks
-                   SET status = $1, completed_at = now(),
-                       output = 'Auto-closed: all subtasks completed.'
-                   WHERE id = $2 AND status NOT IN ('completed','failed','cancelled')
-                   RETURNING id""",
-                parent_status, parent_id,
+            close_output = (
+                "Auto-closed: all subtasks cancelled."
+                if parent_status == "cancelled"
+                else "Auto-closed: all subtasks completed."
             )
+            if parent_status == "cancelled":
+                updated = await pool.fetchval(
+                    """UPDATE tasks
+                       SET status = $1, completed_at = now(),
+                           cancelled_at = now(), cancelled_by = 'system',
+                           output = $3
+                       WHERE id = $2 AND status NOT IN ('completed','failed','cancelled')
+                       RETURNING id""",
+                    parent_status, parent_id, close_output,
+                )
+            else:
+                updated = await pool.fetchval(
+                    """UPDATE tasks
+                       SET status = $1, completed_at = now(),
+                           output = $3
+                       WHERE id = $2 AND status NOT IN ('completed','failed','cancelled')
+                       RETURNING id""",
+                    parent_status, parent_id, close_output,
+                )
             if updated:
                 log.info(
                     f"Auto-closed parent {str(parent_id)[:8]} as '{parent_status}' "
@@ -1335,10 +1351,17 @@ async def mev_update_task(task_id: UUID, req: MevTaskUpdate):
                 f"Can only cancel a 'pending' or 'running' task; current status is '{current}'",
             )
         updated = await pool.fetchrow(
-            f"""UPDATE tasks SET status = 'cancelled', updated_at = now()
+            f"""UPDATE tasks SET status = 'cancelled', updated_at = now(),
+                    cancelled_at = now(), cancelled_by = 'admin'
                 WHERE id = $1 RETURNING {TASK_COLUMNS}""",
             task_id,
         )
+        # Fire downstream hooks so parents/plans/workflows don't get stuck
+        asyncio.create_task(_propagate_completion(pool, task_id, "cancelled"))
+        from .workflows import check_workflow_advance
+        asyncio.create_task(check_workflow_advance(pool, task_id, "cancelled"))
+        from .task_plans import on_plan_task_complete
+        asyncio.create_task(on_plan_task_complete(pool, task_id, "cancelled"))
 
     else:
         raise HTTPException(
