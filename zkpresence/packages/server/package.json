@@ -1,0 +1,22 @@
+{
+  "name": "@zkpresence/server",
+  "version": "0.1.0",
+  "description": "Server-side utilities for zkPresence (proof queue, webhooks)",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "test": "echo 'no tests yet'",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@zkpresence/sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "license": "MIT"
+}
