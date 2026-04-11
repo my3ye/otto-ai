@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_zk_grants_launchpad_validation.md](project_zk_grants_launchpad_validation.md) — ZK grants/launchpad synthesis (2026-04-11, WF Step 2): MINOR_CHANGES 8.0/10. {topic} bug (5th instance). Stale e5672287 "ECDSA silent bypass" uncorrected. SHA-256 execution-order nuance. All codebase claims grep-verified correct.
 - [project_cancelled_task_implementation_review.md](project_cancelled_task_implementation_review.md) — cancelled_at/by columns + stop/cancel lifecycle (2026-04-11, WF Step 3 final): APPROVE 9/10. All 3 prior criticals fixed. 2 residual warnings: mev-update cancel path TOCTOU (no WHERE guard, only pre-check); OMS board getColumnId has no 'cancelled' case (falls to Failed column).
 - [project_zkpresence_docs_review.md](project_zkpresence_docs_review.md) — zkPresence README/ROADMAP/CONTRIBUTING/QUICK_START docs (2026-04-11, WF Step 1): MINOR_CHANGES 7.5/10. 3 criticals: ECDSA silent omission unwarned in CONTRIBUTING; bogus sha256 stub code pre-todo!(); QUICK_START Step 3 claims output that will be a panic. Opener line exceptional.
 - [project_zkpresence_competitive_validation.md](project_zkpresence_competitive_validation.md) — zkPresence competitive landscape synthesis (2026-04-11, WF Step 2): MINOR_CHANGES 7.5/10. Critical: todo!() vs // TODO: conflation (silent ECDSA omission more dangerous than panic — fixing SHA-256 first creates security hole). Source count methodology misleading. Core conclusions correct.

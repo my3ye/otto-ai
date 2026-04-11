@@ -1,64 +1,12 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-04-10T14:09:15.227635Z",
+  "last_updated": "2026-04-11T17:09:55.167950Z",
   "rl2f_trend": {
-    "last_7d_accuracy": 0.62,
-    "direction": "improving",
-    "cycles_since_improvement": 0,
+    "last_7d_accuracy": 0.68,
+    "direction": "stable",
+    "cycles_since_improvement": 4,
     "last_improvement_date": null,
     "historical": [
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.54
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.52
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.52
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.54
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.54
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.54
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.54
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.56
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.56
-      },
-      {
-        "date": "2026-04-06",
-        "accuracy": 0.56
-      },
-      {
-        "date": "2026-04-07",
-        "accuracy": 0.56
-      },
-      {
-        "date": "2026-04-07",
-        "accuracy": 0.56
-      },
-      {
-        "date": "2026-04-07",
-        "accuracy": 0.56
-      },
       {
         "date": "2026-04-07",
         "accuracy": 0.56
@@ -126,6 +74,58 @@
       {
         "date": "2026-04-10",
         "accuracy": 0.62
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.62
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.6
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.62
+      },
+      {
+        "date": "2026-04-10",
+        "accuracy": 0.62
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.64
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.64
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.64
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.66
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.68
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.68
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.68
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.68
+      },
+      {
+        "date": "2026-04-11",
+        "accuracy": 0.68
       }
     ]
   },
