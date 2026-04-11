@@ -30,3 +30,4 @@ Thumbs.db
 # Proof artifacts
 *.bin
 proof.json
+contracts/lib/
