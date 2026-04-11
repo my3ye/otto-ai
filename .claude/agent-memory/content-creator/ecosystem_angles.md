@@ -90,6 +90,7 @@ type: project
 ## KOINK
 
 **Covered:**
+- Lucky Penny lore bible (2026-04-11, DB: 614ff9b8) — Full narrative system for $PENNY token: Cooper/Copper bloodline since 1883, Lucky Cooper mascot (weathered railroad conductor, 1909 Lincoln penny), 0-decimals-as-narrative (a penny cannot be split, neither can conviction). Taglines, mascot spec, family tree, founding law. PiPi = chaos / Lucky = still point. Color palette: copper/navy/parchment.
 - Chain-agnostic design / $KOINK Standard / anti-whale physics / treasury→SOS flow (inception rewrite 2026-03-19, DB: 9c46d865)
   - Angle: engineering beneath chaos, meme as onboarding door, physics not punishment
 - Landing page copy v2 (2026-03-22, DB: e215075e). Key changes: chain-agnostic as primary hero framing, $KOIN→$KOINK fix, sharper feature/step copy, canonical brand line in footer. Committed to ottomev/koink-fun main.
