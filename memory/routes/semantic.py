@@ -10,7 +10,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from ..config import settings
 from ..db import get_pool
-from ..embeddings import get_embedding
+from ..embeddings import get_embedding, get_embedding_provider, emb_col, emb_cast, emb_summary_col
 from ..models import (
     SemanticMemoryCreate,
     SemanticMemoryOut,
@@ -190,12 +190,18 @@ async def _compute_importance(
     embedding_str: str,
     is_active_task: bool = False,
     override: float | None = None,
+    content: str | None = None,
 ) -> tuple[float, str | None]:
     """Compute AgeMem importance score for a new memory.
 
     Returns (importance_score, existing_id_if_duplicate_or_None).
     If a near-duplicate exists (cosine > 0.85), returns the existing memory ID
     so the caller can skip insertion and return the existing row.
+
+    Cross-provider dedup: if the cosine check finds no duplicate (because the
+    other embedding column is NULL), falls back to pg_trgm text similarity on
+    the content field (threshold 0.85) to catch duplicates stored by a
+    different embedding provider.
     """
     if override is not None:
         return min(1.0, max(0.0, override)), None
@@ -208,16 +214,18 @@ async def _compute_importance(
         base = min(1.0, base + 0.1)
 
     # Duplicate check: if a very similar memory already exists, return its ID
+    col = emb_col()
+    cast = emb_cast("$1")
     async with pool.acquire() as conn:
         await conn.execute("SET hnsw.iterative_scan = relaxed_order")
         dup = await conn.fetchrow(
-            """SELECT id, 1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity,
+            f"""SELECT id, 1 - ({col} <=> {cast}) AS similarity,
                       importance_score
                FROM semantic_memories
-               WHERE embedding_hv IS NOT NULL
+               WHERE {col} IS NOT NULL
                  AND deleted_at IS NULL
                  AND archived = FALSE
-               ORDER BY embedding_hv <=> $1::halfvec(1536)
+               ORDER BY {col} <=> {cast}
                LIMIT 1""",
             embedding_str,
         )
@@ -227,6 +235,34 @@ async def _compute_importance(
         # Keep the higher importance, don't duplicate
         merged_importance = max(existing_importance, base)
         return merged_importance, str(dup["id"])
+
+    # Cross-provider fallback: check text similarity via pg_trgm
+    # This catches duplicates stored by a different embedding provider
+    # (e.g. content stored with OpenAI won't have embedding_local, and vice versa)
+    if content:
+        _TEXT_SIMILARITY_THRESHOLD = 0.85
+        async with pool.acquire() as conn:
+            text_dup = await conn.fetchrow(
+                """SELECT id, similarity(content, $1) AS sim,
+                          importance_score
+                   FROM semantic_memories
+                   WHERE deleted_at IS NULL
+                     AND archived = FALSE
+                     AND similarity(content, $1) >= $2
+                   ORDER BY similarity(content, $1) DESC
+                   LIMIT 1""",
+                content,
+                _TEXT_SIMILARITY_THRESHOLD,
+            )
+        if text_dup:
+            existing_importance = float(text_dup["importance_score"]) if text_dup["importance_score"] is not None else 0.5
+            merged_importance = max(existing_importance, base)
+            logger.info(
+                f"AgeMem: cross-provider text duplicate detected "
+                f"(trigram sim={float(text_dup['sim']):.3f}), "
+                f"returning existing memory {text_dup['id']}"
+            )
+            return merged_importance, str(text_dup["id"])
 
     return base, None
 
@@ -265,16 +301,18 @@ _AMEM_TOP_K = 3              # max links to create per new memory
 async def _amem_create_links(pool, new_id, embedding_str: str) -> int:
     """Find top-K similar existing memories and create bidirectional note_links.
     Returns number of link pairs created."""
+    col = emb_col()
+    cast = emb_cast("$1")
     async with pool.acquire() as conn:
         await conn.execute("SET hnsw.iterative_scan = relaxed_order")
         candidates = await conn.fetch(
-            """SELECT id, 1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+            f"""SELECT id, 1 - ({col} <=> {cast}) AS similarity
                FROM semantic_memories
                WHERE id != $2
-                 AND embedding_hv IS NOT NULL
+                 AND {col} IS NOT NULL
                  AND deleted_at IS NULL
                  AND archived = FALSE
-               ORDER BY embedding_hv <=> $1::halfvec(1536)
+               ORDER BY {col} <=> {cast}
                LIMIT $3""",
             embedding_str, new_id, _AMEM_TOP_K * 5,  # oversample before threshold filter
         )
@@ -323,24 +361,27 @@ async def _amem_update_related(pool, new_memory_id: str, new_content: str, new_e
     Returns count of memories updated.
     """
     embedding_str = "[" + ",".join(str(x) for x in new_embedding) + "]"
+    col = emb_col()
+    cast = emb_cast("$2")
 
     # Find strongly related existing memories
     rows = await pool.fetch(
-        """SELECT id, content, salience_score, retrieval_count
+        f"""SELECT id, content, salience_score, retrieval_count
            FROM semantic_memories
            WHERE id != $1
              AND archived IS NOT TRUE AND deleted_at IS NULL
-             AND embedding_hv IS NOT NULL
-           ORDER BY (embedding_hv <=> $2::halfvec(1536)) ASC
+             AND {col} IS NOT NULL
+           ORDER BY ({col} <=> {cast}) ASC
            LIMIT 5""",
         new_memory_id, embedding_str,
     )
 
     updated = 0
+    cast1 = emb_cast("$1")
     for row in rows:
         # Compute actual similarity
         sim = await pool.fetchval(
-            "SELECT 1 - (embedding_hv <=> $1::halfvec(1536)) FROM semantic_memories WHERE id = $2",
+            f"SELECT 1 - ({col} <=> {cast1}) FROM semantic_memories WHERE id = $2",
             embedding_str, row["id"],
         )
         if sim and sim > _AMEM_UPDATE_THRESHOLD:
@@ -481,12 +522,14 @@ async def remember(req: SemanticMemoryCreate):
     # Mutate the request category field for downstream use
     req = req.model_copy(update={"category": cat})
 
-    # Generate embedding — gracefully degrade if OpenAI API is unavailable
+    # Generate embedding — gracefully degrade if all providers unavailable
     embedding = None
     embedding_str = None
+    embedding_provider = None
     _embedding_failed = False
     try:
         embedding = await get_embedding(req.content)
+        embedding_provider = get_embedding_provider()
         embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
     except Exception as e:
         _embedding_failed = True
@@ -500,7 +543,8 @@ async def remember(req: SemanticMemoryCreate):
     duplicate_id = None
     if embedding_str is not None:
         importance, duplicate_id = await _compute_importance(
-            pool, req.category, embedding_str, override=req.importance_score
+            pool, req.category, embedding_str, override=req.importance_score,
+            content=req.content,
         )
 
     if duplicate_id is not None:
@@ -528,28 +572,42 @@ async def remember(req: SemanticMemoryCreate):
     summary_embedding_str = None
 
     # Only generate summary embedding if summary differs from content AND embedding API is working
+    summary_embedding_provider = None
     if summary_content != req.content and not _embedding_failed:
         try:
             summary_embedding = await get_embedding(summary_content)
+            summary_embedding_provider = get_embedding_provider()
             summary_embedding_str = "[" + ",".join(str(x) for x in summary_embedding) + "]"
         except Exception as e:
             logger.warning(f"Summary embedding failed (non-fatal): {e}")
 
+    # Build INSERT with provider-aware column selection
+    openai_emb = embedding_str if embedding_provider == "openai" else None
+    local_emb = embedding_str if embedding_provider == "local" else None
+    openai_sum_emb = summary_embedding_str if summary_embedding_provider == "openai" else None
+    local_sum_emb = summary_embedding_str if summary_embedding_provider == "local" else None
+
     row = await pool.fetchrow(
         """INSERT INTO semantic_memories
-               (content, category, confidence, source, embedding, embedding_hv, metadata,
-                importance_score, ttl_days, salience_score,
-                summary_content, summary_embedding, summary_embedding_hv)
+               (content, category, confidence, source,
+                embedding, embedding_hv, embedding_local,
+                metadata, importance_score, ttl_days, salience_score,
+                summary_content, summary_embedding, summary_embedding_hv, summary_embedding_local,
+                embedding_provider)
            VALUES ($1, $2, $3, $4,
                    CASE WHEN ($5::text) IS NOT NULL THEN ($5::text)::vector ELSE NULL END,
                    CASE WHEN ($5::text) IS NOT NULL THEN ($5::text)::halfvec(1536) ELSE NULL END,
+                   CASE WHEN ($12::text) IS NOT NULL THEN ($12::text)::halfvec(384) ELSE NULL END,
                    $6, $7, $8, $9, $10,
                    CASE WHEN ($11::text) IS NOT NULL THEN ($11::text)::vector ELSE NULL END,
-                   CASE WHEN ($11::text) IS NOT NULL THEN ($11::text)::halfvec(1536) ELSE NULL END)
+                   CASE WHEN ($11::text) IS NOT NULL THEN ($11::text)::halfvec(1536) ELSE NULL END,
+                   CASE WHEN ($13::text) IS NOT NULL THEN ($13::text)::halfvec(384) ELSE NULL END,
+                   $14)
            RETURNING id, content, category, confidence, source, created_at, importance_score, summary_content""",
         req.content, req.category, req.confidence, req.source,
-        embedding_str, req.metadata, importance, req.ttl_days, salience,
-        summary_content, summary_embedding_str,
+        openai_emb, req.metadata, importance, req.ttl_days, salience,
+        summary_content, openai_sum_emb, local_emb, local_sum_emb,
+        embedding_provider,
     )
     if _embedding_failed:
         logger.warning(
@@ -798,6 +856,10 @@ async def _hymem_search(
         logger.warning(f"HyMem search: embedding failed, returning empty vector results: {e}")
         return []
     embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
+    col = emb_col()
+    cast = emb_cast("$1")
+    sum_col = emb_summary_col()
+    sum_cast = emb_cast("$1")  # same cast, different column
 
     # Build dynamic WHERE clause — exclude archived and soft-deleted
     conditions = ["archived = FALSE", "deleted_at IS NULL"]
@@ -831,10 +893,10 @@ async def _hymem_search(
                 f"""SELECT id, content, category, confidence, source, created_at,
                            utility_score, relevance_score, importance_score, salience_score,
                            retrieval_count, summary_content,
-                           1 - (summary_embedding_hv <=> $1::halfvec(1536)) AS similarity
+                           1 - ({sum_col} <=> {sum_cast}) AS similarity
                     FROM semantic_memories
-                    WHERE summary_embedding_hv IS NOT NULL AND {where}
-                    ORDER BY summary_embedding_hv <=> $1::halfvec(1536)
+                    WHERE {sum_col} IS NOT NULL AND {where}
+                    ORDER BY {sum_col} <=> {sum_cast}
                     LIMIT ${idx}""",
                 *params,
             )
@@ -846,10 +908,10 @@ async def _hymem_search(
                     f"""SELECT id, content, category, confidence, source, created_at,
                                utility_score, relevance_score, importance_score, salience_score,
                                retrieval_count, summary_content,
-                               1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+                               1 - ({col} <=> {cast}) AS similarity
                         FROM semantic_memories
-                        WHERE embedding_hv IS NOT NULL AND {where}
-                        ORDER BY embedding_hv <=> $1::halfvec(1536)
+                        WHERE {col} IS NOT NULL AND {where}
+                        ORDER BY {col} <=> {cast}
                         LIMIT ${idx}""",
                     *params,
                 )
@@ -859,10 +921,10 @@ async def _hymem_search(
                 f"""SELECT id, content, category, confidence, source, created_at,
                            utility_score, relevance_score, importance_score, salience_score,
                            summary_content,
-                           1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+                           1 - ({col} <=> {cast}) AS similarity
                     FROM semantic_memories
-                    WHERE embedding_hv IS NOT NULL AND {where}
-                    ORDER BY embedding_hv <=> $1::halfvec(1536)
+                    WHERE {col} IS NOT NULL AND {where}
+                    ORDER BY {col} <=> {cast}
                     LIMIT ${idx}""",
                 *params,
             )
@@ -953,6 +1015,8 @@ async def search_with_links(req: SemanticSearchQuery) -> dict:
         logger.warning(f"search/linked: embedding failed, returning empty: {e}")
         return {"results": [], "linked": [], "warning": "Embedding API unavailable"}
     embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
+    col = emb_col()
+    cast = emb_cast("$1")
 
     pool = await get_pool()
 
@@ -979,10 +1043,10 @@ async def search_with_links(req: SemanticSearchQuery) -> dict:
         rows = await conn.fetch(
             f"""SELECT id, content, category, confidence, source, created_at,
                        utility_score, relevance_score, importance_score, salience_score,
-                       1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+                       1 - ({col} <=> {cast}) AS similarity
                 FROM semantic_memories
-                WHERE embedding_hv IS NOT NULL AND {where}
-                ORDER BY embedding_hv <=> $1::halfvec(1536)
+                WHERE {col} IS NOT NULL AND {where}
+                ORDER BY {col} <=> {cast}
                 LIMIT ${idx}""",
             *params,
         )
@@ -1044,7 +1108,9 @@ async def arag_search_internal(
         try:
             query_embedding = await get_embedding(query)
             embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
-            conditions = ["archived = FALSE", "deleted_at IS NULL", "embedding_hv IS NOT NULL"]
+            col = emb_col()
+            cast = emb_cast("$1")
+            conditions = ["archived = FALSE", "deleted_at IS NULL", f"{col} IS NOT NULL"]
             params: list = [embedding_str]
             idx = 2
             if min_confidence > 0:
@@ -1062,10 +1128,10 @@ async def arag_search_internal(
                 rows = await conn.fetch(
                     f"""SELECT id, content, category, confidence, source, created_at,
                                importance_score,
-                               1 - (embedding_hv <=> $1::halfvec(1536)) AS score
+                               1 - ({col} <=> {cast}) AS score
                         FROM semantic_memories
                         WHERE {where}
-                        ORDER BY embedding_hv <=> $1::halfvec(1536)
+                        ORDER BY {col} <=> {cast}
                         LIMIT ${idx}""",
                     *params,
                 )
@@ -1341,8 +1407,10 @@ async def hymem_briefing_facts(
     """
     query_embedding = await get_embedding(query)
     embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
+    col = emb_col()
+    cast = emb_cast("$1")
 
-    conditions = ["archived = FALSE", "deleted_at IS NULL", "embedding_hv IS NOT NULL"]
+    conditions = ["archived = FALSE", "deleted_at IS NULL", f"{col} IS NOT NULL"]
     params: list = [embedding_str]
     idx = 2
 
@@ -1360,10 +1428,10 @@ async def hymem_briefing_facts(
             f"""SELECT id, content, category, confidence, source, created_at,
                        importance_score, salience_score, utility_score, relevance_score,
                        retrieval_count, summary_content,
-                       1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+                       1 - ({col} <=> {cast}) AS similarity
                 FROM semantic_memories
                 WHERE {where}
-                ORDER BY embedding_hv <=> $1::halfvec(1536)
+                ORDER BY {col} <=> {cast}
                 LIMIT ${idx}""",
             *params,
         )
@@ -1409,14 +1477,16 @@ async def forget(req: SemanticForgetRequest):
     if req.query:
         query_embedding = await get_embedding(req.query)
         embedding_str = "[" + ",".join(str(x) for x in query_embedding) + "]"
+        col = emb_col()
+        cast = emb_cast("$1")
 
         async with pool.acquire() as conn:
             await conn.execute("SET hnsw.iterative_scan = relaxed_order")
             rows = await conn.fetch(
-                """SELECT id, 1 - (embedding_hv <=> $1::halfvec(1536)) AS similarity
+                f"""SELECT id, 1 - ({col} <=> {cast}) AS similarity
                    FROM semantic_memories
-                   WHERE embedding_hv IS NOT NULL AND deleted_at IS NULL
-                   ORDER BY embedding_hv <=> $1::halfvec(1536)
+                   WHERE {col} IS NOT NULL AND deleted_at IS NULL
+                   ORDER BY {col} <=> {cast}
                    LIMIT 100""",
                 embedding_str,
             )
@@ -1439,30 +1509,33 @@ async def forget(req: SemanticForgetRequest):
 async def update_memory(req: SemanticUpdateRequest):
     """Update memory content and re-embed. Optionally change category."""
     embedding = await get_embedding(req.content)
+    provider = get_embedding_provider()
     embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
 
     pool = await get_pool()
 
+    # Provider-aware column updates
+    if provider == "openai":
+        emb_set = "embedding = $EMB::vector, embedding_hv = $EMB::halfvec(1536), embedding_provider = 'openai'"
+    else:
+        emb_set = "embedding_local = $EMB::halfvec(384), embedding_provider = 'local'"
+
     if req.category is not None:
-        row = await pool.fetchrow(
-            """UPDATE semantic_memories
+        sql = f"""UPDATE semantic_memories
                SET content = $1, category = $2,
-                   embedding = $3::vector, embedding_hv = $3::halfvec(1536),
+                   {emb_set.replace('$EMB', '$3')},
                    updated_at = NOW()
                WHERE id = $4 AND deleted_at IS NULL
-               RETURNING id, content, category, confidence, source, created_at""",
-            req.content, req.category, embedding_str, req.memory_id,
-        )
+               RETURNING id, content, category, confidence, source, created_at"""
+        row = await pool.fetchrow(sql, req.content, req.category, embedding_str, req.memory_id)
     else:
-        row = await pool.fetchrow(
-            """UPDATE semantic_memories
+        sql = f"""UPDATE semantic_memories
                SET content = $1,
-                   embedding = $2::vector, embedding_hv = $2::halfvec(1536),
+                   {emb_set.replace('$EMB', '$2')},
                    updated_at = NOW()
                WHERE id = $3 AND deleted_at IS NULL
-               RETURNING id, content, category, confidence, source, created_at""",
-            req.content, embedding_str, req.memory_id,
-        )
+               RETURNING id, content, category, confidence, source, created_at"""
+        row = await pool.fetchrow(sql, req.content, embedding_str, req.memory_id)
 
     if not row:
         raise HTTPException(status_code=404, detail="Memory not found or already deleted")
@@ -1510,17 +1583,30 @@ async def summarize_memories(req: SemanticSummarizeRequest):
     summary_content = await _gemini_summarize(memories_text, summary_category)
 
     embedding = await get_embedding(summary_content)
+    provider = get_embedding_provider()
     embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
     source_ids = json.dumps([str(r["id"]) for r in rows])
 
-    new_row = await pool.fetchrow(
-        """INSERT INTO semantic_memories
-               (content, category, confidence, source, embedding, embedding_hv, metadata)
-           VALUES ($1, $2, $3, 'summarize_endpoint', $4::vector, $4::halfvec(1536),
-                   jsonb_build_object('summarized_from', $5::jsonb))
-           RETURNING id, content, category, confidence, source, created_at""",
-        summary_content, summary_category, avg_confidence, embedding_str, source_ids,
-    )
+    if provider == "openai":
+        new_row = await pool.fetchrow(
+            """INSERT INTO semantic_memories
+                   (content, category, confidence, source, embedding, embedding_hv,
+                    embedding_provider, metadata)
+               VALUES ($1, $2, $3, 'summarize_endpoint', $4::vector, $4::halfvec(1536),
+                       'openai', jsonb_build_object('summarized_from', $5::jsonb))
+               RETURNING id, content, category, confidence, source, created_at""",
+            summary_content, summary_category, avg_confidence, embedding_str, source_ids,
+        )
+    else:
+        new_row = await pool.fetchrow(
+            """INSERT INTO semantic_memories
+                   (content, category, confidence, source, embedding_local,
+                    embedding_provider, metadata)
+               VALUES ($1, $2, $3, 'summarize_endpoint', $4::halfvec(384),
+                       'local', jsonb_build_object('summarized_from', $5::jsonb))
+               RETURNING id, content, category, confidence, source, created_at""",
+            summary_content, summary_category, avg_confidence, embedding_str, source_ids,
+        )
 
     # Soft-delete originals
     ids = [r["id"] for r in rows]
@@ -1657,3 +1743,66 @@ async def merge_duplicates(req: SemanticMergeRequest):
         groups=groups,
         merged=merged,
     )
+
+
+# ── Local Embedding Backfill ────────────────────────────────────────
+# Embeds memories that have NULL embeddings (both OpenAI and local)
+# using the local sentence-transformer model.
+
+@router.post("/backfill-local")
+async def backfill_local_embeddings(limit: int = 100):
+    """Backfill memories with NULL embeddings using local sentence-transformer model.
+
+    Targets memories where BOTH embedding_hv and embedding_local are NULL.
+    Uses local model directly (not get_embedding) to avoid OpenAI attempt overhead.
+    """
+    from ..embeddings import _local_embed
+
+    if not settings.local_embedding_enabled:
+        raise HTTPException(status_code=400, detail="Local embedding is disabled (LOCAL_EMBEDDING_ENABLED=false)")
+
+    pool = await get_pool()
+
+    # Find memories with no embeddings at all
+    rows = await pool.fetch(
+        """SELECT id, content
+           FROM semantic_memories
+           WHERE embedding_hv IS NULL
+             AND embedding_local IS NULL
+             AND deleted_at IS NULL
+             AND archived = FALSE
+           ORDER BY created_at DESC
+           LIMIT $1""",
+        limit,
+    )
+
+    if not rows:
+        return {"backfilled": 0, "message": "No memories with null embeddings found"}
+
+    backfilled = 0
+    errors = 0
+    for row in rows:
+        try:
+            content = row["content"]
+            if not content or not content.strip():
+                continue
+            embedding = _local_embed(content[:1000])
+            embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
+            await pool.execute(
+                """UPDATE semantic_memories
+                   SET embedding_local = $1::halfvec(384),
+                       embedding_provider = COALESCE(embedding_provider, 'local')
+                   WHERE id = $2""",
+                embedding_str, row["id"],
+            )
+            backfilled += 1
+        except Exception as e:
+            logger.warning(f"Backfill failed for memory {row['id']}: {e}")
+            errors += 1
+
+    return {
+        "backfilled": backfilled,
+        "errors": errors,
+        "remaining": len(rows) - backfilled - errors,
+        "message": f"Backfilled {backfilled} memories with local embeddings (384-dim)",
+    }
