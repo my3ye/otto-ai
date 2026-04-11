@@ -116,8 +116,8 @@ enum AttestationData {
     GeoProximity {
         event_id: u64,
         timestamp: u64,
-        user_geohash: [u8; 6],        // 6-char precision (~1.2km)
-        event_geohash: [u8; 6],       // must match
+        user_geohash: [u8; 6],        // field stores 6-char geohash for precision (~1.2km resolution)
+        event_geohash: [u8; 6],       // only the first 5 chars are matched in circuit logic (~5km effective radius — see line 155)
         organizer_pubkey: [u8; 33],
         event_signature: [u8; 64],    // sig over (event_id‖event_geohash‖time_window)
     },
@@ -152,7 +152,7 @@ fn main():
             mode = 0
 
         GeoProximity { event_id, timestamp, user_geohash, event_geohash, ... }:
-            assert!(user_geohash[0..5] == event_geohash[0..5])  // 5-char match ~5km
+            assert!(user_geohash[0..5] == event_geohash[0..5])  // 5-char prefix match (~5km radius). Fields store 6-char geohashes; only 5 chars are compared for attendance matching.
             message = sha256(event_id ‖ event_geohash ‖ time_window)
             assert!(ecdsa_verify(organizer_pubkey, message, event_signature))
             mode = 1

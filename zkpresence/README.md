@@ -117,8 +117,9 @@ zkpresence/
 
 ```bash
 # SP1 toolchain (required for circuit compilation)
+# Pin to v6.x — this project targets SP1 6.1.0; later versions may have breaking precompile API changes
 curl -L https://sp1.succinct.xyz | bash
-sp1up
+sp1up --version v6.1.0
 
 # Foundry (required for Solidity contracts)
 curl -L https://foundry.paradigm.xyz | bash
@@ -181,7 +182,7 @@ SP1_PROVER=mock cargo run --bin vkey
 **Proof system:** SP1 Groth16, verified via Succinct's pre-deployed `ISP1Verifier` gateway
 **ISP1Verifier Gateway:** `0x397A5f7f3dBd538f23DE225B51f532c34448dA9B` (CREATE2, same address across EVM chains)
 
-Estimated gas per proof verification: ~230,000 gas (~$0.003 on Base at typical fee rates).
+Estimated gas per proof verification: ~230,000 gas (~$0.003 on Base at ~0.001 gwei median; current rates at [basefees.net](https://basefees.net)).
 
 ---
 
@@ -209,7 +210,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for the full threat model.
 
 The SP1 precompile wiring and test coverage are the highest-priority areas right now. If you are familiar with SP1, secp256k1, or Foundry testing, your contribution will move the protocol forward directly.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
+See [CONTRIBUTING.md](CONTRIBUTING.md) to get started. Questions and discussion: [GitHub Discussions](https://github.com/my3ye/zkpresence/discussions).
 
 ---
 
