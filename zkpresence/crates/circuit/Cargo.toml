@@ -8,3 +8,4 @@ description = "SP1 guest circuit for zkPresence proof generation"
 [dependencies]
 sp1-zkvm = "6.1"
 zkpresence-core = { path = "../core", default-features = false, features = [] }
+alloy-sol-types = { version = "0.8", default-features = false }

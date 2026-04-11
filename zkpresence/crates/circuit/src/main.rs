@@ -8,16 +8,22 @@
 #![no_main]
 sp1_zkvm::entrypoint!(main);
 
+use alloy_sol_types::SolType;
 use zkpresence_core::{AttestationData, PublicValues};
 
+/// ABI encoding type matching ZkPresence.sol's abi.decode(publicValues, ...)
+/// Order: (uint64 eventId, bytes32 nullifier, bytes32 identityCommitment,
+///         uint8 attestationMode, uint64 timestamp, bytes32 organizerPubkeyHash)
+type PublicValuesAbi = alloy_sol_types::sol! {
+    tuple(uint64, bytes32, bytes32, uint8, uint64, bytes32)
+};
+
 /// SHA-256 hash via SP1 precompile (accelerated, ~100x faster than software).
-fn sha256(data: &[u8]) -> [u8; 32] {
-    let mut hasher = sp1_zkvm::precompiles::utils::CurveOperations::sha256(data);
-    // SP1 provides sha256 as a syscall — use the io-based approach for compatibility
-    let digest = sp1_zkvm::io::hint_slice(data);
-    // Simplified: SP1's sha256 precompile handles this natively
-    // In production, use sp1_zkvm::syscalls::sha256 or a sha2 crate compiled for RISC-V
-    todo!("Wire up SP1 SHA-256 precompile — see SP1 docs for exact syscall API")
+fn sha256(_data: &[u8]) -> [u8; 32] {
+    // Phase 1: wire up sha2 crate compiled for RISC-V target.
+    // SP1 accelerates SHA-256 via a syscall patch — the sha2 crate "just works"
+    // when compiled for the SP1 guest, getting ~100x speedup automatically.
+    todo!("Wire up SP1 SHA-256 — use `sha2` crate for RISC-V (SP1 patches the syscall)")
 }
 
 pub fn main() {
@@ -58,9 +64,10 @@ pub fn main() {
             message.extend_from_slice(nonce);
             let msg_hash = sha256(&message);
 
-            // TODO: ECDSA secp256k1 verify via SP1 precompile
+            // Phase 1: ECDSA secp256k1 verify via SP1 precompile
             // sp1_zkvm::precompiles::secp256k1::verify(organizer_pubkey, &msg_hash, signature_r, signature_s);
-            // For now, this is a placeholder — wire up the actual precompile call
+            let _ = (&msg_hash, organizer_pubkey, signature_r, signature_s);
+            todo!("Wire up ECDSA secp256k1 verification via SP1 precompile")
         }
 
         AttestationData::GeoProximity {
@@ -72,6 +79,14 @@ pub fn main() {
             signature_r,
             signature_s,
         } => {
+            // Validate that geohash bytes are valid base-32 characters (0-9, b-h, j, k, m, n, p-z)
+            fn is_valid_geohash_char(b: u8) -> bool {
+                matches!(b, b'0'..=b'9' | b'b'..=b'h' | b'j' | b'k' | b'm' | b'n' | b'p'..=b'z')
+            }
+            for &b in user_geohash.iter().chain(event_geohash.iter()) {
+                assert!(is_valid_geohash_char(b), "invalid geohash character");
+            }
+
             // Verify geohash proximity: first 5 chars must match (~5km)
             assert_eq!(
                 &user_geohash[..5],
@@ -85,7 +100,8 @@ pub fn main() {
             message.extend_from_slice(event_geohash);
             let msg_hash = sha256(&message);
 
-            // TODO: ECDSA verify via SP1 precompile
+            let _ = (&msg_hash, organizer_pubkey, signature_r, signature_s);
+            todo!("Wire up ECDSA secp256k1 verification via SP1 precompile")
         }
 
         AttestationData::OrganizerSignature {
@@ -101,14 +117,15 @@ pub fn main() {
             message.extend_from_slice(&event_id.to_le_bytes());
             let msg_hash = sha256(&message);
 
-            // TODO: ECDSA verify via SP1 precompile
+            let _ = (&msg_hash, organizer_pubkey, signature_r, signature_s);
+            todo!("Wire up ECDSA secp256k1 verification via SP1 precompile")
         }
     }
 
     // ── 5. Compute organizer pubkey hash ────────────────────────────────
     let organizer_pubkey_hash = sha256(attestation.organizer_pubkey());
 
-    // ── 6. Commit public outputs ────────────────────────────────────────
+    // ── 6. Commit public outputs (ABI-encoded for Solidity) ──────────────
     let public_values = PublicValues {
         event_id,
         nullifier,
@@ -118,5 +135,16 @@ pub fn main() {
         organizer_pubkey_hash,
     };
 
-    sp1_zkvm::io::commit(&public_values);
+    // ABI-encode to match abi.decode() in ZkPresence.sol.
+    // Using commit_slice (raw bytes) instead of commit (bincode) so Solidity
+    // can decode with: abi.decode(publicValues, (uint64, bytes32, bytes32, uint8, uint64, bytes32))
+    let encoded = PublicValuesAbi::abi_encode(&(
+        public_values.event_id,
+        alloy_sol_types::private::FixedBytes(public_values.nullifier),
+        alloy_sol_types::private::FixedBytes(public_values.identity_commitment),
+        public_values.attestation_mode,
+        public_values.timestamp,
+        alloy_sol_types::private::FixedBytes(public_values.organizer_pubkey_hash),
+    ));
+    sp1_zkvm::io::commit_slice(&encoded);
 }
