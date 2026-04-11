@@ -1,5 +1,15 @@
 # Researcher Agent Memory
 
+## zkPresence Competitive Landscape & OSS Positioning (2026-04-11) — VALIDATED 7.5/10
+
+DB Note ID: f3e63cbc | Semantic IDs: c272f770, 1fe41451, 7a1fca49, 27cffd08, 238e9a3e, 7e6904d1, e5ca1398, b3550ce9 | File: project_zkpresence_competitive_2026_04_11.md
+- **CIRCUIT BROKEN**: `todo!()` at `main.rs:20` = PANIC. `// TODO:` at lines 61/88/104 = ECDSA silently absent (compiles, runs, accepts forged attestations). **Fix both simultaneously — partial fix = silent auth bypass.**
+- **ZERO TESTS**: No `#[test]`, no `*.t.sol`, no `*_test.*` anywhere in repo.
+- **ARCHITECTURE COMPLETE**: SP1 6.1.x, 3 modes (QrCode/GeoProximity/OrganizerSignature), ZkPresence.sol 147 lines, Base L2.
+- **MARKET GAP**: No competing OSS SP1-native attendance protocol (4 web searches, negative match, April 2026). Zupass (~10K, PCF-controlled) ≠ general protocol. POAP (80M+, zero ZK) = addressable base.
+- **ARCHITECTURE.md contradiction**: line 119 (6-char/1.2km) vs line 155 (5-char/~5km) — doc fix required. Gas $0.003 = estimate not benchmark.
+- **OSS path**: Wire precompiles → tests → OSS publish → Succinct grant → PSE grant.
+
 ## CORAL arXiv 2604.01658 — Multi-Agent Evolution Framework (2026-04-11) — VALIDATED 8.5/10
 
 DB Note ID: dd1284c1 | Semantic IDs: bb433b03, 1c441700, def9acc8, f6b43ac3, ea14929d, 830a4fb5, 59ea3806
