@@ -1,5 +1,16 @@
 # Researcher Agent Memory
 
+## CORAL arXiv 2604.01658 — Multi-Agent Evolution Framework (2026-04-11) — VALIDATED 8.5/10
+
+DB Note ID: dd1284c1 | Semantic IDs: bb433b03, 1c441700, def9acc8, f6b43ac3, ea14929d, 830a4fb5, 59ea3806
+- **NOT ZK** — ZK routing tag was an error. Architecture/self-improvement paper from MIT/NUS/Stanford/Meta/Amazon/Microsoft.
+- **Cross-agent memory lift**: 36% cross-parentage → 17% improvement rate vs 9% overall; +55% on kernel engineering.
+- **GAP: Stagnation detection ABSENT** (grep-verified) — no consecutive-failure counter in autoevolve.py or rl2f.py. Only a static string.
+- **GAP: Cross-task leaderboard ABSENT** (grep-verified) — no best-outputs registry for new tasks to inspect.
+- **IMPLEMENTED: Skill extraction** — tasks.py:_extract_skill_from_task (~line 1346), uses Kimi/Haiku via llm_chat(), exit_code==0 only.
+- **PATCHED FACTS**: (1) LLM = Kimi/Haiku not Gemini Flash. (2) Worktree = PARTIAL MATCH (qa_runner.sh only, not main dispatch).
+- **Top actions**: (1) stagnation counter in autoevolve.py; (2) GET /tasks/top-outputs + {top_outputs} injection; (3) fix ZK-bleed in classifier.
+
 ## Panik Technical Direction & Chain Fit (2026-04-10) — VALIDATED 8/10
 
 DB Note ID: c7659d99 | Semantic IDs: edd5a543, 0982a6ee, d35381d3, d737e671, 2f05e4c3, bc873b20, 24b2e5a6, cf46049f, be05b011
