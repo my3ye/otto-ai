@@ -1,106 +1,8 @@
 {
   "version": 2,
-  "updated_at": "2026-04-07T12:00:00.000000+00:00",
+  "updated_at": "2026-04-12T06:31:33.385067+00:00",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
-    {
-      "ts": "2026-03-10T00:00:00Z",
-      "change": "Initial config \u2014 baseline values from Week 1 fix v2",
-      "rationale": "Seeding from manually-tuned values after Week 1 signal quality fix"
-    },
-    {
-      "ts": "2026-03-12T12:40:00Z",
-      "change": "Lowered TP1_TARGET from 10.0% to 5.5%",
-      "rationale": "Research Iter 28: TP1=10% is mathematically unattainable within 2h window \u2014 90.9% expiry rate despite 81.8% win rate. Tokens reach only ~5.5% avg PnL. Lowering TP1 to 5.5% to match actual price action."
-    },
-    {
-      "ts": "2026-03-27T00:00:00Z",
-      "change": "Lowered min_quality_score from 0.60 to 0.50; lowered tp1_pct from 5.5% to 1.5%, tp2_pct from 25% to 3.0%",
-      "rationale": "Research finding (2 consecutive iterations): direction accuracy 88.9% but only 22.2% reach TP targets \u2014 5.5% TP is 3-4x too aggressive for 90-min window. min_quality_score=0.60 blocking all publication (0 signals/24h). Lowering quality threshold to restore flow; reducing TP targets to match actual 90-min price action."
-    },
-    {
-      "ts": "2026-03-27T07:15:00Z",
-      "change": "Lowered min_buy_usd from 100 to 0 (disabled); lowered volume_spike_min from 1.0 to 0.3",
-      "rationale": "Root cause found: amount_usd is computed as token_quantity*token_price (not SOL_spent*sol_price), so 4-5 SOL trades show amount_usd=0.008-1.02, blocking all signals. Also lowered volume_spike_min to 0.3 \u2014 SM_10 (Tier 1, 83% WR) was buying at 0.4x volume (below 1.0x threshold). Smart money buys BEFORE volume spikes; filtering on this is counterproductive for Tier 1."
-    },
-    {
-      "ts": "2026-03-28T00:00:00Z",
-      "change": "Reduced TP targets to 0.8%/1.5%/5.0%; tightened SL to 3.0%",
-      "rationale": "Research finding (2 consecutive iterations): signals are profitable (88.9% WR, 5.96% avg PnL) but TP targets structurally unreachable (22.2% TP hit rate). Prices consolidate to 5-6% by expiration rather than spiking to hit 1.5%/3.0% levels \u2014 consolidation window mismatch. New TP1=0.8% and TP2=1.5% match the observed price action range. SL tightened from 15% to 3% to cut losing trades faster. SM_10-only allocation already enforced by publisher quality scoring (Tier 1 = 60pts base; other single wallets max 35pts, below 50-point gate)."
-    },
-    {
-      "ts": "2026-03-28T17:00:00Z",
-      "change": "Added observation_window_minutes: 300 (5h). Extended from implicit 120min.",
-      "rationale": "Research pipeline recommended observation_window_minutes 120->240+ across 14+ iterations. Signals have 88.9% directional accuracy but 89% expire without hitting TP/SL \u2014 2h hold window too short for price action to develop. Extending to 300min (5h) gives tokens time to reach TP1=0.8% targets."
-    },
-    {
-      "ts": "2026-03-29T00:00:00Z",
-      "change": "Extended observation_window_minutes from 300 to 360 (6h).",
-      "rationale": "Research pipeline finding (2 consecutive iterations): signals 1-9 expired 89% of the time despite 88.9% directional accuracy and 5.96% consolidation depth. 300min window still undersized \u2014 extending to 360min to reduce expiration rate and improve TP hit rate from 22.2% toward \u226550%."
-    },
-    {
-      "ts": "2026-03-29T03:32:44.950055+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.5,
-      "new": 0.65,
-      "change": "Research patch: single_wallet.min_quality_score 0.5 \u2192 0.65",
-      "rationale": "Current 311 signals/24h with only 21 total unique signals implies massive redundancy or stale signal carryover. Raising threshold from 0.5 to 0.65 will filter low-conviction noise while preserving the 88.9% win-rate quality proven by SM_10 (7 trades, 6.38% avg PnL at high confidence). TP/SL levels a",
-      "source": "research_pipeline"
-    },
-    {
-      "ts": "2026-03-30T12:32:10.809603+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.65,
-      "new": 0.55,
-      "change": "Research patch: single_wallet.min_quality_score 0.65 \u2192 0.55",
-      "rationale": "Zero signals in last 24h while maintained 88.9% directional accuracy on prior cycle indicates min_quality_score of 0.65 is filtering legitimate signals in the current market snapshot. Conservative 0.1-point reduction to 0.55 will test signal recovery without compromising quality baseline. This is pa",
-      "source": "research_pipeline"
-    },
-    {
-      "ts": "2026-03-30T21:31:13.715517+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.55,
-      "new": 0.5,
-      "change": "Research patch: single_wallet.min_quality_score 0.55 \u2192 0.5",
-      "rationale": "Zero signals in 24h is operational failure. Threshold was already lowered from 0.65\u21920.55; persistence of zero signals at 0.55 indicates it remains too conservative. Lowering to 0.50 is minimal-risk incremental test within proven bounds (0.45-0.55 region). This restores signal volume and is prerequis",
-      "source": "research_pipeline"
-    },
-    {
-      "ts": "2026-03-31T06:32:24.124664+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.5,
-      "new": 0.45,
-      "change": "Research patch: single_wallet.min_quality_score 0.5 \u2192 0.45",
-      "rationale": "Zero signals in 24h at quality=0.50 proves threshold is too conservative for current market regime. 21 total unique signals exist in historical dataset but zero generated recently, indicating quality filtering is over-aggressive. SM_10 wallet (7 trades, 85.7% win rate, 6.38% avg PnL) demonstrates st",
-      "source": "research_pipeline"
-    },
-    {
-      "ts": "2026-03-31T12:32:41.965261+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.45,
-      "new": 0.4,
-      "change": "Research patch: single_wallet.min_quality_score 0.45 \u2192 0.4",
-      "rationale": "Min_quality_score was already lowered from 0.50\u21920.45 (last_auto_change), yet signal generation remains at 0/24h. This indicates market regime median quality score is below 0.45, supporting H309. Lowering to 0.40 in parallel with window extension tests if both constraints are binding. If generation r",
-      "source": "research_pipeline"
-    },
-    {
-      "ts": "2026-03-31T21:31:54.573036+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.4,
-      "new": 0.35,
-      "change": "Research patch: single_wallet.min_quality_score 0.4 \u2192 0.35",
-      "rationale": "Apply AFTER service is restored and generation resumes for 24h baseline. SM_10's empirical 85.7% win rate (7 trades) directly justifies quality_score of 0.35 (current 0.40 is slightly above their demonstrated threshold). Lowering from 0.40 to 0.35 captures more SM_10 signals without accepting unprov",
-      "source": "research_pipeline"
-    },
-    {
-      "ts": "2026-04-03T09:31:10.968760+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.35,
-      "new": 0.3,
-      "change": "Research patch: single_wallet.min_quality_score 0.35 \u2192 0.3",
-      "rationale": "CRITICAL: DO NOT APPLY this yet\u2014it assumes service restart with window=360 FAILS to reduce expiration rate below 50%. If service restart (published_window_minutes=360) succeeds, REVERT to current config. If restart fails and expiration stays >80% after 12h, THEN apply this patch: lower min_quality_s",
-      "source": "research_pipeline"
-    },
     {
       "ts": "2026-04-03T12:32:37.878559+00:00",
       "field": "single_wallet.min_quality_score",
@@ -275,11 +177,342 @@
     {
       "ts": "2026-04-07T12:00:00.000000+00:00",
       "field": "single_wallet.allowed_wallets",
-      "old": ["SM_10", "SM_5"],
-      "new": ["SM_10", "SM_5", "SM_6", "SM_3", "SM_8"],
+      "old": [
+        "SM_10",
+        "SM_5"
+      ],
+      "new": [
+        "SM_10",
+        "SM_5",
+        "SM_6",
+        "SM_3",
+        "SM_8"
+      ],
       "change": "Expanded allowed_wallets from 2 to 5 proven performers",
       "rationale": "Research pipeline (2 consecutive iterations): system publishing 129 signals/24h from 100+ unvetted wallets but only 1-1-1 from proven performers. Signal-level 80% SL hit rate vs wallet-level 87.5% win rate (67.5-point gap) confirms publication lag as binding constraint. SM_10/SM_5 (87.5-100% win rate, 6.08% avg PnL) plus SM_6/SM_3/SM_8 (proven performers) form the 5-wallet allowlist. Expects signal volume drop to 5-15/24h, eliminating 80%+ low-quality noise.",
       "source": "task_autofix"
+    },
+    {
+      "ts": "2026-04-07T21:32:09.919195+00:00",
+      "field": "tp_sl.tp1_pct",
+      "old": 0.05,
+      "new": 0.03,
+      "change": "Research patch: tp_sl.tp1_pct 0.05 \u2192 0.03",
+      "rationale": "Interim config adjustment pending whitelist code fix: TP1 lowered from 0.05\u21920.03 because signals enter 8-10 min after wallet at +2-3% already achieved, leaving only +2-3% remaining room instead of full +5%; SL raised from 0.035\u21920.05 to allow normal retracements (2-3%) during lag window before hittin",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-07T21:32:09.919195+00:00",
+      "field": "tp_sl.sl_pct",
+      "old": 0.035,
+      "new": 0.05,
+      "change": "Research patch: tp_sl.sl_pct 0.035 \u2192 0.05",
+      "rationale": "Interim config adjustment pending whitelist code fix: TP1 lowered from 0.05\u21920.03 because signals enter 8-10 min after wallet at +2-3% already achieved, leaving only +2-3% remaining room instead of full +5%; SL raised from 0.035\u21920.05 to allow normal retracements (2-3%) during lag window before hittin",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-08T00:32:46.767574+00:00",
+      "field": "tp_sl.tp1_pct",
+      "old": 0.03,
+      "new": 0.025,
+      "change": "Research patch: tp_sl.tp1_pct 0.03 \u2192 0.025",
+      "rationale": "Wallet SM_10 averages 6.08% PnL with 87.5% win rate. Signals average 90% SL hit rate and 20% TP1 capture, indicating signals enter 8-10 min late at +2-3% into the move. TP1=3% leaves only +0-1% capture room. Lowering TP1 to 2.5% aligns target to lag-adjusted entry point where signal holder still has",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-08T18:32:04.023901+00:00",
+      "field": "single_wallet.min_quality_score",
+      "old": 0.65,
+      "new": 0.7,
+      "change": "Research patch: single_wallet.min_quality_score 0.65 \u2192 0.7",
+      "rationale": "Interim config changes while whitelist code fix is deployed: (1) Raise min_quality_score 0.65\u21920.70 to filter weaker wallet signals and reduce volume by ~15% pre-whitelist-fix. (2) Lower max_pump_1h 10.0\u21925.0 to exclude coins already pumped >5% (signals enter higher, have less room for TP1). (3) Raise",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-08T18:32:04.023901+00:00",
+      "field": "quality_filters.max_pump_1h",
+      "old": 10.0,
+      "new": 5.0,
+      "change": "Research patch: quality_filters.max_pump_1h 10.0 \u2192 5.0",
+      "rationale": "Interim config changes while whitelist code fix is deployed: (1) Raise min_quality_score 0.65\u21920.70 to filter weaker wallet signals and reduce volume by ~15% pre-whitelist-fix. (2) Lower max_pump_1h 10.0\u21925.0 to exclude coins already pumped >5% (signals enter higher, have less room for TP1). (3) Raise",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-08T18:32:04.023901+00:00",
+      "field": "tp_sl.sl_pct",
+      "old": 0.05,
+      "new": 0.06,
+      "change": "Research patch: tp_sl.sl_pct 0.05 \u2192 0.06",
+      "rationale": "Interim config changes while whitelist code fix is deployed: (1) Raise min_quality_score 0.65\u21920.70 to filter weaker wallet signals and reduce volume by ~15% pre-whitelist-fix. (2) Lower max_pump_1h 10.0\u21925.0 to exclude coins already pumped >5% (signals enter higher, have less room for TP1). (3) Raise",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-11T03:31:55.055152+00:00",
+      "field": "single_wallet.min_quality_score",
+      "old": 0.7,
+      "new": 0.75,
+      "change": "Raised quality threshold 0.7 \u2192 0.75",
+      "rationale": "Win rate 38.7% is below 40% threshold (73 closed signals). Raising min_quality_score to filter lower-conviction signals.",
+      "metrics_snapshot": {
+        "closed_count": 73,
+        "win_rate": 0.387,
+        "avg_pnl": 0.19,
+        "sl_rate": 0.123
+      }
+    },
+    {
+      "ts": "2026-04-11T03:31:55.055152+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T03:33:23.108595+00:00",
+      "field": "single_wallet.min_quality_score",
+      "old": 0.75,
+      "new": 0.8,
+      "change": "Raised quality threshold 0.75 \u2192 0.8",
+      "rationale": "Win rate 38.7% is below 40% threshold (73 closed signals). Raising min_quality_score to filter lower-conviction signals.",
+      "metrics_snapshot": {
+        "closed_count": 73,
+        "win_rate": 0.387,
+        "avg_pnl": 0.19,
+        "sl_rate": 0.123
+      }
+    },
+    {
+      "ts": "2026-04-11T03:33:23.108595+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T06:31:31.113438+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T06:32:40.947901+00:00",
+      "field": "tp_sl.tp1_pct",
+      "old": 0.025,
+      "new": 0.02,
+      "change": "Research patch: tp_sl.tp1_pct 0.025 \u2192 0.02",
+      "rationale": "TP1 threshold can be safely tightened from 0.025 to 0.020 because quality_score \u22650.8 now filters to high-quality wallet behavior (SM_10: 88.9%, SM_5: 100%). Current 33% TP1 capture (4/12 closed signals) leaves room to improve without overshooting. Whitelisted wallets' tighter spreads support 2.0% ta",
+      "source": "research_pipeline"
+    },
+    {
+      "ts": "2026-04-11T06:32:40.949574+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T09:30:02.630113+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T09:31:37.328608+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T12:31:54.619948+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T12:32:51.584695+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T15:30:28.878188+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T15:31:48.284737+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T18:30:52.191435+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T18:32:20.989191+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 33,
+        "win_rate": 0.273,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T21:31:20.735716+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.0% over 36 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 36,
+        "win_rate": 0.25,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-11T21:31:27.596406+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.0% over 36 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 36,
+        "win_rate": 0.25,
+        "avg_pnl": 0.2
+      }
+    },
+    {
+      "ts": "2026-04-12T00:30:23.350910+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-12T00:31:41.972990+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-12T03:30:48.274468+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-12T03:32:10.360692+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-12T06:30:46.959569+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-12T06:31:29.744228+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-12T06:31:33.385021+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
     }
   ],
   "observation_window_minutes": 360,
@@ -300,7 +533,7 @@
       "SM_3",
       "SM_8"
     ],
-    "min_quality_score": 0.65,
+    "min_quality_score": 0.8,
     "min_buy_usd": 0,
     "noisy_wallets": [
       "SM_1",
@@ -319,14 +552,14 @@
     "max_market_cap": 3000000,
     "min_liquidity": 100000,
     "volume_spike_min": 3.0,
-    "max_pump_1h": 10.0,
+    "max_pump_1h": 5.0,
     "min_token_age_days": 7
   },
   "tp_sl": {
-    "tp1_pct": 0.05,
+    "tp1_pct": 0.02,
     "tp2_pct": 0.07,
     "tp3_pct": 0.12,
-    "sl_pct": 0.035
+    "sl_pct": 0.06
   },
   "auto_update": {
     "enabled": true,

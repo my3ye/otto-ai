@@ -4,6 +4,18 @@ description: Topics and angles covered in all articles written — check before 
 type: project
 ---
 
+## zkPresence / Protocol Primitives
+
+### The Dynamic Public Key Primitive: Stable Identity, Rotating Authority ← NEW 2026-04-12
+- **DB ID**: 6146de41-cbf7-4996-8562-682ace921573
+- **Angle**: Technical concept whitepaper for the DPK three-layer architecture (Identity/Authority/Action). Bio+pass → HKDF → master_secret → identity_commitment (stable on-chain). Epoch-bounded ephemeral secp256k1 keys carry signing authority. KeyBinding ZK circuit (Groth16) proves identity→key binding. DynamicKeyRegistry.sol (designed, not deployed) stores key bindings. Argon2 Path B rationale and HKDF domain separation explained. Security constraints addressed honestly (biometric permanence, device trust, epoch window tradeoff, SP1 trusted setup).
+- **File**: /home/web3relic/otto/docs/dynamic-public-key-whitepaper-2026-04-12.md (DB only for web)
+- **Status**: draft (~2,356 words)
+- **Story beat**: Law
+- **Constraint applied**: ALL implementation claims in conditional/future/designed-to tense. DynamicKeyRegistry.sol NOT deployed. SP1 circuits have todo!() panics — nothing functional. Phase 1-2 are roadmap items.
+- **Research sources**: dynamic-public-key-architecture-2026-04-12.md (architect spec), dynamic-key-security-audit-2026-04-12.md (security audit), semantic memory (zkLogin pattern research, quantum synthesis)
+- **What NOT to repeat**: zkLogin adaptation as the "insight" (owned), Argon2 Path B explanation (owned), the "Identity cannot rotate is identity that cannot survive" opening concept (owned), three-layer diagram (owned), key_nonce replay prevention explanation (owned)
+
 ## Otto / Agent OS
 
 ### Otto: Agent OS Pink Paper ← v3 2026-04-12
