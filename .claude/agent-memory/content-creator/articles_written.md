@@ -41,14 +41,15 @@ type: project
 
 ## SOS Systems / 505 Systems
 
-### 505 Systems: The Governance Organism (Foundational Pink Paper) ← NEW 2026-04-12
+### 505 Systems: The Governance Organism (Foundational Pink Paper) ← v2 2026-04-12
 - **DB ID**: 99380ece-1d78-4861-b248-e4b35016fe78
-- **Angle**: Foundational specification document — the canonical SOS Systems Pink Paper promised in the inception article. Covers: DPC formula in full (Is/Ec/Rw, P = αIs + βEc + γRw, Ec decay formula), three governance layers (Meta/Project/Community), proposal lifecycle (5 stages), Phase 0/1/2 implementation (Snapshot→Aragon DPC Plugin→Sovereign), economic model (token amplifies DPC, not replaces), integrity layer (offline, identity-from-contribution, auditable nodes)
+- **Angle**: Foundational specification document — the canonical SOS Systems Pink Paper. v2 expands Section IV to include all three contribution dimensions (digital/physical/resource) and adds new Section V: Capital Contributions with constitutional exclusion + dual-track scoring model (P_gov / P_econ).
+- **v2 changes (2026-04-12)**: Physical labor (Lh/St/Qp/Rk variables + Is_physical/Ec_physical/Dv_physical formulae), Resource contributions (FMV/U/Dc/Dp/Mn variables + Is_resource/Ec_resource/Dv_resource formulae), Capital dual-track (C_econ formula, CapitalRegistry planned, κ=0.3 starting / max 0.5, constitutional capital exclusion from P_gov, labor minimum for any capital reward). Rw renamed Dv throughout. New Section V: Capital. Renumbered V→VI through X→XI. New disclaimer adds CapitalRegistry and SplitEngine to planned contracts.
 - **File**: /mnt/media/projects/505-systems-web/content/sos-systems-governance-organism-pink-paper.mdx
-- **Status**: draft (~2,800 words)
+- **Status**: draft (~4,731 words, v2)
 - **Story beat**: The Law + The Mission
-- **Key constraint applied**: Status=early, no deployed contracts. All contract names (LaborAttestation, ContributionRegistry, GovernanceWeight) in future/conditional tense throughout.
-- **What NOT to repeat**: DPC formula as P = αIs + βEc + γRw (owns this), Ec decay formula, proposal lifecycle detail (5 stages), Phase 0/1/2 implementation path, token-amplifies-DPC economic model, integrity layer (offline/identity-from-contribution/auditable-nodes)
+- **Key constraint applied**: Status=early, no deployed contracts. LaborAttestation, ContributionRegistry, GovernanceWeight, CapitalRegistry, SplitEngine, ResourceRegistry — all in future/conditional tense.
+- **What NOT to repeat**: Physical labor Lh/St/Qp/Rk formula (owns this), resource FMV/U/Dc/Dp/Mn depreciation model (owns this), C_econ = Cd × min(Ct/180)^0.5 × Cf (owns this), P_gov / P_econ dual-track split (owns this), κ constitutional maximum 0.5 (owns this), labor earns ≥67% constitutional guarantee (owns this), capital exclusion as anti-capture (not anti-investor) framing (owns this), physical-and-digital score comparably by design (owns this), per-address capital cap 10% (owns this), minimum labor requirement P_gov > 0 for any capital reward (owns this)
 
 ### Quantum Trust and the Value Shift ← v4 2026-04-12
 - **DB ID**: eea0ead6-10ab-4658-972b-c002413a4819
