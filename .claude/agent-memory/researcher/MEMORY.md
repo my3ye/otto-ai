@@ -2,6 +2,7 @@
 
 ## Active Research (2026-04-12)
 
+- [High-Performance Chains](project_hiperf_chains_2026_04_12.md) — PIPELINE COMPLETE (validation SKIPPED/rate-limit). 7 memories + 1 note stored (4c6693b3). Hyperliquid=EXTEND not build (crypto.py:69). Berachain PoL v2=ONEON tokenomics template. Sonic FeeM=dApp incentive benchmark. MegaETH=centralized by design (not suitable for ONEON). P0: wire HyperEVM + apply PoL v2 to ONEON ADR.
 - [Appchain Frameworks SOS/ONEON](project_appchain_frameworks_2026_04_12.md) — PIPELINE COMPLETE 7.5/10 (post-corrections). Cosmos SDK=leading candidate (MEDIUM). Chain gap confirmed (HIGH, grep-verified). 4 corrections: Claims 1+3 HIGH→MEDIUM, IBC-Midnight NOT viable, TPS "(target, Q4 2026)". DB note: cf8e7459. P0: draft chain-selection ADR.
 - [Ethereum Ecosystem L1+L2 Landscape](project_ethereum_ecosystem_2026_04_12.md) — PIPELINE COMPLETE 7.5/10 (post-corrections). Base=primary chain ($10.72B TVS). Pectra live (70% L2 fee cut). 3 survivors: Base+Arbitrum+OP. CRITICAL: ONEON+Panik+Koink ALL have zero chain integration code (grep-verified). Only zkPresence confirmed (Base Sepolia+SP1). DB note: 8a269d25. P0: deploy all 3 to Base Sepolia.
 - [Quantum Attacks on On-Chain Reputation Systems](project_quantum_reputation_attack_vectors.md) — PIPELINE COMPLETE 8.5/10 (post-corrections). oprlp-contracts fully ECDSA-dependent (DPCRegistry.sol:17, VALIDATOR_ROLE, CONFIG_ROLE). 9 novel attack vectors (zero prior lit). DPC algorithm PQ-safe; address binding NOT. DB note: 754a8ce4. CRITICAL: CONFIG_ROLE/setRegistry() = most severe single-key attack.
