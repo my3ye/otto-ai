@@ -2,6 +2,7 @@
 
 ## Active Research (2026-04-12)
 
+- [Quantum Attacks on On-Chain Reputation Systems](project_quantum_reputation_attack_vectors.md) — PIPELINE COMPLETE 8.5/10 (post-corrections). oprlp-contracts fully ECDSA-dependent (DPCRegistry.sol:17, VALIDATOR_ROLE, CONFIG_ROLE). 9 novel attack vectors (zero prior lit). DPC algorithm PQ-safe; address binding NOT. DB note: 754a8ce4. CRITICAL: CONFIG_ROLE/setRegistry() = most severe single-key attack.
 - [zkPresence Biometric ZK Dynamic Key Research](project_zkpresence_biometric_zk_key_research.md) — PIPELINE COMPLETE 7.5/10. Fuzzy extractors viable (CCS 2025: 105-bit iris). zkLogin pattern=adapt for bio+passphrase. BLOCKER: Argon2-inside-ZK path A vs B unresolved. P0: fix circuit/main.rs todo!(). PLONK migration=new on-chain verifier.
 
 ## Active Research (2026-04-11)
