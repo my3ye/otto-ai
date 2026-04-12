@@ -4,6 +4,31 @@ description: Topics and angles covered in all articles written — check before 
 type: project
 ---
 
+## Otto / Agent OS
+
+### Otto: Agent OS Pink Paper ← v3 2026-04-12
+- **DB ID**: 61534c50-21ae-4774-8aa6-fb7c7593d3b8 (v3, supercedes 9abcdba3)
+- **Angle**: Technical pink paper for Otto as cognitive OS — 9 sections. Reasoning Kernel (AgentOS/IVT/RIC/S-MMU + Claude-vs-Otto line drawn), Memory as Physics (6 layers, 5-strategy retrieval), Self-Improvement Engine (RL2F with metric definitions, JiTEI honestly named, AutoEvolve with concrete example, MARS with scope/latency), The Pulse (dual heartbeat, 22 active agents), The Nervous System (Harmonic Mapping, alignment through entanglement with Goodhart's Law addressed, attestation generation, Human Supremacy of Will, task allocation constraint), Production Learnings, Phase 3 roadmap, constitutional purpose reference
+- **File**: /mnt/media/projects/my3ye-web/content/blog/otto-agent-os-pink-paper.mdx
+- **Status**: draft (~3,600 words, v3)
+- **Story beat**: Law + Frame
+- **Key constraint applied**: ALL blockchain/on-chain features in conditional tense — Phase 3 roadmap, NOT live. Agent economy: agents CANNOT accumulate governance scores (Human Supremacy of Will, constitutional). Governance factors now named as Ec/Is/Dv (aligned with Pink Paper No. 2 v4).
+- **Stats**: 1,749+ completed tasks, 22 active agents, 182 catalog (April 2026 verified)
+- **Competitive context**: surveyed 8 frameworks (April 2026) — methodology noted, language softened from "benchmark" to "survey"
+- **TERMINOLOGY**: JiTRL renamed to JiTEI (Just-in-Time Experience Injection). All future references must use JiTEI. Benchmark claim softened to "survey."
+- **v3 changes (2026-04-12)**: All critiques addressed. RL2F: added prediction categories (task/priority/blocker), random baseline (15%), honest "starting score not good score" framing. JiTRL→JiTEI: renamed, acknowledged "not RL." AutoEvolve: concrete example (dedup threshold 0.92→0.96, 60% false-positive reduction). MARS: activation scope + latency cost (3x). Benchmark→survey with methodology. Claude-vs-Otto paragraph added. Nervous System: Goodhart's Law (scorer/scored separation), task allocation auditability. Agent economy: Ec/Is/Dv named. Closing: constitutional purpose + four guardrails.
+- **What NOT to repeat**: S-MMU paging model as the OS metaphor, "Memory is the substrate" as the pivot line, dual heartbeat as "execution + reflection" rhythm, goldfish memory bug, compound decay narrative, nervous system framing (owns alongside No. 2), Claude-as-engine/Otto-as-vehicle analogy (owns this), dedup 0.92→0.96 as AutoEvolve example (owns this)
+
+### Pattern-Based Trust Under Quantum Threat: The Architectural Response ← NEW 2026-04-12
+- **DB ID**: 267e29ae-8550-4f0b-b25f-560a4bc6dfcb
+- **Angle**: Technical addendum to Pink Paper No. 2. Central claim: DPC behavioral algorithm is quantum-resistant by construction; ECDSA address binding is not. Documents 9 code-verified attack vectors (zero prior academic coverage). Dual-trust model: behavioral primary (DPC) + PQ crypto secondary (ML-DSA-65). 4-phase migration path.
+- **File**: DB only
+- **Status**: draft (~1,180 words)
+- **Story beat**: Law
+- **Parent**: eea0ead6 (Pink Paper No. 2)
+- **Research anchor**: research note 754a8ce4 (8.5/10 validated)
+- **What NOT to repeat**: "The key is the lock. The history is the name on the door. You can pick a lock. You cannot rename a building." as THE closing metaphor for this distinction. Nine attack vectors (numbered 1-9) fully covered. Do not revisit CONFIG_ROLE/setRegistry as a surprising discovery — already named.
+
 ## Technology / Protocol Explainers
 
 ### The Proof That Reveals Nothing ← NEW 2026-04-10
@@ -15,6 +40,27 @@ type: project
 - **What NOT to repeat**: lock-combination example as the "prove without telling" illustration; keeper-asymmetry as THE argument (owned by The Machine Needs No Priest); "operator is structurally unnecessary" as the blockchain punchline
 
 ## SOS Systems / 505 Systems
+
+### 505 Systems: The Governance Organism (Foundational Pink Paper) ← NEW 2026-04-12
+- **DB ID**: 99380ece-1d78-4861-b248-e4b35016fe78
+- **Angle**: Foundational specification document — the canonical SOS Systems Pink Paper promised in the inception article. Covers: DPC formula in full (Is/Ec/Rw, P = αIs + βEc + γRw, Ec decay formula), three governance layers (Meta/Project/Community), proposal lifecycle (5 stages), Phase 0/1/2 implementation (Snapshot→Aragon DPC Plugin→Sovereign), economic model (token amplifies DPC, not replaces), integrity layer (offline, identity-from-contribution, auditable nodes)
+- **File**: /mnt/media/projects/505-systems-web/content/sos-systems-governance-organism-pink-paper.mdx
+- **Status**: draft (~2,800 words)
+- **Story beat**: The Law + The Mission
+- **Key constraint applied**: Status=early, no deployed contracts. All contract names (LaborAttestation, ContributionRegistry, GovernanceWeight) in future/conditional tense throughout.
+- **What NOT to repeat**: DPC formula as P = αIs + βEc + γRw (owns this), Ec decay formula, proposal lifecycle detail (5 stages), Phase 0/1/2 implementation path, token-amplifies-DPC economic model, integrity layer (offline/identity-from-contribution/auditable-nodes)
+
+### Quantum Trust and the Value Shift ← v4 2026-04-12
+- **DB ID**: eea0ead6-10ab-4658-972b-c002413a4819
+- **Angle**: Pink Paper No. 2 — the Post-Secret Economy. 11 sections. Constitutional purpose: prosperity of all beings. Governance formula: P = Ec^α × Is^β × max(Dv, ε)^γ (machine-verifiable, no peer review). Four constitutional guardrails: Mutation Principle, Veil of Intent, Human Supremacy of Will, Actualization Principle. Covers: Pattern Crisis (math-as-wall→math-as-lens), vulnerability inventory (secp256k1/SNARK exposure, dormant wallet 3.7M BTC), Post-Secret Economy thesis, Proof of Vitality (PoS→PoV, Wealth=Metabolic Rate), Intelligence Layer (AI as nervous system, Goodhart's Law addressed, task allocation constraint), Quantum Alliance (quantum as foundation, QKD honest 5-10yr timeline, SP1), Shadow Problems (all four + Veil blind spots acknowledged), Constitutional Guardrails (all four + enforcement mechanism + immutable/upgradeable split), Migration Architecture (ceremony with time-lock and threshold), honest PoS tradeoff.
+- **File**: /mnt/media/projects/505-systems-web/content/quantum-trust-and-the-value-shift.mdx
+- **Status**: draft (~5,200 words, v4)
+- **Story beat**: The Law + The Frame + The Mission
+- **Key constraint applied**: ALL SOS contracts in future/conditional tense — no deployed contracts. Status=early verified.
+- **v4 changes (2026-04-12)**: Replaced Rw (Weighted Resonance, required peer review) with Dv (Direction of Value, machine-verifiable accessibility delta). Added real math (multiplicative formula, Ec decay function, Is observables, Dv measurement). Added constitutional purpose "prosperity of all beings." Added 4th guardrail (Actualization Principle — no predicted contributions). Added enforcement mechanism (immutable core + upgradeable parameters). Added Goodhart's Law response. Added task allocation constraint. Added QKD timeline honesty. Acknowledged Veil of Intent blind spots. Tightened migration ceremony (time-lock + threshold). Added honest PoS tradeoff.
+- **CRITICAL TERMINOLOGY CHANGE**: Rw (Weighted Resonance) is RETIRED. Replaced by Dv (Direction of Value). DPC formula is now P = Ec^α × Is^β × max(Dv, ε)^γ. All future articles must use Dv, not Rw. "Peer review" is no longer part of the governance formula.
+- **What NOT to repeat**: Post-Secret Economy framing (owns this), math-as-wall→math-as-lens metaphor (owns this), Proof of Vitality / Wealth=Metabolic Rate (owns this), AI-as-nervous-system / Harmonic Mapping (owns this), four shadow problems (all four — owns), four constitutional guardrails (Mutation, Veil, Supremacy, Actualization — owns all), Dv as accessibility measurement (owns this), Sovereignty Through Verifiability (owns this), dormant wallet as "first quantum theft" (owns this), quantum-as-ally/foundation (owns this), States→Corporations→Organisms civilizational arc, Goodhart's Law scorer/scored separation (owns this), multiplicative formula structure as constitutional (owns this)
+
 
 ### The Answer Cannot Be Nobody
 - **DB ID**: 3a0e28e4 (original, ready status) | 131729c6 (rewrite, draft)
@@ -119,6 +165,14 @@ type: project
 - **Story beat**: The Mission
 - **Status**: draft
 - **File**: /mnt/media/projects/my3ye-web/content/blog/the-machine-is-already-running.mdx
+
+### Otto: Agent OS Pink Paper (9abcdba3) — 2026-04-11
+- **DB ID**: 9abcdba3-e45c-439d-b761-f537ba7ec0cb
+- **Angle**: Technical pink paper — full architectural account of Otto from inside the system. AgentOS kernel (IVT/RIC/S-MMU), 6-layer memory, 5 self-improvement systems, two heartbeats/hour, DAG task engine, honest lessons from 6 weeks in production. On-chain features (LaborAttestation, ContributionRegistry, GovernanceWeight) all future/conditional tense — not deployed.
+- **Story beat**: Law + Frame
+- **Status**: draft
+- **File**: DB only
+- **What NOT to repeat**: AgentOS/IVT/RIC/S-MMU technical breakdown, five-strategy retrieval stack, RL2F 40% accuracy stat, mass-archival incidents, rate-limit trap incident, goldfish memory bug, dual heartbeat structure, DAG task engine detail, 5 self-improvement systems enumeration
 
 ### We've Been Building an AI OS. Here's How It Compares to What Else Exists. (45407c6d) ← LinkedIn 2026-04-05, v3 harness section added
 - **DB ID**: 45407c6d-88db-4e22-805c-13b3ebb5154a
@@ -474,6 +528,47 @@ type: project
 - Short paragraphs (2-3 lines), direct and practitioner-grounded, no hype, no jargon walls
 - Every article ends with a keyword CTA (READY / AUDIT / CASE / CULTURE / ROADMAP)
 - Series strategy document at: ~/otto/logs/tasks/72e029a4-e73f-4646-a7b1-fffd2934965e/linkedin_strategy.md
+
+## zkPresence Open Source Documentation (2026-04-11)
+
+### zkPresence README
+- **DB ID**: bd3ef86a-fa73-41ac-b53b-4f5861167d2f
+- **File**: /home/web3relic/otto/zkpresence/README.md
+- **Content type**: note (open-source project docs)
+- **Angle**: Developer-facing README — problem framing (surveillance receipt), architecture diagram, attestation modes table, security properties, honest status warning (alpha, circuit in-development), contribution CTA
+- **Status**: draft
+- **Voice**: Developer-first technical precision; brand voice in problem framing section only; no ecosystem jargon
+- **Negative checklist**: Applied. No deployed contracts stated as fact. Circuit SHA-256/ECDSA described as "in active development." All TypeScript packages described as "planned" or "scaffold."
+
+### zkPresence ROADMAP
+- **DB ID**: 7909fd14-42c2-4095-bc8e-386b47174ed4
+- **File**: /home/web3relic/otto/zkpresence/ROADMAP.md
+- **Content type**: roadmap
+- **Angle**: Phase 0 → 1 → 2 → 3 structure. Phase 0 complete. Phase 1 = precompile wiring + Base Sepolia deploy. Phase 2 = SDK + organizer tool. Phase 3 = production, ecosystem integrations (Otto Music, Tusita), sybil resistance research.
+- **Status**: draft
+- **Voice**: Clinical, table-driven, future tense throughout for all planned items
+
+### zkPresence CONTRIBUTING
+- **DB ID**: a37a3023-c611-4be9-8c8b-6a91bcb3bfc5
+- **File**: /home/web3relic/otto/zkpresence/CONTRIBUTING.md
+- **Content type**: note (open-source project docs)
+- **Angle**: Practical developer guide. Leads with SP1 precompile wiring (SHA-256 via sha2 crate, ECDSA via k256 crate), Foundry test priorities, TypeScript SDK stubs. Includes security section, PR workflow, code style.
+- **Status**: draft
+
+### zkPresence QUICK_START
+- **DB ID**: a51066e9-2c2f-4a57-bd61-83ae5f862be2
+- **File**: /home/web3relic/otto/zkpresence/docs/QUICK_START.md
+- **Content type**: note (documentation)
+- **Angle**: End-to-end flow — build → prove (mock mode) → deploy → submit proof → verify. Proof time table (mock/local/network). Clear status note about circuit development state.
+- **Status**: draft (review feedback applied 2026-04-11, commit 122416b)
+
+### Review Feedback Applied (2026-04-11)
+- Critical: ECDSA simultaneous-wiring warning added to CONTRIBUTING.md (Before You Start + SHA-256 section end). Circuit bogus-API fix was pre-applied in commit 18a61e7.
+- Critical: QUICK_START Step 3 output comment replaced with sha256 panic warning
+- Warning: Gas estimate anchored (~0.001 gwei, basefees.net)
+- Warning: Otto Music/Tusita reframed as generic platform examples (not internal brand names)
+- Warning: ARCHITECTURE.md geohash contradiction annotated (6-char storage, 5-char prefix match)
+- Suggestions: SP1 v6.1.0 pinned, Phase 1 target 2026-05-02, GitHub Discussions link, PR sequencing note
 
 ## Angles NOT yet taken
 - Personal founder motivation/story — WHY Mev cares (the *why*, not the *what*) — flagged still missing: the mission narrative / seeker / meditation / abundance worldview
