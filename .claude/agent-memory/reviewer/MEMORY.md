@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_quantum_pattern_trust_addendum_review.md](project_quantum_pattern_trust_addendum_review.md) — Pattern-Based Trust Under Quantum Threat addendum (267e29ae, 2026-04-12, WF Step 1): MINOR_CHANGES 7.5/10. 4 criticals: "full academic corpus" noveltyclaim; score acquisition inconsistency; MS Azure/Windows imprecision; DPC attestation contamination gap.
 - [project_quantum_reputation_validation.md](project_quantum_reputation_validation.md) — Quantum reputation attack synthesis (2026-04-12, WF Step 2): MINOR_CHANGES 7.5/10. 3 criticals: Iceberg mislabeled as W3 (recurring); CONFIG_ROLE/setRegistry() missing from attack taxonomy; "6 vectors" vs 8 listed.
 - [project_zkpresence_biometric_zk_validation.md](project_zkpresence_biometric_zk_validation.md) — zkPresence biometric+passphrase ZK dynamic key synthesis (2026-04-12, WF Step 2): MINOR_CHANGES 7.5/10. 2 criticals: Insight 4 HIGH→MEDIUM (2 sources); Argon2-inside-ZK cost risk = design blocker not gap.
 - [project_lore_tokenomics_validation_review.md](project_lore_tokenomics_validation_review.md) — Lore-tokenomics novel patterns synthesis (2026-04-12, WF Step 2): MINOR_CHANGES 7.5/10. Critical: contract citation misleading (no .sol in git, prior NEEDS_CHANGES); {topic} bug = 10th+ instance.
