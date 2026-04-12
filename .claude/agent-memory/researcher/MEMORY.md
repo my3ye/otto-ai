@@ -10,7 +10,7 @@
 
 ## Architecture & ZK Research (2026-04-10)
 
-- [ZK ONEON Architecture](zk_oneon_architecture.md) — VALIDATED 7.5/10. ONEON=zero ZK today. SP1=P0 NOW ($0.04/proof). Aztec BLOCKED until July 2026. 3-phase: SP1 Base->L3 RaaS->sovereign.
+- [ZK ONEON Architecture](zk_oneon_architecture.md) — PIPELINE COMPLETE 7.5/10 (2026-04-12). ONEON=zero ZK (grep-verified). SP1=P0 (self-hosted prover, define predicate first). Aztec/Noir BLOCKED July 2026. PATCHED: source label on Aztec claim + proof system matrix (Aztec→Noir/Honk). 3-phase: SP1 Base->L3 RaaS->sovereign. Note ID: 2bfcac20.
 - [ZK Developer Ecosystem](~/otto/docs/zk-ecosystem-research-2026-04-10.md) — 8/10. SP1 Hypercube production leader. Risc0 Bonsai pre-alpha. Jolt experimental. Proving 45x cheaper 2025.
 - [ZK Chain Landscape](~/otto/research/zk-chain-landscape-2026.md) — 8/10. 10 chains covered. Polygon zkEVM SUNSETTING. Aztec vuln March 2026. Midnight live March 2026.
 
