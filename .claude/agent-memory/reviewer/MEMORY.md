@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_lore_tokenomics_validation_review.md](project_lore_tokenomics_validation_review.md) — Lore-tokenomics novel patterns synthesis (2026-04-12, WF Step 2): MINOR_CHANGES 7.5/10. Critical: contract citation misleading (no .sol in git, prior NEEDS_CHANGES); {topic} bug = 10th+ instance.
 - [project_lucky_penny_contracts_review.md](project_lucky_penny_contracts_review.md) — Lucky Penny contracts (2026-04-12, WF Step 2): NEEDS_CHANGES 8.0/10. 2 criticals: enableTrading() no idempotency guard (launchBlock reset); deploy script double team allocation + LP wrap token math failure. Contracts themselves solid. 83/83 tests pass.
 - [project_quantum_trust_pink_paper_review_governance_organism_final.md](project_quantum_trust_pink_paper_review_governance_organism_final.md) — SOS "505 Systems: Governance Organism" FINAL (fd626c0, 2026-04-12, WF Step 4): MINOR_CHANGES 8.5/10. All 3 priors fixed. 2 new warnings fixed: Compound attribution (year+entity); Phase 0 counting mechanism (Snapshot+attestation logs). Published: false — awaiting 505.systems resolution.
 - [project_quantum_trust_pink_paper_review_governance_organism.md](project_quantum_trust_pink_paper_review_governance_organism.md) — SOS "505 Systems: Governance Organism" Step 1 review (99380ece, 2026-04-12): SUPERSEDED by fd626c0 final. 8.0/10, 3 criticals all fixed in Step 3.
