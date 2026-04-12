@@ -1,5 +1,9 @@
 # Researcher Agent Memory
 
+## Active Research (2026-04-13)
+
+- [Otto Music Technical Direction & Chain Fit](project_otto_music_chain_fit_2026_04_13.md) — PIPELINE COMPLETE 6.5/10 (post-corrections). CHAIN = OPEN QUESTION (Base vs Polygon zkEVM — conflicts with on-chain-architecture doc). Zero .sol files for Otto Music (concept phase, grep-verified). 11 memories + 1 note stored (551809c1). 5 patches applied. Documented contract names: OttoMusicRights/RoyaltySplitter/StreamingPayment/PublishingRights. P0: resolve chain selection before writing first contract.
+
 ## Active Research (2026-04-12)
 
 - [SOS Technical Direction & Chain Fit](project_sos_chain_fit_2026_04_12.md) — PIPELINE COMPLETE 7.5/10 (post-corrections). Base=Phase 1 chain (Aragon OSx + VRF v2.5 both live). 4 core contracts BUILT+TESTED (DPCRegistry/GovernanceWeight/ElectionEngine/CouncilManager). 2 critical patches: (1) IRV/sortition conflation fixed — ElectionEngine uses IRV, elections CAN run without VRF; VRF sortition designed-not-built (separate path). (2) MIT license confirmed — grants (W3F+Gitcoin GG24) path CLEAR. Gaps: Aragon DPC plugin (no code), labor contracts (6 designed, 0 built), 505-web (0 web3). DB note: 2e838710. P0: build Aragon OSx DPC plugin + LaborAttestation.sol.
