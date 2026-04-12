@@ -1,5 +1,9 @@
 # Researcher Agent Memory
 
+## Active Research (2026-04-12)
+
+- [zkPresence Biometric ZK Dynamic Key Research](project_zkpresence_biometric_zk_key_research.md) — PIPELINE COMPLETE 7.5/10. Fuzzy extractors viable (CCS 2025: 105-bit iris). zkLogin pattern=adapt for bio+passphrase. BLOCKER: Argon2-inside-ZK path A vs B unresolved. P0: fix circuit/main.rs todo!(). PLONK migration=new on-chain verifier.
+
 ## Active Research (2026-04-11)
 
 - [Mid-Task Context Injection Feasibility](mid_task_context_injection_2026_04_11.md) — VALIDATED 8/10. CLI injection NOT supported. --print mode OPTIMAL (implemented). PreToolUse/PostToolUse = settings.json hooks (NOT Python SDK). tmux bracketed paste = best-documented workaround. Top action: add hooks to settings.json.
