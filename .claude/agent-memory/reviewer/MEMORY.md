@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_teaser_tweets_apr14_review.md](project_teaser_tweets_apr14_review.md) — Cryptic teaser tweets Apr 14-20 (2026-04-13, WF Step 2): MINOR_CHANGES 7.5/10. 2 criticals: Day 5 visual brief in content field; Day 4 "For the past months" grammar. Day 6 urgency slippage.
 - [project_phase0_dpc_engine_review.md](project_phase0_dpc_engine_review.md) — Phase 0 DPC Scoring Engine (2026-04-13, WF Step 2): MINOR_CHANGES 8.0/10. 3 criticals: unauthenticated endpoints; _insert_event() returns True on dups; Dv bootstrap cap. Formulas verified vs SPEC.
 - [project_tusita_chain_fit_validation.md](project_tusita_chain_fit_validation.md) — Tusita chain fit synthesis (2026-04-13, WF Step 2): MINOR_CHANGES 8.0/10. 2 warnings: Aragon "1 codebase" source fabricated (0 refs in tusita-web); "structurally isomorphic" overstates fork complexity (single-dim DPCRegistry vs 3-weighted Tusita CS). All core claims grep-verified.
 - [project_ton_blockchain_validation.md](project_ton_blockchain_validation.md) — TON blockchain Telegram ecosystem synthesis (2026-04-13, WF Step 2): MINOR_CHANGES 7.5/10. 2 criticals: Insight 4 HIGH contradicts own math (5% vs 0.36% retention); USDT 62%/month = single-window VC metric elevated to HIGH. "950M MAU locked" overclaim. Gate Ventures inflation recurs.
