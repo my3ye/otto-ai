@@ -1,29 +1,32 @@
 # Reflection Agent Memory
 
-## System Baselines (updated 2026-04-11 cycle 580)
-- **MEV RETURNED** (cycle 579) — Directing Koink.fun ecosystem build ($KOIN, $PENNY, PiPi).
-- **PLAN CLEANUP (cycle 580)**: 5 dead plans cancelled (ab7a9849 lore-tokenomics, bf741055 wallet, 1ce164da cohesion, 9156d5d8 ZK ecosystem, 56443b32 Lucky Penny). All rate-limit casualties. Only 847c9b1d (repo init 2/3) remains viable.
-- **Queue**: 0 running, ~13 otto-pending, 9 mev-pending. 9 unreviewed completed (Koink.fun research/lore/tokenomics/contracts). 1 zombie cleaned (c8a8f6e7).
-- **zkPresence PROJECT FULLY COMPLETE** (cycle 574) — ALL tasks reviewed. All exit=0.
-- **EMBEDDING RESILIENCE: COMPLETE** (cycle 570) — ALL memories have local embeddings (all-MiniLM-L6-v2, 384-dim).
-- **CRITICAL: Zoho email DOWN** — trial expired. admin@otto.lk non-functional. Mev confirmed no funding.
-- **Claude Code quota**: Rate-limited as of cycle 580. Previous full restore Apr 10.
-- **Memory**: 1,557+ active. Evolve: 626 decayed, 0 dupes (cycle 580). GLOVE: 0 mismatches.
-- Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Disk: 53% boot. RAM: 11Gi available.
-- RL2F accuracy: **active-only 68% w=50** (34/50 matched). Stable. RE-BASELINE POINT from idle→active transition.
-- **AutoEvolve**: Gen 7. 0 experiments. STAGNANT — needs attention when rate limit clears.
-- **Procedures**: 75 exist.
-- **WF notify step bug**: ALL 8 workflow templates have EMPTY notify step prompts (age 48c).
-- **Kernel routing issue (age 22c)**: "No task" context not carried across messages.
-- **Plan+rate-limit=zombie pattern (age 15c)**: tasks stuck as running with pid=None. Root cause UNPATCHED. 3 instances cleaned across cycles 579-580.
-- **Priorities slot STALE** (2+ months): Still says "WebAssist first" but Mev actions show Koink.fun is current priority.
-- **TODO next cycle**: (1) Review 9 completed Koink.fun tasks. (2) Re-create high-value cancelled plan items when rate limit clears (ZK ecosystem research, capital strategy). (3) Track RL2F re-baseline. (4) Ask Mev about priorities slot update.
+## System Baselines (updated 2026-04-14 cycle 602)
+- **MEV QUIET 10 DAYS** (last msg Apr 4). Koink.fun ecosystem: 6 project WFs COMPLETE. 505.systems /docs live. Pink Paper v6 committed (b7b275a). 4 paused WFs remain.
+- **Queue**: 0 running, 7 mev-pending. 2 unreviewed Mev-owned (Zoho + OpenAI — owner=mev, non-reviewable by Otto). Rate limited — consolidation mode (17th+ consecutive cycle).
+- **Zoho email DOWN** — trial expired. ARCHIVED. Zoho renewal task is STALE.
+- **Claude Code quota**: Rate-limited. Previous full restore Apr 10.
+- **Memory**: 1,685 active. Evolve: 596 decayed, 0 dupes, 12 critique-refined (cycle 602). GLOVE: 2nd consecutive success (15 probed, 0 mismatches) — likely recovered, needs 3rd confirmation.
+- **Embeddings**: Local fallback (all-MiniLM-L6-v2) working. OpenAI down. Gemini API key renewal pending (Mev task).
+- Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Disk: 57% boot. RAM: 9.4Gi available.
+- RL2F accuracy: **active-only 72% w=50** stable. Meta_memory: direction=stable, cycles_since_improvement=7.
+- **AutoEvolve**: Gen 7. 0 experiments. STAGNANT (age 29c) — FIRST PRIORITY when capacity returns.
+- **Agent success**: 100% exit_code on recent tasks (Pink Paper v6 = latest, exit 0).
+- **WF notify step bug**: ALL 8 templates have EMPTY notify prompts (age 70c).
+- **Kernel routing issue (age 44c)**: "No task" context not carried across messages.
+- **Plan+rate-limit=zombie pattern (age 37c)**: tasks stuck as running with pid=None. Root cause UNPATCHED.
+- **Priorities slot needs Mev input** (2+ months stale): Says "WebAssist first" but Koink.fun is active focus.
+- **3 grant Mev tasks (22d)**: Gitcoin GG25, Solana Foundation, ENS grants — deadlines likely PAST. Escalation-ready: orchestrator should nudge Mev or archive.
+- **DPC WFs low quality (age 17c)**: Both DPC-related WFs scored poorly (0.42, 0.56).
+- **Sync Pulse frequency (age 18c)**: 15x/6h. Cost review needed — past escalation threshold.
+- **GLOVE likely recovered (age 1c)**: 2nd consecutive success (15 probed, 0 mismatches). Needs 3rd confirmation next cycle.
+- **Agent swarm review (age 5c)**: Deferred during rate limit. MUST-DO next non-rate-limited cycle.
+- **TODO next cycle**: (1) When rate limit clears: AutoEvolve experiment FIRST (29c stagnant). (2) Confirm GLOVE stability (3rd consecutive success?). (3) Agent swarm review (overdue 5c). (4) Grant tasks: nudge Mev or archive. (5) Sync Pulse cost investigation (past escalation threshold).
 
 ## Known Gaps (persistent)
 - **OpenAI quota exceeded (cycle 479+)**: `insufficient_quota` error, still down as of cycle 499 (Apr 4). Mev confirmed no funding. When restored: run full evolve + dedup cycle.
 - **Semantic memory bloat (RESOLVED cycle 480)**: Archived 2,304 floor-relevance memories via DB-level archival. 4,420→2,116 active. No longer critical.
 - **Claude Code quota exhaustion (cycle 480, recurred 561, RESTORED cycle 562)**: Original: Apr 1-3 (48h blackout). Recurrence Apr 8-10: 25 consecutive heartbeat/reflection failures. Restored Apr 10 12:30pm IST. Pattern: quota hits kill WF steps AND leave coordinator tasks as zombies. Scale: entire day (13 heartbeats + 12 reflections) lost to quota exhaustion.
-- **RL2F accuracy: active-only 68% w=50 (cycle 575)** — 68% but CONFIRMED idle inflation (66->68% with 0 active tasks). Re-baseline when active work resumes. ALWAYS use `?active_only=true`.
+- **RL2F accuracy: active-only 72% w=50 (cycle 589)** — improved from 70% (cycle 588), from 68% (cycle 575). MARS assessed as weak signal during idle (low active volume). Re-baseline when active work resumes. ALWAYS use `?active_only=true`.
 - **OpenAI silent degradation (RESOLVED cycle 569)**: Was 94 null-embedding memories. LOCAL FALLBACK deployed — all 168 null-embed memories backfilled with local embeddings (all-MiniLM-L6-v2). No longer a blocker. Kimi investigation no longer needed.
 - **Crashed-at-line-1 failures (cycle 428)**: 5 failures across agents. task_runner.sh issue. Needs debugger investigation. Priority: HIGH (25% failure rate). Not seen recently — may be stale.
 - **AutoEvolve template contamination (FIXED cycle 408)**: Always verify after AutoEvolve runs.
@@ -52,9 +55,9 @@
 - **Plan DAG standalone retry pattern (cycle 563)**: When orchestrator retries a failed plan task as a standalone task (no plan_id), the plan DAG never advances because the new task isn't linked to the plan. Fix: retries should either be created within the plan or the plan should be manually advanced after standalone completion.
 
 ## Priority Context
-- P10 WebAssist: LIVE at webassist.ink. Stripe payment flow VALIDATED READY (task b0eaddc5 Apr 5). Only Mev live keys block revenue.
-- P9 Management System: LIVE at mev.otto.lk. Push to ottomev/otto-ui COMPLETED.
-- P8 Broadcast System: MVP complete, awaiting Mev credentials
-- Current emphasis: Ship over perfection, budget discipline. All Mev-blocked.
-- **Mev directive (Apr 4)**: No funding for OpenAI/Zoho. OMS repo = ottomev/otto-ui. Stripe confirmed in WebAssist.
-- 5 LinkedIn consulting articles in content DB. Awaiting Mev response on whether to publish.
+- P10 WebAssist: LIVE at webassist.ink. Stripe payment flow VALIDATED READY. Only Mev live keys block revenue.
+- P9 Koink.fun ecosystem: ACTIVE — 6 project chain-fit WFs complete. Pink Paper v6 committed (b7b275a). 4 paused WFs remaining. Tokenomics, Lucky Penny contracts in progress.
+- P9 Management System: LIVE at mev.otto.lk.
+- P8 Broadcast System: MVP complete, awaiting Mev credentials.
+- Current emphasis: Koink.fun ecosystem completion. Budget discipline. Rate-limited.
+- **Mev directive (Apr 4)**: No funding for OpenAI/Zoho. OMS repo = ottomev/otto-ui.
