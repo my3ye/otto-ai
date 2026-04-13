@@ -1,6 +1,7 @@
 # Reviewer Agent Memory
 
 ## Projects
+- [project_tusita_chain_fit_validation.md](project_tusita_chain_fit_validation.md) — Tusita chain fit synthesis (2026-04-13, WF Step 2): MINOR_CHANGES 8.0/10. 2 warnings: Aragon "1 codebase" source fabricated (0 refs in tusita-web); "structurally isomorphic" overstates fork complexity (single-dim DPCRegistry vs 3-weighted Tusita CS). All core claims grep-verified.
 - [project_ton_blockchain_validation.md](project_ton_blockchain_validation.md) — TON blockchain Telegram ecosystem synthesis (2026-04-13, WF Step 2): MINOR_CHANGES 7.5/10. 2 criticals: Insight 4 HIGH contradicts own math (5% vs 0.36% retention); USDT 62%/month = single-window VC metric elevated to HIGH. "950M MAU locked" overclaim. Gate Ventures inflation recurs.
 - [project_sui_aptos_move_synthesis_validation.md](project_sui_aptos_move_synthesis_validation.md) — Sui/Aptos Move synthesis (2026-04-13, WF Step 2): MINOR_CHANGES 7.5/10. CRITICAL: Action 1 recommends `@mysten/zklogin` SDK for zkPresence (Base+SP1+Rust — wrong chain/wrong SDK). 2 confidence downgrades: TPS HIGH→MEDIUM (1 source); dev count HIGH→MEDIUM (Electric Capital = 1 primary source republished). No {topic} bug.
 - [project_solana_ecosystem_validation.md](project_solana_ecosystem_validation.md) — Solana ecosystem synthesis (2026-04-13, WF Step 2): MINOR_CHANGES 7.5/10. 1 critical: Koink Anchor scaffold recommended without flagging Solana vs Base Phase 1 conflict. 2 warnings: Helium 93%→91.7% math; x402 65% = vendor claim.
