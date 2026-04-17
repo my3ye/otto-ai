@@ -797,8 +797,9 @@ async def get_exemplars(
     where = " AND ".join(conditions)
 
     # Rank by: upvotes (if any), output length (proxy for thoroughness), priority
+    # Fetch id-only to avoid encoding issues with raw output, then fetch excerpts safely
     rows = await pool.fetch(
-        f"""SELECT id, title, agent_type, LEFT(output, 500) AS output_excerpt,
+        f"""SELECT id, title, agent_type,
                    priority, upvotes, LENGTH(output) AS output_length,
                    completed_at
             FROM tasks
@@ -810,21 +811,30 @@ async def get_exemplars(
         *params, limit,
     )
 
-    return [
-        {
+    # Fetch output excerpts safely per-row (handles encoding edge cases)
+    results = []
+    for r in rows:
+        try:
+            excerpt_row = await pool.fetchval(
+                "SELECT LEFT(output, 500) FROM tasks WHERE id = $1", r["id"]
+            )
+        except Exception:
+            excerpt_row = "[output contains invalid encoding]"
+
+        results.append({
             "task_id": str(r["id"]),
             "title": r["title"],
             "agent_type": r["agent_type"],
-            "output_excerpt": r["output_excerpt"],
+            "output_excerpt": excerpt_row or "",
             "quality_signals": {
                 "upvotes": r["upvotes"] or 0,
                 "output_length": r["output_length"],
                 "priority": r["priority"],
             },
             "completed_at": r["completed_at"].isoformat() if r["completed_at"] else None,
-        }
-        for r in rows
-    ]
+        })
+
+    return results
 
 
 @router.get("/{task_id}", response_model=TaskOut)

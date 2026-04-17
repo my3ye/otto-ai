@@ -665,6 +665,31 @@ Instructions:
 fi
 # ── End Progressive Loading Instructions ──────────────────────────────────
 
+# ── IMPL-10: Worktree Isolation (CORAL 2604.01658) ────────────────────────────
+# File-modifying agents (coder, debugger, frontend-developer, backend-architect)
+# execute in a git worktree to prevent concurrent task collisions on git state.
+# Read-only agents (researcher, reviewer, etc.) skip this — no file modification risk.
+USE_WORKTREE=false
+WORKTREE_DIR=""
+ORIGINAL_WORK_DIR="$WORK_DIR"
+
+MODIFY_AGENTS="coder debugger frontend-developer backend-architect sre devops-automator mcp-builder"
+if [[ " $MODIFY_AGENTS " == *" $AGENT_TYPE "* ]] && \
+   [ "$WORK_DIR" = "/home/web3relic/otto" ] && \
+   git -C "$WORK_DIR" rev-parse --git-dir &>/dev/null; then
+    WORKTREE_BRANCH="task/${TASK_SHORT_ID}"
+    WORKTREE_DIR="/tmp/otto-worktree-${TASK_SHORT_ID}"
+    if git -C "$WORK_DIR" worktree add "$WORKTREE_DIR" -b "$WORKTREE_BRANCH" HEAD 2>>"$LOG_FILE"; then
+        USE_WORKTREE=true
+        WORK_DIR="$WORKTREE_DIR"
+        PROGRESS_FILE="${WORK_DIR}/.otto-progress-${TASK_SHORT_ID}.md"
+        log "Worktree: created at ${WORKTREE_DIR} (branch: ${WORKTREE_BRANCH})"
+    else
+        log "Worktree: creation failed — falling back to main working tree"
+    fi
+fi
+# ── End Worktree Isolation ────────────────────────────────────────────────────
+
 # Run the appropriate CLI with timeout
 log "Starting ${CLI_BACKEND} CLI..."
 cd "$WORK_DIR"
@@ -1111,6 +1136,62 @@ curl -sf -X POST "${API}/tasks/${TASK_ID}/complete" \
 }
 TASK_COMPLETED=true  # Prevent zombie trap from double-reporting
 
+# ── Caller Profiler: Tool Usage Extraction (STEM Agent 2603.22359) ──────────
+# Parse CLI output for tool invocation patterns and POST to /agents/tool-usage/batch.
+# Claude CLI --print output contains tool names in format: "tool_name(args)" or "Using tool: X"
+# We extract tool names and report them for behavioral profiling.
+if [ -n "$AGENT_TYPE" ] && [ -n "$OUTPUT" ]; then
+    TOOL_USAGE_JSON=$(python3 -c "
+import json, sys, re
+from collections import Counter
+
+output = sys.argv[1]
+agent_type = sys.argv[2]
+task_id = sys.argv[3]
+
+# Extract tool names from Claude CLI output patterns
+# Pattern 1: Tool call blocks in markdown
+tools = re.findall(r'(?:^|\n)\s*(?:Tool|Using):\s*(\w+)', output)
+# Pattern 2: function_calls blocks
+tools += re.findall(r'<invoke name=\"(\w+)\"', output)
+# Pattern 3: bash/read/write/edit/grep/glob tool mentions in structured output
+tools += re.findall(r'(?:Called|Calling|Running)\s+(\w+)\s+tool', output, re.IGNORECASE)
+
+if not tools:
+    sys.exit(0)
+
+counts = Counter(tools)
+entries = []
+for tool_name, count in counts.most_common(50):
+    entries.append({
+        'agent_type': agent_type,
+        'tool_name': tool_name,
+        'success': True,
+        'task_id': task_id,
+    })
+    # Add extra entries for count > 1
+    for _ in range(count - 1):
+        entries.append({
+            'agent_type': agent_type,
+            'tool_name': tool_name,
+            'success': True,
+            'task_id': task_id,
+        })
+
+print(json.dumps({'entries': entries}))
+" "$OUTPUT" "$AGENT_TYPE" "$TASK_ID" 2>/dev/null || echo "")
+
+    if [ -n "$TOOL_USAGE_JSON" ]; then
+        TOOL_COUNT=$(echo "$TOOL_USAGE_JSON" | python3 -c "import json,sys; print(len(json.load(sys.stdin).get('entries',[])))" 2>/dev/null || echo "0")
+        curl -sf -X POST "${API}/agents/tool-usage/batch" \
+            -H 'Content-Type: application/json' \
+            -d "$TOOL_USAGE_JSON" >> "$LOG_FILE" 2>&1 && \
+            log "Caller Profiler: logged ${TOOL_COUNT} tool invocations for ${AGENT_TYPE}" || \
+            log "Caller Profiler: batch upload failed (non-fatal)"
+    fi
+fi
+# ── End Caller Profiler ──────────────────────────────────────────────────────
+
 # ── JitRL Experience Ingestion ────────────────────────────────────────────────
 # Feed this task's outcome into the JitRL experience buffer so future tasks
 # benefit from knowing which action types succeed in which contexts.
@@ -1543,6 +1624,36 @@ print(json.dumps({
         log "APC: plan cached (exec_time=${EXEC_TIME}s)" || \
         log "APC: cache store failed (non-fatal)"
 fi
+
+# ── Worktree Merge-Back + Cleanup ──────────────────────────────────────────
+if [ "$USE_WORKTREE" = "true" ] && [ -d "$WORKTREE_DIR" ]; then
+    if [ "$EXIT_CODE" -eq 0 ]; then
+        # Merge worktree changes back to main branch on success
+        WORKTREE_COMMITS=$(git -C "$WORKTREE_DIR" rev-list HEAD --not "$(git -C "$ORIGINAL_WORK_DIR" rev-parse HEAD)" --count 2>/dev/null || echo "0")
+        if [ "$WORKTREE_COMMITS" -gt 0 ]; then
+            CURRENT_BRANCH=$(git -C "$ORIGINAL_WORK_DIR" branch --show-current 2>/dev/null || echo "master")
+            if git -C "$ORIGINAL_WORK_DIR" merge --no-edit "task/${TASK_SHORT_ID}" 2>>"$LOG_FILE"; then
+                log "Worktree: merged ${WORKTREE_COMMITS} commits back to ${CURRENT_BRANCH}"
+            else
+                git -C "$ORIGINAL_WORK_DIR" merge --abort 2>/dev/null || true
+                log "Worktree: merge conflict — changes preserved on branch task/${TASK_SHORT_ID}"
+            fi
+        else
+            log "Worktree: no new commits to merge"
+        fi
+    else
+        log "Worktree: task failed (exit_code=${EXIT_CODE}) — discarding worktree changes"
+    fi
+    # Cleanup worktree and branch
+    git -C "$ORIGINAL_WORK_DIR" worktree remove "$WORKTREE_DIR" --force 2>>"$LOG_FILE" || \
+        rm -rf "$WORKTREE_DIR" 2>/dev/null || true
+    # Only delete branch if merge succeeded or task failed (not on merge conflict)
+    if [ "$EXIT_CODE" -eq 0 ] || [ "$EXIT_CODE" -ne 0 ]; then
+        git -C "$ORIGINAL_WORK_DIR" branch -D "task/${TASK_SHORT_ID}" 2>>"$LOG_FILE" || true
+    fi
+    log "Worktree: cleaned up ${WORKTREE_DIR}"
+fi
+# ── End Worktree Cleanup ──────────────────────────────────────────────────────
 
 # Report completion to kernel
 TASK_SUCCESS="true"
