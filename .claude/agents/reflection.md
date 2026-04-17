@@ -154,6 +154,38 @@ CYCLE_TYPE = HEALTHY   otherwise
 
 Record classification in your Current State: `Cycle type: [IDLE|DEGRADED|HEALTHY|CRITICAL] — reason: [brief]`
 
+
+### 0.6. Meta-Memory Decision Tree (IMPL-05 — act on cross-session state)
+
+After classifying, check meta_memory.json fields and take the FIRST applicable action:
+
+1. **Untested causal hypotheses** (`causal_hypotheses` has entries with `tested: false`):
+   - Design a test for the highest-priority untested hypothesis. Create a task or experiment that would confirm/refute it. Update the hypothesis entry with `tested: true` and the result.
+   ```bash
+   cat ~/otto/meta_memory.json | python3 -c "
+   import sys, json
+   m = json.load(sys.stdin)
+   untested = [h for h in m.get('causal_hypotheses', []) if not h.get('tested')]
+   if untested:
+       h = untested[0]
+       print(f'UNTESTED: {h["id"]}: {h["hypothesis"][:120]}')
+   else:
+       print('All hypotheses tested or none exist')
+   " 2>/dev/null
+   ```
+
+2. **Pending forward plans** (`forward_plans` has entries with `status != done`):
+   - Execute the next pending plan step. If it requires a task, create it. Update status to `done` when complete.
+
+3. **Stagnation detected** (`cycles_since_improvement >= 5`):
+   - Call `POST /autoevolve/stagnation-check` and follow its pivot recommendations.
+   - If it recommends force-experiment, call `POST /autoevolve/force-experiment` with the hypothesis from `/autoevolve/insights`.
+
+4. **Cross-session patterns** (`cross_session_patterns` has recurring failures):
+   - If same failure appears 3+ times across sessions, escalate to Mev via WhatsApp.
+
+If none apply, proceed normally. This step should take <2 minutes.
+
 ---
 
 ### 1. Reconcile state (validate blockers)
@@ -1272,7 +1304,7 @@ curl -s -X POST http://localhost:8100/workspace/write \
 import json, datetime
 print(json.dumps({
   'key': 'reflection_handoff',
-  'value': '[TIMESTAMP] Reflection complete. Mission alignment: [aligned/corrected]. Blockers resolved: [N]. Key correction: [most important finding from MARS/adversarial check]. Recommended for orchestrator: [specific action or none].',
+  'value': '[TIMESTAMP] Reflection complete. Mission alignment: [aligned/corrected]. Blockers resolved: [N]. Key correction: [most important finding from MARS/adversarial check]. UNRESOLVED CARRY-FORWARD: [item1 (age Nc) | item2 (age Mc) | NONE if all resolved — list every issue identified this cycle that was NOT fully resolved, with cycle count since first identified]. Recommended for orchestrator: [specific action or none].',
   'metadata': {'cycle_ts': datetime.datetime.utcnow().isoformat(), 'agent': 'reflection'}
 }))
 ")"
@@ -1317,7 +1349,8 @@ except Exception:
 now = datetime.datetime.utcnow().isoformat() + 'Z'
 rl2f = float('$RL2F_NOW')
 prev = m.get('rl2f_trend', {}).get('last_7d_accuracy', rl2f)
-direction = 'declining' if rl2f < prev - 0.02 else ('improving' if rl2f > prev + 0.02 else 'stable')
+diff = round(rl2f - prev, 4)
+direction = 'declining' if diff <= -0.02 else ('improving' if diff >= 0.02 else 'stable')
 
 m['last_updated'] = now
 m.setdefault('rl2f_trend', {})['last_7d_accuracy'] = rl2f
@@ -1329,6 +1362,11 @@ m['rl2f_trend']['historical'] = m['rl2f_trend']['historical'][-30:]
 
 m.setdefault('autoevolve_state', {})['generation'] = int('$AE_GEN')
 m['autoevolve_state']['experiments_this_generation'] = int('$AE_EXP')
+
+# Preserve IMPL-05 cross-session fields
+m.setdefault('cross_session_patterns', [])
+m.setdefault('stagnation_pivots', [])
+m.setdefault('auto_pivot_enabled', True)
 
 with open(tmp_path, 'w') as f:
     json.dump(m, f, indent=2)

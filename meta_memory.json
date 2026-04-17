@@ -1,20 +1,12 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-04-13T17:08:24.184190Z",
+  "last_updated": "2026-04-16T23:07:05.757282Z",
   "rl2f_trend": {
     "last_7d_accuracy": 0.72,
     "direction": "stable",
-    "cycles_since_improvement": 7,
+    "cycles_since_improvement": 9,
     "last_improvement_date": null,
     "historical": [
-      {
-        "date": "2026-04-11",
-        "accuracy": 0.64
-      },
-      {
-        "date": "2026-04-11",
-        "accuracy": 0.66
-      },
       {
         "date": "2026-04-11",
         "accuracy": 0.68
@@ -126,6 +118,14 @@
       {
         "date": "2026-04-13",
         "accuracy": 0.72
+      },
+      {
+        "date": "2026-04-16",
+        "accuracy": 0.72
+      },
+      {
+        "date": "2026-04-16",
+        "accuracy": 0.72
       }
     ]
   },
@@ -166,6 +166,9 @@
       "proposed_patch_id": null
     }
   ],
+  "cross_session_patterns": [],
+  "stagnation_pivots": [],
+  "auto_pivot_enabled": true,
   "reflection_versions": {
     "current_version": 0,
     "pending_patches": [],
