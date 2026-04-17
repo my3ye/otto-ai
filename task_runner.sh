@@ -381,6 +381,44 @@ else
 fi
 # ── End Semantic Memory Enrichment ───────────────────────────────────────────
 
+# ── Cross-Task Exemplar Injection (CORAL 2604.01658) ─────────────────────────
+# Query top exemplars for this agent_type. 17% improvement rate from
+# cross-agent parentage per CORAL paper. Capped at 1500 tokens total.
+EXEMPLAR_BLOCK=""
+if [ -n "$AGENT_TYPE" ]; then
+    EXEMPLAR_JSON=$(curl -sf --max-time 5 "${API}/tasks/exemplars?category=${AGENT_TYPE}&limit=3" 2>/dev/null || echo "[]")
+    EXEMPLAR_COUNT=$(echo "$EXEMPLAR_JSON" | python3 -c "import json,sys; d=json.load(sys.stdin); print(len(d))" 2>/dev/null || echo "0")
+
+    if [ "$EXEMPLAR_COUNT" -gt 0 ] 2>/dev/null; then
+        EXEMPLAR_BLOCK=$(echo "$EXEMPLAR_JSON" | python3 -c "
+import json, sys
+exemplars = json.load(sys.stdin)
+lines = ['## Reference: Top Prior Outputs (quality calibration)',
+         'These are reference outputs for quality calibration. Do NOT copy structure or content — use them only to understand expected quality level and approach patterns.',
+         '']
+total_chars = 0
+for e in exemplars:
+    excerpt = (e.get('output_excerpt') or '')[:500]
+    if total_chars + len(excerpt) > 4500:  # ~1500 tokens
+        break
+    lines.append(f'### {e[\"title\"]} ({e[\"agent_type\"]})')
+    signals = e.get('quality_signals', {})
+    lines.append(f'Priority: {signals.get(\"priority\",\"?\")} | Output length: {signals.get(\"output_length\",0)} chars')
+    lines.append(excerpt)
+    lines.append('')
+    total_chars += len(excerpt)
+print('\n'.join(lines))
+" 2>/dev/null)
+
+        if [ -n "$EXEMPLAR_BLOCK" ]; then
+            log "Exemplars: ${EXEMPLAR_COUNT} reference task(s) injected for quality calibration"
+        fi
+    else
+        log "Exemplars: no approved exemplars found for agent_type=${AGENT_TYPE}"
+    fi
+fi
+# ── End Cross-Task Exemplar Injection ────────────────────────────────────────
+
 # ── Pre-flight Environment Check ────────────────────────────────────────────
 # Verify baseline health before spending budget. Inspired by Anthropic's
 # "init.sh" pattern: catch broken environments early instead of wasting
@@ -515,6 +553,12 @@ if [ -n "$SEMANTIC_BLOCK" ]; then
     FULL_PROMPT="${FULL_PROMPT}
 
 ${SEMANTIC_BLOCK}"
+fi
+
+if [ -n "$EXEMPLAR_BLOCK" ]; then
+    FULL_PROMPT="${FULL_PROMPT}
+
+${EXEMPLAR_BLOCK}"
 fi
 
 # ── A2A: Inject peer messaging instructions ──────────────────────────────────
