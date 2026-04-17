@@ -1,0 +1,12 @@
+{
+  "patch_id": "22738f65",
+  "proposed_at": "2026-03-31T14:06:32.452415+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "    'expected': '<WHAT you expect by next cycle \u2014 focus on SYSTEM-OBSERVABLE outcomes (task completions, queue state, system health). Include reactive dispatch probability: if Mev has been active recently, predict \"likely reactive dispatch\" instead of \"idle\". For Mev-dependent outcomes, use conditional framing: \"IF Mev responds, THEN X\". Do NOT predict WHEN Mev will respond \u2014 only predict what the system will do in response.>',",
+  "new_string": "    'expected': '<Write TWO explicit branches separated by \" | IF_MEV: \". DEFAULT: system-observable state prediction assuming no external input (queue counts, task completions, health changes). IF_MEV: what Otto will do if Mev sends a message or unblocks something. Score the DEFAULT branch if idle, score the IF_MEV branch if Mev responded \u2014 a prediction that matches EITHER branch is \"matched\", not \"partial\". Do NOT include probability percentages for Mev responses \u2014 they are untestable on single events and inflate partials. Focus on observable outcomes only.>',",
+  "reason": "RL2F active-only stuck at 34% for 85 cycles. Root cause: 56% partials from Mev-behavior probability predictions that are untestable on single events. This restructures EXPECTED to two scoreable branches (DEFAULT for idle, IF_MEV for response), eliminating probability percentages that guarantee partial scoring.",
+  "review_notes": null,
+  "applied_at": "2026-03-31T14:06:53.972974+00:00"
+}

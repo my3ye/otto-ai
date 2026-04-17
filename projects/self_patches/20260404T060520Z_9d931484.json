@@ -1,0 +1,12 @@
+{
+  "patch_id": "9d931484",
+  "proposed_at": "2026-04-04T06:05:20.285460+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/reflection.md",
+  "old_string": "direction = 'declining' if rl2f < prev - 0.02 else ('improving' if rl2f > prev + 0.02 else 'stable')",
+  "new_string": "diff = round(rl2f - prev, 4)\ndirection = 'declining' if diff <= -0.02 else ('improving' if diff >= 0.02 else 'stable')",
+  "reason": "IEEE 754 floating point imprecision caused cycles_since_improvement to get stuck at 110+ because 0.46+0.02=0.48000000000000004, making 0.48 > 0.48000000000000004 evaluate as False. Fix: compute diff with round(4) and use >= instead of >. Confirmed fix in cycle 498 one-time; this makes it permanent.",
+  "review_notes": null,
+  "applied_at": "2026-04-04T06:05:33.289076+00:00"
+}

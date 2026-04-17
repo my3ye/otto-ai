@@ -1,0 +1,12 @@
+{
+  "patch_id": "e5c5dd19",
+  "proposed_at": "2026-03-27T10:09:58.015927+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "LEARN FROM MISTAKES: Before deciding, check what went wrong recently.\n- Fetch the pre-decision brief: `curl -sf http://localhost:8100/reasoning/pre-decision-brief`\n- Review any recent misses \u2014 what did you predict that didn't happen?",
+  "new_string": "LEARN FROM MISTAKES: Before deciding, check what went wrong recently.\n- Fetch the pre-decision brief: `curl -sf http://localhost:8100/reasoning/pre-decision-brief`\n- **STATE DELTA** (mandatory): Read last cycle's `expected` from the brief's `last_pending` field. Write out explicitly:\n  - PREDICTED: [what you expected last cycle, verbatim]\n  - ACTUAL: [what actually happened \u2014 check queue, tasks, messages]\n  - DELTA: [what was wrong \u2014 be specific: was the timing off? the scope? the conditional?]\n  - CALIBRATION: [one-sentence lesson for THIS cycle's prediction \u2014 e.g. \"Mev response timing is unpredictable, use wider conditionals\"]\n  If delta is empty (prediction matched), write \"Prediction matched \u2014 no calibration needed.\"\n- Review any recent misses \u2014 what did you predict that didn't happen?",
+  "reason": "RL2F has 35/50 partials (70%). Predictions are directionally correct but imprecise. Adding forced State Delta comparison anchors predictions to observed reality and builds calibration over time. AutoEvolve gen-2 experiment.",
+  "review_notes": "Approved by reflection cycle 428 \u2014 DEGRADED cycle, RL2F 28% stagnant 41 cycles, AutoEvolve experiment activation",
+  "applied_at": "2026-03-27T13:05:17.886764+00:00"
+}

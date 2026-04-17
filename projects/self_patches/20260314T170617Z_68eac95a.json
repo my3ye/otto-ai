@@ -1,0 +1,11 @@
+{
+  "patch_id": "68eac95a",
+  "proposed_at": "2026-03-14T17:06:17.006350+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "    'expected': '<WHAT you expect by next cycle \u2014 be specific and falsifiable>'",
+  "new_string": "    'expected': '<WHAT you expect by next cycle \u2014 focus on STATE CHANGES (what will be different), not timing. AVOID precise durations like \"30-45min\" \u2014 instead predict outcomes: \"task will produce X\", \"queue will be empty\", \"Mev may respond\". Timing predictions are consistently wrong and drag accuracy down.>'",
+  "reason": "RL2F accuracy declined from 94% to 78% over 19 data points. Root cause: orchestrator predictions include precise timing estimates (e.g. 'should complete within 30-45min') that are consistently wrong \u2014 tasks complete faster (code already exists) or slower than predicted. This patch guides the EXPECTED field toward outcome-based predictions instead of duration-based ones.",
+  "review_notes": null
+}

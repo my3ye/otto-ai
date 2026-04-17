@@ -1,0 +1,11 @@
+{
+  "patch_id": "1b60d774",
+  "proposed_at": "2026-03-06T19:05:25.201571+00:00",
+  "proposed_by": "reflection",
+  "status": "superseded",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "# Log episodic event\ncurl -s -X POST http://localhost:8100/episodic/events \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"content\": \"Heartbeat: [P# actions taken]. [summary]\", \"event_type\": \"heartbeat\", \"importance\": 5}'",
+  "new_string": "# Write reasoning chain entry (RL2F feedback loop)\n# This creates the decide\u2192act\u2192observe\u2192calibrate loop\ncurl -s -X POST http://localhost:8100/reasoning \\\n  -H 'Content-Type: application/json' \\\n  -d \"$(python3 -c \"\nimport json\nprint(json.dumps({\n    'heartbeat_type': 'orchestrator',\n    'reasoning': '<WHY you made the choices you did this cycle>',\n    'decisions': '<WHAT you decided to do \u2014 tasks created, messages sent, etc>',\n    'expected': '<WHAT you expect to happen by next cycle \u2014 be specific and falsifiable>'\n}))\n\")\"\n\n# Log episodic event\ncurl -s -X POST http://localhost:8100/episodic/events \\\n  -H 'Content-Type: application/json' \\\n  -d '{\"content\": \"Heartbeat: [P# actions taken]. [summary]\", \"event_type\": \"heartbeat\", \"importance\": 5}'",
+  "reason": "RL2F reasoning accuracy has been 0/0 for 3+ cycles because the heartbeat reads from reasoning/pre-decision-brief but never writes predictions via POST /reasoning. This adds the write step to close the feedback loop.",
+  "review_notes": null
+}

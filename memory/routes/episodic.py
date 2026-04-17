@@ -63,6 +63,13 @@ async def get_timeline(req: TimelineQuery):
     params: list = [req.min_importance]
     idx = 2
 
+    if req.hours is not None:
+        from datetime import datetime, timedelta, timezone
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=req.hours)
+        conditions.append(f"created_at >= ${idx}")
+        params.append(cutoff)
+        idx += 1
+
     if req.event_type:
         conditions.append(f"event_type = ${idx}")
         params.append(req.event_type)

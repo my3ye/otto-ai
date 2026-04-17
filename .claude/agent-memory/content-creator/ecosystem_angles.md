@@ -19,6 +19,7 @@ type: project
 - Human journey / access shortage / unified ladder — "The Ladder Out" (42a3bfae)
 - Constitutional amendment mechanics — "The DAO Is Not a Corporation. It Is a Constitution." (8a2ae4bf)
 - **Paragraph Inception (v2, revised 2026-03-23)** — "The Answer Cannot Be Nobody" (3a0e28e4) — governance-first launch piece; covers: DPC three factors, Panik App proof case, three-layer architecture, one-ladder refuge + governance as same system, Phase 0 Snapshot/Gnosis Safe disclosure, @sos-systems CTA
+- **Quantum Trust & the Value Shift — Pink Paper No. 2 (v3 rewrite, eea0ead6, 2026-04-12)** — Post-Secret Economy thesis, Proof of Vitality (PoS→PoV), AI as nervous system (Harmonic Mapping, alignment through entanglement), Quantum Alliance (quantum as foundation), four shadow problems (Resonance Trap, Observer Parasite, Time-Symmetry Crisis, Inorganic Life Divergence), three constitutional guardrails (Mutation Principle, Veil of Intent, Human Supremacy of Will), migration architecture, dormant wallet problem, SP1 crypto-agility, civilizational arc (States→Corps→Organisms). ~4,200 words.
 
 **Open angles:**
 - First-person persona: a specific journey through the system (refugee → contributor → steward)
@@ -26,6 +27,8 @@ type: project
 - Koink treasury → SOS funding flow
 - NOTE: Constitutional amendment mechanics now covered in "The DAO Is Not a Corporation. It Is a Constitution." (8a2ae4bf) — do not repeat Founder-level majority / Sovereign veto mechanics as the central argument
 - NOTE: DPC three-factor formula now explained in Paragraph inception v2 — do not repeat as a primary section in any subsequent SOS article. Reference it briefly only.
+- NOTE: Post-Secret Economy, Proof of Vitality, AI-as-nervous-system, shadow problems, and constitutional guardrails are ALL OWNED by Pink Paper No. 2 v3 (eea0ead6). Do not repeat these as primary arguments. Reference briefly only.
+- NOTE: math-as-wall→math-as-lens metaphor, Sovereignty Through Verifiability, and quantum-as-ally framing are all owned by Pink Paper No. 2 v3.
 
 ## MY3YE (Ecosystem overview)
 

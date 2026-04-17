@@ -1,0 +1,12 @@
+{
+  "patch_id": "6f79f40e",
+  "proposed_at": "2026-03-26T04:04:24.052766+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "'expected': '<WHAT you expect by next cycle \u2014 be specific and falsifiable>',",
+  "new_string": "'expected': '<WHAT you expect by next cycle \u2014 focus on SYSTEM-OBSERVABLE outcomes (task completions, queue state, system health). For Mev-dependent outcomes, use conditional framing: \"IF Mev responds, THEN X\". Do NOT predict WHAT Mev will say or when \u2014 only predict what YOU control.>',",
+  "reason": "RL2F accuracy stuck at 26% for 26+ cycles. Root cause: 72% of predictions are 'partial' because they predict Mev's specific response content (e.g., 'Mev responds with Stripe keys or new direction'). When Mev does something different, it's scored partial. Fix: guide predictions toward observable/controllable outcomes and frame Mev-dependent outcomes as conditional.",
+  "review_notes": null,
+  "applied_at": "2026-03-26T04:04:40.060961+00:00"
+}

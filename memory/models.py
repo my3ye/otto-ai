@@ -141,6 +141,7 @@ class NoteLink(BaseModel):
     source_id: UUID
     target_id: UUID
     link_strength: float
+    relationship_type: str = "related"  # extends, refines, contradicts, related (IMPL-07)
     created_at: datetime
     linked_content: str | None = None    # content of the linked memory (if joined)
     linked_category: str | None = None

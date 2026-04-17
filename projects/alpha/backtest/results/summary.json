@@ -1,0 +1,52 @@
+{
+  "run_at": "2026-02-20T21:33:17.889781+00:00",
+  "strategies_run": [
+    "convergence_copy_trading",
+    "single_wallet_copy"
+  ],
+  "results": {
+    "convergence_copy_trading": {
+      "total_signals": 2,
+      "signals_with_price_data": 2,
+      "horizon_1h": {
+        "count": 2,
+        "win_rate": 0.0,
+        "avg_return_pct": -1.0518053530789815,
+        "median_return_pct": -1.0489271007979477,
+        "max_return_pct": -1.0489271007979477,
+        "min_return_pct": -1.0546836053600153,
+        "total_return_pct": -2.103610706157963,
+        "sharpe_ratio": -258.3994122236329,
+        "max_drawdown_pct": -2.092547843993671,
+        "wins": 0,
+        "losses": 2,
+        "avg_win_pct": 0,
+        "avg_loss_pct": -1.0518053530789815,
+        "profit_factor": 0.0
+      },
+      "horizon_4h": {
+        "count": 2,
+        "win_rate": 1.0,
+        "avg_return_pct": 14.185899054820727,
+        "median_return_pct": 26.135179302565792,
+        "max_return_pct": 26.135179302565792,
+        "min_return_pct": 2.2366188070756623,
+        "total_return_pct": 28.371798109641453,
+        "sharpe_ratio": 0.8394602194374425,
+        "max_drawdown_pct": 0.0,
+        "wins": 2,
+        "losses": 0,
+        "avg_win_pct": 14.185899054820727,
+        "avg_loss_pct": 0,
+        "profit_factor": null
+      },
+      "horizon_24h": {
+        "count": 0,
+        "data": "insufficient"
+      }
+    },
+    "single_wallet_copy": {
+      "error": "no trades"
+    }
+  }
+}

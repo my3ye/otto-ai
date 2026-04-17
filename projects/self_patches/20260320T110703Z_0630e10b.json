@@ -1,0 +1,11 @@
+{
+  "patch_id": "0630e10b",
+  "proposed_at": "2026-03-20T11:07:03.799924+00:00",
+  "proposed_by": "reflection",
+  "status": "superseded",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "- Check your prediction accuracy (the `accuracy` field) \u2014 is it improving?",
+  "new_string": "- Check your prediction accuracy (the `accuracy` field) \u2014 is it improving?\n- **CRITICAL: When reporting RL2F accuracy in working memory or messages, ALWAYS use the API value from `curl -sf http://localhost:8100/reasoning/accuracy`. Do NOT self-compute from the chains visible in your context \u2014 your sample is biased and consistently wrong (3 consecutive misreports in March 2026).**",
+  "reason": "Orchestrator self-computed RL2F accuracy 3 consecutive cycles (30%, 35%, wrong values) instead of using API (actual: 52%). Adding explicit instruction to use API endpoint prevents systemic misreporting.",
+  "review_notes": "Superseded: identical fix already exists at line 87 of heartbeat.md (added via direct edit). Patch redundant."
+}

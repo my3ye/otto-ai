@@ -1,20 +1,12 @@
 {
   "schema_version": 1,
-  "last_updated": "2026-04-16T23:07:05.757282Z",
+  "last_updated": "2026-04-17T03:10:55.826537Z",
   "rl2f_trend": {
     "last_7d_accuracy": 0.72,
     "direction": "stable",
-    "cycles_since_improvement": 9,
+    "cycles_since_improvement": 11,
     "last_improvement_date": null,
     "historical": [
-      {
-        "date": "2026-04-11",
-        "accuracy": 0.68
-      },
-      {
-        "date": "2026-04-11",
-        "accuracy": 0.68
-      },
       {
         "date": "2026-04-11",
         "accuracy": 0.68
@@ -126,6 +118,14 @@
       {
         "date": "2026-04-16",
         "accuracy": 0.72
+      },
+      {
+        "date": "2026-04-17",
+        "accuracy": 0.72
+      },
+      {
+        "date": "2026-04-17",
+        "accuracy": 0.72
       }
     ]
   },
@@ -148,8 +148,11 @@
         "budget logs show ~$0.95 spent before step 7"
       ],
       "created_at": "2026-03-24",
-      "tested": false,
-      "outcome": null
+      "tested": true,
+      "outcome": null,
+      "result": "CONFIRMED. 0 AutoEvolve events in 31 days. Root cause: rate limit override (consolidation only) trumps IDLE cycle classification that should prioritize AutoEvolve. Fix: AutoEvolve state-checking (experiment ticking) is not task creation and should be allowed during rate limit. Only creating NEW experiments should be gated.",
+      "evidence": "Episodic scan: 0 autoevolve events in 744h. Rate limit active 19+ consecutive cycles. AutoEvolve gen 7 stagnant 31+ cycles.",
+      "tested_at": "2026-04-17"
     }
   ],
   "best_cycle_analysis": {

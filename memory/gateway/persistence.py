@@ -6,7 +6,7 @@ Extracted from whatsapp.py — all channel-agnostic.
 import json
 import logging
 
-from ..embeddings import get_embedding
+from ..embeddings import get_embedding, get_embedding_provider
 from ..graphiti import graphiti_ingest, make_message
 from ..graph_bridge import write_from_classified_note
 
@@ -52,13 +52,24 @@ async def resolve_and_store(pool, question, answer: str):
         content = f"Decision from Mev: {answer}"
 
     embedding = await get_embedding(content)
+    provider = get_embedding_provider()
     embedding_str = "[" + ",".join(str(x) for x in embedding) + "]"
-    await pool.execute(
-        """INSERT INTO semantic_memories (content, category, confidence, source, embedding)
-           VALUES ($1, $2, $3, $4, $5::vector)""",
-        content, store_config["category"], store_config["confidence"],
-        "gateway_reply", embedding_str,
-    )
+    if provider == "openai":
+        await pool.execute(
+            """INSERT INTO semantic_memories (content, category, confidence, source,
+                   embedding, embedding_hv, embedding_provider)
+               VALUES ($1, $2, $3, $4, $5::vector, $5::halfvec(1536), 'openai')""",
+            content, store_config["category"], store_config["confidence"],
+            "gateway_reply", embedding_str,
+        )
+    else:
+        await pool.execute(
+            """INSERT INTO semantic_memories (content, category, confidence, source,
+                   embedding_local, embedding_provider)
+               VALUES ($1, $2, $3, $4, $5::halfvec(384), 'local')""",
+            content, store_config["category"], store_config["confidence"],
+            "gateway_reply", embedding_str,
+        )
 
     await pool.execute(
         """INSERT INTO episodic_events (content, event_type, importance)

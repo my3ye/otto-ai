@@ -1,0 +1,320 @@
+
+============================================================
+PROJECT ALPHA — PHASE 4 BACKTEST
+Started: 2026-02-21T02:39:06.930090+00:00
+============================================================
+
+[Phase4] Running SM_11: Volume Anomaly...
+[SM_11] Scanning 53 known tokens for volume anomalies...
+  [GeckoTerminal] Error for pool BpzGNsHoSdPk: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BpzGNsHoSdPkoANBNkrw6syqqLLPX6j38FZg6rJ1QLJ/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9t1H1uDJ558i: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9t1H1uDJ558iMPNkEPSN1fqkpC4XSPQ6cqSf6uEsTfTR/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool C1MgLojNLWBK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/C1MgLojNLWBKADvu9BHdtgzz1oZX4dZ5zGdGcgvvW8Wz/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool AbrV3va9rfnw: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/AbrV3va9rfnw8dzsAaqFBGVXTWqmy6XCfVJd37zunijK/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool SU7vPveBjEuR: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/SU7vPveBjEuR5tgQwidRqqTxn1WwraHpydHHBpM2W96/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool F4ojM7DpKg3y: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/F4ojM7DpKg3yNhF6mrE1qjZWfogMuvTAor9uUfY33nd3/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 81GpCm4d13y8: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/81GpCm4d13y8TozYtThabuSCLQN2o3bbrvDogXFPn8sA/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9hUQpEo1Vg61: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9hUQpEo1Vg61LAJ7Yg4c9SciDDHhj5mPDMKLo2PmPL5X/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 424kbbJyt6Vk: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/424kbbJyt6VkSn7GeKT9Vh5yetuTR1sbeyoya2nmBJpw/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 2uF4Xh61rDwx: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/2uF4Xh61rDwxnG9woyxsVQP7zuA6kLFpb3NvnRQeoiSd/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 6ZEdcbsQRhjr: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/6ZEdcbsQRhjrHzXpMv7AhWyYdYWmB2xbJg3H1sUuEU8P/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool BXBwEqPcsvSK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BXBwEqPcsvSKE2m6bAXS8YrXB2V6oreCCNmNvmwiJ6zR/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool AnHByZPZNkDb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/AnHByZPZNkDbfj1BtG8tCScgRM5bVBYCNXftjfpfceoQ/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool mfx2W3yXS5mK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/mfx2W3yXS5mKw8qNcLH4QGZMMLM86TRNcHZKaKL9yWb/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool J8vNkuUVDwnb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/J8vNkuUVDwnb2XfSWLsjEgULYe2t317pyFk2AfRdBc89/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool AS5MV3ear4NZ: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/AS5MV3ear4NZPMWXbCsEz3AdbCaXEnq4ChdaWsvLgkcM/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool Gm57qDq4vCH4: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/Gm57qDq4vCH4bDjkjYxHbRG143f8YXmnxb1iXdxjE9T9/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool BmBq2MPZVWJA: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BmBq2MPZVWJAicnXmZn7s9AyLDMtJMkGK8YrwuGR2hVB/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 34zupk7yetja: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/34zupk7yetjaUxH4oXhueh1dxrrKJM5vHX9NwkqYDoqM/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 4qxSqMh6iEdb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/4qxSqMh6iEdbdvtMp8r5MK2psAGKNk57PfGeVo2VhczQ/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool HbSgCfKD1WyS: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/HbSgCfKD1WyS19gUBbn13oAWFvXtZ8CnfGbr35VVTvB5/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool ECuy1H7P9hoa: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/ECuy1H7P9hoa4BMQzppDhox64quS8MsfucnTQtNWjsRb/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 69ZvRfF9K7c9: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/69ZvRfF9K7c9DsRTouisoeKc7G5Lm1Gz4moKgRjGhsJV/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool BCDdHonby65i: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BCDdHonby65iduz3Ev3c9v5XjNkzyu5e56KRFHpBM4T9/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9RqDTfwCx2Sg: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9RqDTfwCx2SgxsvKpspQHc38HUo3B6hRd3oR9JR966Ps/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 27ExzqiGapKF: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/27ExzqiGapKFd6NhffapRfdSkuykTVUqY5qeuNnrzBNm/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 4Tk5Kfz9faB3: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/4Tk5Kfz9faB3ytX9K1fiySsM7NJfVaYSEg32DqcJ82T4/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9Tb2ohu5P16B: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9Tb2ohu5P16BpBarqd3N27WnkF51Ukfs8Z1GzzLDxVZW/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool CeaZcxBNLpJW: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/CeaZcxBNLpJWtxzt58qQmfMBtJY8pQLvursXTJYGQpbN/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool vSqUsVh6YWYo: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/vSqUsVh6YWYosohtJUFdzWrpHDfDHbsKaNFa6wUK3NV/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool DRAf8QxQY86h: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/DRAf8QxQY86h7yeHdo9GytXAF6GoTTT8oZjknwXV6dCS/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9n3dSLrERZQp: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9n3dSLrERZQp95dHXywft7xV8D8xnGFLaUHtEhQVaXaC/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool EP2ib6dYdEeq: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/EP2ib6dYdEeqD8MfE2ezHCxX3kP3K2eLKkirfPm5eyMx/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 6asudGMk1nHS: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/6asudGMk1nHSwgjhD8sM6Sve8r5JX7sz26rc5kjSfKuj/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 4xxM4cdb6MEs: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/4xxM4cdb6MEsCxM52xvYqkNbzvdeWWsPDZrBcTqVGUar/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9tXiuRRw7kbe: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9tXiuRRw7kbejLhZXtxDxYs2REe43uH2e7k1kocgdM9B/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool Gj5t6KjTw3gW: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/Gj5t6KjTw3gWW7SrMHEi1ojCkaYHyvLwb17gktf96HNH/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9d9mb8kooFfa: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9d9mb8kooFfaD3SctgZtkxQypkshx6ezhbKio89ixyy2/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 6Pw8faqcEKPv: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/6Pw8faqcEKPvA38sD33FSYSdzAZHScRtXBCdg5kXgYqT/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool VY1ZQXjqBwvu: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/VY1ZQXjqBwvuWgVfTfhqanJe96GGoQrX7xZZDrWPGiT/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9yqafANJKzmE: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9yqafANJKzmEEf4ZUWJ8zY15aXAdhb39p7LRcxGFXJ9W/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool FXRvcgMQfgj3: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/FXRvcgMQfgj3WrmUXGh8qhVLaU3Q4T7jQeKBoqhVecR7/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool BokJKZ3e96Bd: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BokJKZ3e96Bddcemc8iUckznmXLSnHXKKsJ9ZoNWjvB4/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 7RewgB9eXiLb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/7RewgB9eXiLbaFdLU14cQLY46wH4Ccn46DxsMh51iGay/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 2p7nYbtPBgtm: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/2p7nYbtPBgtmY69NsE8DAW6szpRJn7tQvDnqvoEWQvjY/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+=======================================================
+Strategy: SM_11_volume_anomaly
+Signals: 0
+=======================================================
+
+[Phase4] Running SM_12: Whale Convergence (60min window)...
+[SM_12] Loaded 150 buy signals from signals.jsonl
+[SM_12] Detected 7 convergence events (window=60min)
+
+=======================================================
+Strategy: SM_12_whale_convergence
+Signals: 7
+=======================================================
+
+  [4/7] SM_12_whale_convergence | orcaEKTdK7LKz57v... (ORCA)
+  [GeckoTerminal] Error for pool 2p7nYbtPBgtm: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/2p7nYbtPBgtmY69NsE8DAW6szpRJn7tQvDnqvoEWQvjY/ohlcv/hour?limit=34&before_timestamp=1771736526'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [5/7] SM_12_whale_convergence | CPcf58MNikQw2G23... (DOBBY)
+  [GeckoTerminal] Error for pool mfx2W3yXS5mK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/mfx2W3yXS5mKw8qNcLH4QGZMMLM86TRNcHZKaKL9yWb/ohlcv/hour?limit=34&before_timestamp=1771736526'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [7/7] SM_12_whale_convergence | USD1ttGY1N17NEEH... (USD1)
+  [GeckoTerminal] Error for pool BCDdHonby65i: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BCDdHonby65iduz3Ev3c9v5XjNkzyu5e56KRFHpBM4T9/ohlcv/hour?limit=34&before_timestamp=1771738329'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+[Phase4] Running SM_13: Momentum Divergence...
+[SM_13] Scanning 53 tokens for momentum divergence...
+  [GeckoTerminal] Error for pool BpzGNsHoSdPk: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BpzGNsHoSdPkoANBNkrw6syqqLLPX6j38FZg6rJ1QLJ/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9t1H1uDJ558i: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9t1H1uDJ558iMPNkEPSN1fqkpC4XSPQ6cqSf6uEsTfTR/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool C1MgLojNLWBK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/C1MgLojNLWBKADvu9BHdtgzz1oZX4dZ5zGdGcgvvW8Wz/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool AbrV3va9rfnw: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/AbrV3va9rfnw8dzsAaqFBGVXTWqmy6XCfVJd37zunijK/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool SU7vPveBjEuR: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/SU7vPveBjEuR5tgQwidRqqTxn1WwraHpydHHBpM2W96/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool F4ojM7DpKg3y: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/F4ojM7DpKg3yNhF6mrE1qjZWfogMuvTAor9uUfY33nd3/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 81GpCm4d13y8: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/81GpCm4d13y8TozYtThabuSCLQN2o3bbrvDogXFPn8sA/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9hUQpEo1Vg61: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9hUQpEo1Vg61LAJ7Yg4c9SciDDHhj5mPDMKLo2PmPL5X/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 424kbbJyt6Vk: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/424kbbJyt6VkSn7GeKT9Vh5yetuTR1sbeyoya2nmBJpw/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 2uF4Xh61rDwx: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/2uF4Xh61rDwxnG9woyxsVQP7zuA6kLFpb3NvnRQeoiSd/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 6ZEdcbsQRhjr: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/6ZEdcbsQRhjrHzXpMv7AhWyYdYWmB2xbJg3H1sUuEU8P/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool BXBwEqPcsvSK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BXBwEqPcsvSKE2m6bAXS8YrXB2V6oreCCNmNvmwiJ6zR/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool AnHByZPZNkDb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/AnHByZPZNkDbfj1BtG8tCScgRM5bVBYCNXftjfpfceoQ/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool mfx2W3yXS5mK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/mfx2W3yXS5mKw8qNcLH4QGZMMLM86TRNcHZKaKL9yWb/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool J8vNkuUVDwnb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/J8vNkuUVDwnb2XfSWLsjEgULYe2t317pyFk2AfRdBc89/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool AS5MV3ear4NZ: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/AS5MV3ear4NZPMWXbCsEz3AdbCaXEnq4ChdaWsvLgkcM/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool Gm57qDq4vCH4: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/Gm57qDq4vCH4bDjkjYxHbRG143f8YXmnxb1iXdxjE9T9/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool BmBq2MPZVWJA: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BmBq2MPZVWJAicnXmZn7s9AyLDMtJMkGK8YrwuGR2hVB/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 34zupk7yetja: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/34zupk7yetjaUxH4oXhueh1dxrrKJM5vHX9NwkqYDoqM/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 4qxSqMh6iEdb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/4qxSqMh6iEdbdvtMp8r5MK2psAGKNk57PfGeVo2VhczQ/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool HbSgCfKD1WyS: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/HbSgCfKD1WyS19gUBbn13oAWFvXtZ8CnfGbr35VVTvB5/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool ECuy1H7P9hoa: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/ECuy1H7P9hoa4BMQzppDhox64quS8MsfucnTQtNWjsRb/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 69ZvRfF9K7c9: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/69ZvRfF9K7c9DsRTouisoeKc7G5Lm1Gz4moKgRjGhsJV/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool BCDdHonby65i: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BCDdHonby65iduz3Ev3c9v5XjNkzyu5e56KRFHpBM4T9/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9RqDTfwCx2Sg: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9RqDTfwCx2SgxsvKpspQHc38HUo3B6hRd3oR9JR966Ps/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 27ExzqiGapKF: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/27ExzqiGapKFd6NhffapRfdSkuykTVUqY5qeuNnrzBNm/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 4Tk5Kfz9faB3: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/4Tk5Kfz9faB3ytX9K1fiySsM7NJfVaYSEg32DqcJ82T4/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9Tb2ohu5P16B: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9Tb2ohu5P16BpBarqd3N27WnkF51Ukfs8Z1GzzLDxVZW/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool CeaZcxBNLpJW: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/CeaZcxBNLpJWtxzt58qQmfMBtJY8pQLvursXTJYGQpbN/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool vSqUsVh6YWYo: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/vSqUsVh6YWYosohtJUFdzWrpHDfDHbsKaNFa6wUK3NV/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool DRAf8QxQY86h: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/DRAf8QxQY86h7yeHdo9GytXAF6GoTTT8oZjknwXV6dCS/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9n3dSLrERZQp: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9n3dSLrERZQp95dHXywft7xV8D8xnGFLaUHtEhQVaXaC/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool EP2ib6dYdEeq: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/EP2ib6dYdEeqD8MfE2ezHCxX3kP3K2eLKkirfPm5eyMx/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 6asudGMk1nHS: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/6asudGMk1nHSwgjhD8sM6Sve8r5JX7sz26rc5kjSfKuj/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 4xxM4cdb6MEs: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/4xxM4cdb6MEsCxM52xvYqkNbzvdeWWsPDZrBcTqVGUar/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9tXiuRRw7kbe: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9tXiuRRw7kbejLhZXtxDxYs2REe43uH2e7k1kocgdM9B/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool Gj5t6KjTw3gW: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/Gj5t6KjTw3gWW7SrMHEi1ojCkaYHyvLwb17gktf96HNH/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9d9mb8kooFfa: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9d9mb8kooFfaD3SctgZtkxQypkshx6ezhbKio89ixyy2/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 6Pw8faqcEKPv: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/6Pw8faqcEKPvA38sD33FSYSdzAZHScRtXBCdg5kXgYqT/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool VY1ZQXjqBwvu: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/VY1ZQXjqBwvuWgVfTfhqanJe96GGoQrX7xZZDrWPGiT/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 9yqafANJKzmE: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9yqafANJKzmEEf4ZUWJ8zY15aXAdhb39p7LRcxGFXJ9W/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool FXRvcgMQfgj3: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/FXRvcgMQfgj3WrmUXGh8qhVLaU3Q4T7jQeKBoqhVecR7/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool BokJKZ3e96Bd: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BokJKZ3e96Bddcemc8iUckznmXLSnHXKKsJ9ZoNWjvB4/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 7RewgB9eXiLb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/7RewgB9eXiLbaFdLU14cQLY46wH4Ccn46DxsMh51iGay/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+  [GeckoTerminal] Error for pool 2p7nYbtPBgtm: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/2p7nYbtPBgtmY69NsE8DAW6szpRJn7tQvDnqvoEWQvjY/ohlcv/hour?limit=168'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+=======================================================
+Strategy: SM_13_momentum_divergence
+Signals: 0
+=======================================================
+
+[Phase4] Running SM_14: Cross-DEX Divergence...
+[SM_14] Scanning 53 tokens for cross-DEX divergence...
+
+=======================================================
+Strategy: SM_14_cross_dex_divergence
+Signals: 17
+=======================================================
+
+  [1/17] SM_14_cross_dex_divergence | 27G8MtK7VtTcCHkp... (JLP)
+       T+1h: $3.67360343 → -0.60%
+
+  [2/17] SM_14_cross_dex_divergence | J3NKxxXZcnNiMjKw... (SPX)
+  [GeckoTerminal] Error for pool 9t1H1uDJ558i: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9t1H1uDJ558iMPNkEPSN1fqkpC4XSPQ6cqSf6uEsTfTR/ohlcv/hour?limit=34&before_timestamp=1771742372'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [3/17] SM_14_cross_dex_divergence | JUPyiwrYJFskUPiH... (JUP)
+  [GeckoTerminal] Error for pool C1MgLojNLWBK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/C1MgLojNLWBKADvu9BHdtgzz1oZX4dZ5zGdGcgvvW8Wz/ohlcv/hour?limit=34&before_timestamp=1771742372'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [4/17] SM_14_cross_dex_divergence | 3f7wfg9yHLtGKvy7... (PbP)
+  [GeckoTerminal] Error for pool AnHByZPZNkDb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/AnHByZPZNkDbfj1BtG8tCScgRM5bVBYCNXftjfpfceoQ/ohlcv/hour?limit=34&before_timestamp=1771742379'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [5/17] SM_14_cross_dex_divergence | CPcf58MNikQw2G23... (DOBBY)
+  [GeckoTerminal] Error for pool mfx2W3yXS5mK: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/mfx2W3yXS5mKw8qNcLH4QGZMMLM86TRNcHZKaKL9yWb/ohlcv/hour?limit=34&before_timestamp=1771742379'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [6/17] SM_14_cross_dex_divergence | USDSwr9ApdHk5bvJ... (USDS)
+  [GeckoTerminal] Error for pool AS5MV3ear4NZ: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/AS5MV3ear4NZPMWXbCsEz3AdbCaXEnq4ChdaWsvLgkcM/ohlcv/hour?limit=34&before_timestamp=1771742380'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [7/17] SM_14_cross_dex_divergence | CrAr4RRJMBVwRsZt... (MON)
+  [GeckoTerminal] Error for pool Gm57qDq4vCH4: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/Gm57qDq4vCH4bDjkjYxHbRG143f8YXmnxb1iXdxjE9T9/ohlcv/hour?limit=34&before_timestamp=1771742381'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [8/17] SM_14_cross_dex_divergence | a3W4qutoEJA4232T... (WhiteWhale)
+  [GeckoTerminal] Error for pool 4qxSqMh6iEdb: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/4qxSqMh6iEdbdvtMp8r5MK2psAGKNk57PfGeVo2VhczQ/ohlcv/hour?limit=34&before_timestamp=1771742383'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [9/17] SM_14_cross_dex_divergence | USoRyaQjch6E18nC... (USOR)
+  [GeckoTerminal] Error for pool ECuy1H7P9hoa: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/ECuy1H7P9hoa4BMQzppDhox64quS8MsfucnTQtNWjsRb/ohlcv/hour?limit=34&before_timestamp=1771742385'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [10/17] SM_14_cross_dex_divergence | 2oQNkePakuPbHzrV... (AOL)
+  [GeckoTerminal] Error for pool 69ZvRfF9K7c9: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/69ZvRfF9K7c9DsRTouisoeKc7G5Lm1Gz4moKgRjGhsJV/ohlcv/hour?limit=34&before_timestamp=1771742385'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [11/17] SM_14_cross_dex_divergence | USD1ttGY1N17NEEH... (USD1)
+  [GeckoTerminal] Error for pool BCDdHonby65i: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/BCDdHonby65iduz3Ev3c9v5XjNkzyu5e56KRFHpBM4T9/ohlcv/hour?limit=34&before_timestamp=1771742386'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [12/17] SM_14_cross_dex_divergence | 2u1tszSeqZ3qBWF3... (USDG)
+  [GeckoTerminal] Error for pool 9RqDTfwCx2Sg: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9RqDTfwCx2SgxsvKpspQHc38HUo3B6hRd3oR9JR966Ps/ohlcv/hour?limit=34&before_timestamp=1771742387'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [13/17] SM_14_cross_dex_divergence | cbbtcf3aa214zXHb... (cbBTC)
+  [GeckoTerminal] Error for pool CeaZcxBNLpJW: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/CeaZcxBNLpJWtxzt58qQmfMBtJY8pQLvursXTJYGQpbN/ohlcv/hour?limit=34&before_timestamp=1771742389'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [14/17] SM_14_cross_dex_divergence | EKpQGSJtjMFqKZ9K... ($WIF)
+  [GeckoTerminal] Error for pool EP2ib6dYdEeq: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/EP2ib6dYdEeqD8MfE2ezHCxX3kP3K2eLKkirfPm5eyMx/ohlcv/hour?limit=34&before_timestamp=1771742392'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [15/17] SM_14_cross_dex_divergence | 63LfDmNb3MQ8mw9M... (GIGA)
+  [GeckoTerminal] Error for pool 4xxM4cdb6MEs: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/4xxM4cdb6MEsCxM52xvYqkNbzvdeWWsPDZrBcTqVGUar/ohlcv/hour?limit=34&before_timestamp=1771742393'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [16/17] SM_14_cross_dex_divergence | 2b1kV6DkPAnxd5ix... (PYUSD)
+  [GeckoTerminal] Error for pool 9tXiuRRw7kbe: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9tXiuRRw7kbejLhZXtxDxYs2REe43uH2e7k1kocgdM9B/ohlcv/hour?limit=34&before_timestamp=1771742394'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+  [17/17] SM_14_cross_dex_divergence | 6p6xgHyF7AeE6TZk... (TRUMP)
+  [GeckoTerminal] Error for pool 9d9mb8kooFfa: Client error '429 Too Many Requests' for url 'https://api.geckoterminal.com/api/v2/networks/solana/pools/9d9mb8kooFfaD3SctgZtkxQypkshx6ezhbKio89ixyy2/ohlcv/hour?limit=34&before_timestamp=1771742395'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/429
+
+[Phase4] Running SM_15: Sentiment Proxy...
+[SM_15] Fetching Fear & Greed history (30 days)...
+[SM_15] F&G entries: 30
+[SM_15] Fetching SOL price history (7 days)...
+  [CoinGecko] Error: Client error '401 Unauthorized' for url 'https://api.coingecko.com/api/v3/coins/solana/market_chart?vs_currency=usd&days=7&interval=hourly'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/401
+[SM_15] SOL hourly prices: 0
+[SM_15] Sentiment signals detected: 0
+
+=======================================================
+Strategy: SM_15_sentiment_proxy
+Signals: 0
+=======================================================
+
+Results saved: /home/web3relic/otto/projects/alpha/backtest/results/phase4_results.json
+Traceback (most recent call last):
+  File "/home/web3relic/otto/projects/alpha/backtest/run_phase4.py", line 288, in <module>
+    report = generate_report(results)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/web3relic/otto/projects/alpha/backtest/run_phase4.py", line 236, in generate_report
+    f"- **{label}:** {h['count']} trades | "
+TypeError: unsupported format string passed to NoneType.__format__

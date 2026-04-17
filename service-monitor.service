@@ -1,0 +1,13 @@
+[Unit]
+Description=Otto Service Monitor — checks live service health
+After=network.target otto-memory.service
+
+[Service]
+Type=oneshot
+User=web3relic
+ExecStart=/home/web3relic/otto/service_monitor.sh
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

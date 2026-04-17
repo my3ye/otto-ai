@@ -309,20 +309,24 @@ def _classify_relationship(similarity: float, new_content: str, existing_content
 
     Types: extends, refines, contradicts, related (default).
     Uses similarity threshold + keyword detection — no LLM call.
-    """
-    # Very high similarity = extends (same topic, adding more)
-    if similarity >= 0.95:
-        return "extends"
 
-    # Check for contradiction signals in new content relative to existing
+    Thresholds calibrated to actual note_links distribution:
+    link_strength range is 0.70-0.85 (p90 = 0.825).
+    Original thresholds (0.95/0.85) never fired.
+    """
+    # Check for contradiction signals first (content-dependent)
     new_lower = new_content.lower()
     if any(kw in new_lower for kw in _CONTRADICTION_KEYWORDS):
-        # Only flag as contradiction if content is about same topic (sim > 0.80)
-        if similarity >= 0.80:
+        # Only flag as contradiction if content is about same topic
+        if similarity >= 0.78:
             return "contradicts"
 
-    # Same domain but different enough = refines
-    if similarity >= 0.85:
+    # Very high similarity = extends (same topic, adding more detail)
+    if similarity >= 0.83:
+        return "extends"
+
+    # Above median similarity = refines (same domain, different angle)
+    if similarity >= 0.78:
         return "refines"
 
     return "related"
@@ -410,6 +414,14 @@ async def _amem_update_related(pool, new_memory_id: str, new_content: str, new_e
         new_memory_id, embedding_str,
     )
 
+    # Relationship-type-aware salience boost (IMPL-07 upgrade)
+    _REL_BOOST = {
+        "extends": 0.08,      # closely related → strong boost
+        "refines": 0.05,      # same domain → moderate boost
+        "contradicts": -0.03, # conflicting info → slight reduction
+        "related": 0.02,      # weak link → minimal boost
+    }
+
     updated = 0
     cast1 = emb_cast("$1")
     for row in rows:
@@ -419,8 +431,12 @@ async def _amem_update_related(pool, new_memory_id: str, new_content: str, new_e
             embedding_str, row["id"],
         )
         if sim and sim > _AMEM_UPDATE_THRESHOLD:
-            # Boost salience (capped at 1.0) — related memories become more important
-            new_salience = min(1.0, (row["salience_score"] or 0.5) + 0.05)
+            # Classify the relationship to determine boost magnitude
+            rel_type = _classify_relationship(
+                sim, new_content, row["content"] or ""
+            )
+            boost = _REL_BOOST.get(rel_type, 0.02)
+            new_salience = max(0.0, min(1.0, (row["salience_score"] or 0.5) + boost))
             await pool.execute(
                 """UPDATE semantic_memories
                    SET salience_score = $2, updated_at = NOW()
@@ -1657,11 +1673,12 @@ async def summarize_memories(req: SemanticSummarizeRequest):
 
 @router.get("/links/{memory_id}", response_model=list[NoteLink])
 async def get_memory_links(memory_id: UUID):
-    """Return outgoing note_links for a given memory (bidirectionality is stored explicitly,
-    so querying source_id gives all associations without duplicates)."""
+    """Return outgoing note_links for a given memory with relationship types.
+    Bidirectionality is stored explicitly, so querying source_id gives all associations."""
     pool = await get_pool()
     rows = await pool.fetch(
-        """SELECT nl.id, nl.source_id, nl.target_id, nl.link_strength, nl.created_at,
+        """SELECT nl.id, nl.source_id, nl.target_id, nl.link_strength,
+                  nl.relationship_type, nl.created_at,
                   sm.content AS linked_content, sm.category AS linked_category
            FROM note_links nl
            JOIN semantic_memories sm ON sm.id = nl.target_id
@@ -1672,6 +1689,96 @@ async def get_memory_links(memory_id: UUID):
     if not rows:
         return []
     return [NoteLink(**dict(r)) for r in rows]
+
+
+@router.get("/neighborhood/{memory_id}")
+async def get_memory_neighborhood(memory_id: UUID, depth: int = 1):
+    """Return a memory's neighborhood graph (IMPL-07 read endpoint).
+
+    Returns the memory + its linked memories grouped by relationship type.
+    Useful for understanding how memories relate to each other.
+
+    Args:
+        memory_id: The source memory UUID.
+        depth: How many hops to traverse (1 = direct links, 2 = friends-of-friends).
+            Max 2 to prevent explosion.
+    """
+    depth = min(depth, 2)
+    pool = await get_pool()
+
+    # Get the source memory
+    source = await pool.fetchrow(
+        """SELECT id, content, category, salience_score, created_at
+           FROM semantic_memories
+           WHERE id = $1 AND archived IS NOT TRUE AND deleted_at IS NULL""",
+        memory_id,
+    )
+    if not source:
+        raise HTTPException(404, "Memory not found")
+
+    # Get 1-hop links grouped by relationship type
+    links = await pool.fetch(
+        """SELECT nl.relationship_type, nl.link_strength,
+                  sm.id, sm.content, sm.category, sm.salience_score
+           FROM note_links nl
+           JOIN semantic_memories sm ON sm.id = nl.target_id
+           WHERE nl.source_id = $1
+             AND sm.archived IS NOT TRUE AND sm.deleted_at IS NULL
+           ORDER BY nl.relationship_type, nl.link_strength DESC""",
+        memory_id,
+    )
+
+    # Group by relationship type
+    grouped: dict[str, list] = {}
+    hop1_ids = set()
+    for r in links:
+        rt = r["relationship_type"]
+        if rt not in grouped:
+            grouped[rt] = []
+        grouped[rt].append({
+            "id": str(r["id"]),
+            "content": r["content"][:300],
+            "category": r["category"],
+            "link_strength": float(r["link_strength"]),
+            "salience_score": float(r["salience_score"] or 0.5),
+        })
+        hop1_ids.add(r["id"])
+
+    # Optional 2-hop (friends of friends)
+    hop2 = []
+    if depth >= 2 and hop1_ids:
+        h2_rows = await pool.fetch(
+            """SELECT DISTINCT sm.id, sm.content, sm.category,
+                      nl.link_strength, nl.relationship_type
+               FROM note_links nl
+               JOIN semantic_memories sm ON sm.id = nl.target_id
+               WHERE nl.source_id = ANY($1)
+                 AND nl.target_id != $2
+                 AND nl.target_id != ALL($1)
+                 AND sm.archived IS NOT TRUE AND sm.deleted_at IS NULL
+               ORDER BY nl.link_strength DESC
+               LIMIT 10""",
+            list(hop1_ids), memory_id,
+        )
+        hop2 = [{
+            "id": str(r["id"]),
+            "content": r["content"][:200],
+            "category": r["category"],
+            "link_strength": float(r["link_strength"]),
+            "relationship_type": r["relationship_type"],
+        } for r in h2_rows]
+
+    return {
+        "source": {
+            "id": str(source["id"]),
+            "content": source["content"][:500],
+            "category": source["category"],
+            "salience_score": float(source["salience_score"] or 0.5),
+        },
+        "links_by_type": grouped,
+        "total_links": len(links),
+        "hop2_context": hop2 if depth >= 2 else None,
+    }
 
 
 @router.post("/merge-duplicates", response_model=SemanticMergeResponse)

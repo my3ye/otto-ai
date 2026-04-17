@@ -1,0 +1,44 @@
+{
+  "_comment": "Based Bobby — meme token config. Set image_uri after uploading art to Pinata.",
+  "_status": "READY_FOR_REVIEW — do NOT set launch_platform to pumpfun until Mev approves",
+
+  "name": "Based Bobby",
+  "symbol": "BOBBY",
+  "description": "Bitcoin Billionaire. Base Chain educator. Bringing a billion people on-chain. Bobby made it first — now he's here to make sure you do too.",
+
+  "launch_platform": "pumpfun",
+
+  "image_uri": "",
+  "website": "https://basedbobby.xyz",
+  "twitter": "https://x.com/basedbobby",
+  "telegram": "https://t.me/basedbobbygroup",
+  "discord": "",
+
+  "attributes": [
+    { "trait_type": "Chain",      "value": "Solana" },
+    { "trait_type": "Launchpad",  "value": "pump.fun" },
+    { "trait_type": "Character",  "value": "Based Bobby" },
+    { "trait_type": "Mission",    "value": "Billion on-chain" }
+  ],
+
+  "decimals": 6,
+  "supply_units": 1000000000,
+
+  "initial_buy_sol": 0.1,
+  "slippage_bps": 1000,
+  "priority_fee_sol": 0.001,
+  "use_jito_bundle": true,
+
+  "revoke_mint_authority": true,
+  "revoke_freeze_authority": true,
+
+  "_cost_notes": {
+    "creator_cost_sol": 0.0,
+    "initial_buy_sol": 0.1,
+    "jito_tip_sol": 0.005,
+    "tx_fees_sol": 0.001,
+    "total_min_sol": 0.106,
+    "total_min_usd": "~$18 at $170/SOL",
+    "optional_kol_usd": "$100-500 per KOL"
+  }
+}

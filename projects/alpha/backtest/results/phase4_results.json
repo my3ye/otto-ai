@@ -1,0 +1,567 @@
+{
+  "SM_11": {
+    "strategy": "SM_11_volume_anomaly",
+    "signals": 0,
+    "trades": [],
+    "metrics": {
+      "error": "no signals"
+    }
+  },
+  "SM_12": {
+    "strategy": "SM_12_whale_convergence",
+    "signals": 7,
+    "tradeable": 0,
+    "trades": [
+      {
+        "strategy": "SM_12_whale_convergence",
+        "signal_time": "2026-02-21T01:02:06+00:00",
+        "token": "orcaEKTdK7LKz57vaAYr9QeNsVEPfiu6QeMU1kektZE",
+        "symbol": "ORCA",
+        "confidence": "MEDIUM",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_12_whale_convergence",
+          "wallet_count": 2,
+          "wallets": [
+            "SM_1 SM_2 SM_3",
+            "SM_3"
+          ],
+          "total_buy_usd": 0.0,
+          "window_minutes": 60,
+          "confidence": "MEDIUM"
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_12_whale_convergence",
+        "signal_time": "2026-02-21T01:02:06+00:00",
+        "token": "CPcf58MNikQw2G23kTVWQevRDeFDpdxMH7KkR7Lhpump",
+        "symbol": "DOBBY",
+        "confidence": "MEDIUM",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_12_whale_convergence",
+          "wallet_count": 2,
+          "wallets": [
+            "SM_1",
+            "SM_3"
+          ],
+          "total_buy_usd": 0.0,
+          "window_minutes": 60,
+          "confidence": "MEDIUM"
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_12_whale_convergence",
+        "signal_time": "2026-02-21T01:32:09+00:00",
+        "token": "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB",
+        "symbol": "USD1",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_12_whale_convergence",
+          "wallet_count": 3,
+          "wallets": [
+            "SM_2",
+            "SM_1",
+            "SM_1 SM_2"
+          ],
+          "total_buy_usd": 0.0,
+          "window_minutes": 60,
+          "confidence": "HIGH"
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      }
+    ],
+    "metrics": {
+      "total_signals": 3,
+      "signals_with_price_data": 0,
+      "horizon_1h": {
+        "count": 0,
+        "data": "insufficient"
+      },
+      "horizon_4h": {
+        "count": 0,
+        "data": "insufficient"
+      },
+      "horizon_24h": {
+        "count": 0,
+        "data": "insufficient"
+      }
+    },
+    "run_at": "2026-02-21T02:39:22.337874+00:00"
+  },
+  "SM_13": {
+    "strategy": "SM_13_momentum_divergence",
+    "signals": 0,
+    "trades": [],
+    "metrics": {
+      "error": "no signals"
+    }
+  },
+  "SM_14": {
+    "strategy": "SM_14_cross_dex_divergence",
+    "signals": 17,
+    "tradeable": 1,
+    "trades": [
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:29+00:00",
+        "token": "27G8MtK7VtTcCHkpASjSDdkWWYfoqT6ggEuKidVJidD4",
+        "symbol": "JLP",
+        "confidence": "MEDIUM",
+        "entry_price": 3.6846242372919247,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 3.84,
+          "low_dex": "orca",
+          "low_price": 3.65,
+          "high_dex": "meteora",
+          "high_price": 3.79,
+          "pool_count": 28,
+          "confidence": "MEDIUM",
+          "entry_dex": "orca",
+          "entry_price": 3.65
+        },
+        "entry_price_raw": 3.6736034270108924,
+        "return_pct_1h": -0.5982053838484463,
+        "exit_price_1h": 3.6736034270108924,
+        "return_pct_4h": null,
+        "exit_price_4h": null,
+        "return_pct_24h": null,
+        "exit_price_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:32+00:00",
+        "token": "J3NKxxXZcnNiMjKw9hYb2K4LUxgwB6t1FtPtQVsv3KFr",
+        "symbol": "SPX",
+        "confidence": "MEDIUM",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 4.01,
+          "low_dex": "raydium",
+          "low_price": 0.3219,
+          "high_dex": "meteora",
+          "high_price": 0.3348,
+          "pool_count": 7,
+          "confidence": "MEDIUM",
+          "entry_dex": "raydium",
+          "entry_price": 0.3219
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:32+00:00",
+        "token": "JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN",
+        "symbol": "JUP",
+        "confidence": "MEDIUM",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 2.96,
+          "low_dex": "orca",
+          "low_price": 0.1586,
+          "high_dex": "orca",
+          "high_price": 0.1633,
+          "pool_count": 22,
+          "confidence": "MEDIUM",
+          "entry_dex": "orca",
+          "entry_price": 0.1586
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:39+00:00",
+        "token": "3f7wfg9yHLtGKvy75MmqsVT1ueTFoqyySQbusrX1YAQ4",
+        "symbol": "PbP",
+        "confidence": "MEDIUM",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 3.99,
+          "low_dex": "raydium",
+          "low_price": 0.0003032,
+          "high_dex": "raydium",
+          "high_price": 0.0003153,
+          "pool_count": 3,
+          "confidence": "MEDIUM",
+          "entry_dex": "raydium",
+          "entry_price": 0.0003032
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:39+00:00",
+        "token": "CPcf58MNikQw2G23kTVWQevRDeFDpdxMH7KkR7Lhpump",
+        "symbol": "DOBBY",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 3272260.14,
+          "low_dex": "raydium",
+          "low_price": 8.419e-07,
+          "high_dex": "raydium",
+          "high_price": 0.02755,
+          "pool_count": 6,
+          "confidence": "HIGH",
+          "entry_dex": "raydium",
+          "entry_price": 8.419e-07
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:40+00:00",
+        "token": "USDSwr9ApdHk5bvJKMjzff41FfuX8bSxdKcR81vTwcA",
+        "symbol": "USDS",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 10602.57,
+          "low_dex": "raydium",
+          "low_price": 0.9999,
+          "high_dex": "raydium",
+          "high_price": 107.015,
+          "pool_count": 4,
+          "confidence": "HIGH",
+          "entry_dex": "raydium",
+          "entry_price": 0.9999
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:41+00:00",
+        "token": "CrAr4RRJMBVwRsZtT62pEhfA9H5utymC2mVx8e7FreP2",
+        "symbol": "MON",
+        "confidence": "MEDIUM",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 2.64,
+          "low_dex": "orca",
+          "low_price": 0.02086,
+          "high_dex": "meteora",
+          "high_price": 0.02141,
+          "pool_count": 7,
+          "confidence": "MEDIUM",
+          "entry_dex": "orca",
+          "entry_price": 0.02086
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:43+00:00",
+        "token": "a3W4qutoEJA4232T2gwZUfgYJTetr96pU4SJMwppump",
+        "symbol": "WhiteWhale",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 1218.09,
+          "low_dex": "orca",
+          "low_price": 0.005162,
+          "high_dex": "meteora",
+          "high_price": 0.06804,
+          "pool_count": 10,
+          "confidence": "HIGH",
+          "entry_dex": "orca",
+          "entry_price": 0.005162
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:45+00:00",
+        "token": "USoRyaQjch6E18nCdDvWoRgTo6osQs9MUd8JXEsspWR",
+        "symbol": "USOR",
+        "confidence": "MEDIUM",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 4.58,
+          "low_dex": "meteora",
+          "low_price": 0.003735,
+          "high_dex": "orca",
+          "high_price": 0.003906,
+          "pool_count": 3,
+          "confidence": "MEDIUM",
+          "entry_dex": "meteora",
+          "entry_price": 0.003735
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:45+00:00",
+        "token": "2oQNkePakuPbHzrVVkQ875WHeewLHCd2cAwfwiLQbonk",
+        "symbol": "AOL",
+        "confidence": "MEDIUM",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 3.18,
+          "low_dex": "meteora",
+          "low_price": 0.0017,
+          "high_dex": "raydium",
+          "high_price": 0.001754,
+          "pool_count": 2,
+          "confidence": "MEDIUM",
+          "entry_dex": "meteora",
+          "entry_price": 0.0017
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:46+00:00",
+        "token": "USD1ttGY1N17NEEHLmELoaybftRBUSErhqYiQzvEmuB",
+        "symbol": "USD1",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 1844520.78,
+          "low_dex": "raydium",
+          "low_price": 5.419e-05,
+          "high_dex": "meteora",
+          "high_price": 0.9996,
+          "pool_count": 29,
+          "confidence": "HIGH",
+          "entry_dex": "raydium",
+          "entry_price": 5.419e-05
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:47+00:00",
+        "token": "2u1tszSeqZ3qBWF3uNGPFc8TzMk2tdiwknnRMWGWjGWH",
+        "symbol": "USDG",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 6807646.77,
+          "low_dex": "orca",
+          "low_price": 0.9999,
+          "high_dex": "orca",
+          "high_price": 68070.66,
+          "pool_count": 5,
+          "confidence": "HIGH",
+          "entry_dex": "orca",
+          "entry_price": 0.9999
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:49+00:00",
+        "token": "cbbtcf3aa214zXHbiAZQwf4122FBYbraNdFqgw4iMij",
+        "symbol": "cbBTC",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 1855159.05,
+          "low_dex": "orca",
+          "low_price": 3.67,
+          "high_dex": "meteora",
+          "high_price": 68088.0072,
+          "pool_count": 20,
+          "confidence": "HIGH",
+          "entry_dex": "orca",
+          "entry_price": 3.67
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:52+00:00",
+        "token": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+        "symbol": "$WIF",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 75515535.4,
+          "low_dex": "raydium",
+          "low_price": 3.006e-07,
+          "high_dex": "orca",
+          "high_price": 0.227,
+          "pool_count": 10,
+          "confidence": "HIGH",
+          "entry_dex": "raydium",
+          "entry_price": 3.006e-07
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:53+00:00",
+        "token": "63LfDmNb3MQ8mw9MtZ2To9bEA2M71kZUUGq5tiJxcqj9",
+        "symbol": "GIGA",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 38961.95,
+          "low_dex": "meteora",
+          "low_price": 0.0008571,
+          "high_dex": "meteora",
+          "high_price": 0.3348,
+          "pool_count": 8,
+          "confidence": "HIGH",
+          "entry_dex": "meteora",
+          "entry_price": 0.0008571
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:54+00:00",
+        "token": "2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo",
+        "symbol": "PYUSD",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 3480.06,
+          "low_dex": "orca",
+          "low_price": 0.02794,
+          "high_dex": "orca",
+          "high_price": 1.00027,
+          "pool_count": 7,
+          "confidence": "HIGH",
+          "entry_dex": "orca",
+          "entry_price": 0.02794
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      },
+      {
+        "strategy": "SM_14_cross_dex_divergence",
+        "signal_time": "2026-02-21T02:39:55+00:00",
+        "token": "6p6xgHyF7AeE6TZkSmFsko444wqoP15icUSqi2jfGiPN",
+        "symbol": "TRUMP",
+        "confidence": "HIGH",
+        "entry_price": null,
+        "signal_meta": {
+          "signal_name": "SM_14_cross_dex_divergence",
+          "divergence_pct": 7.98,
+          "low_dex": "orca",
+          "low_price": 3.51,
+          "high_dex": "meteora",
+          "high_price": 3.79,
+          "pool_count": 13,
+          "confidence": "HIGH",
+          "entry_dex": "orca",
+          "entry_price": 3.51
+        },
+        "note": "no price data",
+        "return_pct_1h": null,
+        "return_pct_4h": null,
+        "return_pct_24h": null
+      }
+    ],
+    "metrics": {
+      "total_signals": 17,
+      "signals_with_price_data": 1,
+      "horizon_1h": {
+        "count": 1,
+        "win_rate": 0.0,
+        "avg_return_pct": -0.5982053838484463,
+        "median_return_pct": -0.5982053838484463,
+        "max_return_pct": -0.5982053838484463,
+        "min_return_pct": -0.5982053838484463,
+        "total_return_pct": -0.5982053838484463,
+        "sharpe_ratio": null,
+        "max_drawdown_pct": -0.5982053838484518,
+        "wins": 0,
+        "losses": 1,
+        "avg_win_pct": 0,
+        "avg_loss_pct": -0.5982053838484463,
+        "profit_factor": 0.0
+      },
+      "horizon_4h": {
+        "count": 0,
+        "data": "insufficient"
+      },
+      "horizon_24h": {
+        "count": 0,
+        "data": "insufficient"
+      }
+    },
+    "run_at": "2026-02-21T02:40:10.306849+00:00"
+  },
+  "SM_15": {
+    "strategy": "SM_15_sentiment_proxy",
+    "signals": 0,
+    "trades": [],
+    "metrics": {
+      "error": "no signals"
+    }
+  }
+}

@@ -27,3 +27,15 @@ projects/alpha/.solana_tracker_usage.json
 
 # Task progress files (ephemeral, task-specific)
 .otto-progress-*.md
+
+# Next.js build cache
+.next/
+interfaces/email/data/postfixadmin/postfixadmin.db
+projects/otto-core/
+
+# Trained model artifacts (deprioritized, not source)
+projects/own_model/
+*.safetensors
+*.bin
+*.pt
+*.pth

@@ -1,0 +1,175 @@
+{
+  "run_at": "2026-02-22T11:36:45.303883+00:00",
+  "strategy": "convergence_copy_trading",
+  "data_period": {
+    "start": "2026-02-21T00:00:00Z",
+    "end": "2026-02-22T08:38:46Z",
+    "days": 1.35
+  },
+  "signal_summary": {
+    "total_convergence_signals_raw": 134,
+    "after_base_token_filter": 119,
+    "after_2h_dedup": 54,
+    "with_price_data": 8,
+    "data_availability_pct": 14.8,
+    "data_miss_reason": "GeckoTerminal API 429 rate limiting after first 5 signals (0.5s sleep insufficient)"
+  },
+  "performance": {
+    "T+1h": {
+      "trades": 8,
+      "win_rate": 0.0,
+      "avg_return_pct": -2.88,
+      "median_return_pct": -0.98,
+      "best_pct": -0.03,
+      "worst_pct": -10.15,
+      "sharpe_ratio": -0.679,
+      "max_drawdown_pct": -21.41,
+      "verdict": "POOR \u2014 all 8 trades lost at 1h"
+    },
+    "T+4h": {
+      "trades": 8,
+      "win_rate": 0.0,
+      "avg_return_pct": -3.17,
+      "median_return_pct": -0.79,
+      "best_pct": -0.02,
+      "worst_pct": -12.44,
+      "sharpe_ratio": -0.653,
+      "max_drawdown_pct": -23.39,
+      "verdict": "POOR \u2014 all 8 trades lost at 4h"
+    },
+    "T+24h": {
+      "trades": 5,
+      "win_rate": 0.4,
+      "avg_return_pct": 4.32,
+      "median_return_pct": -1.16,
+      "best_pct": 18.42,
+      "worst_pct": -4.34,
+      "profit_factor": 4.08,
+      "sharpe_ratio": 0.448,
+      "max_drawdown_pct": -5.44,
+      "verdict": "PROMISING \u2014 2 large winners offset 3 small losers. But sample=5, statistically noisy."
+    }
+  },
+  "notable_trades": [
+    {
+      "symbol": "pippin",
+      "wallets": 2,
+      "1h": -1.68,
+      "4h": -1.24,
+      "24h": 18.42,
+      "note": "Best performer. Short-term dip before 18% surge."
+    },
+    {
+      "symbol": "WAR",
+      "wallets": 2,
+      "1h": -10.15,
+      "4h": -12.44,
+      "24h": 10.22,
+      "note": "Big intraday loss but recovered. Required 24h+ hold."
+    },
+    {
+      "symbol": "X1000",
+      "wallets": 2,
+      "1h": -9.23,
+      "4h": -9.31,
+      "24h": null,
+      "note": "Worst short-term performer. Dropped hard."
+    },
+    {
+      "symbol": "PENGU",
+      "wallets": 3,
+      "1h": -1.09,
+      "4h": -1.08,
+      "24h": null,
+      "note": "Only 3-wallet signal with price data. No 24h yet."
+    }
+  ],
+  "critical_issues": [
+    {
+      "issue": "GeckoTerminal rate limiting",
+      "severity": "CRITICAL",
+      "impact": "85% of signals have no price data. Backtest is statistically invalid.",
+      "root_cause": "0.5s sleep between requests is insufficient. GeckoTerminal free tier allows ~5 req/min.",
+      "fix": "Increase sleep to 12-15s between requests, OR cache results to disk, OR use DexScreener price history API instead."
+    },
+    {
+      "issue": "Short hold period performs poorly",
+      "severity": "HIGH",
+      "impact": "0% win rate at both 1h and 4h. Signals require 24h+ horizon.",
+      "root_cause": "Convergence signals may indicate whale accumulation \u2014 tokens often dip initially before pump.",
+      "fix": "Switch primary exit to T+24h. Add trailing stop at -15% to protect against bad signals."
+    },
+    {
+      "issue": "Insufficient signal timespan",
+      "severity": "MEDIUM",
+      "impact": "Only 1.35 days of data. Cannot validate strategy with n=8 trades.",
+      "root_cause": "Wallet tracker only launched on 2026-02-21. Need 30+ days for statistically significant results.",
+      "fix": "Continue collecting. Re-run backtest in 1-2 weeks with 20+ quality signals."
+    },
+    {
+      "issue": "Mixed signal quality",
+      "severity": "MEDIUM",
+      "impact": "Many HIGH signals are for non-tradeable tokens (stablecoins, DEX artifacts).",
+      "root_cause": "Signal filter catches wallets that interact with stablecoin pools, LP positions, arbitrage.",
+      "fix": "Add quality score threshold (quality_grade >= A), min liquidity filter ($50k+), exclude DEX router interactions."
+    }
+  ],
+  "parameter_recommendations": [
+    {
+      "param": "hold_period",
+      "current": "1h / 4h",
+      "recommended": "24h with trailing stop",
+      "rationale": "0% win rate at 1h/4h. 40% at 24h with 4.08 profit factor. Pattern: dip then pump."
+    },
+    {
+      "param": "rate_limit_sleep",
+      "current": "0.5s",
+      "recommended": "12-15s",
+      "rationale": "GeckoTerminal enforces ~5 req/min. Need to respect rate limits."
+    },
+    {
+      "param": "min_quality_score",
+      "current": "not set",
+      "recommended": "0.6+ quality_score or grade A",
+      "rationale": "Newer signals have quality_score field. Filter to high-confidence signals only."
+    },
+    {
+      "param": "min_liquidity_usd",
+      "current": "not set",
+      "recommended": "$25,000",
+      "rationale": "Avoid illiquid tokens that can't absorb $100 USDC position without severe slippage."
+    },
+    {
+      "param": "stop_loss",
+      "current": "none",
+      "recommended": "-15%",
+      "rationale": "WAR dropped -12.44% at 4h. X1000 dropped -9.31%. Cap downside before 24h hold."
+    }
+  ],
+  "paper_trader_status": {
+    "running": true,
+    "service": "alpha-paper-trader.service (active)",
+    "total_paper_trades": 24,
+    "closed": 24,
+    "open": 0,
+    "win_rate": 0.125,
+    "avg_pnl_pct": 0.21,
+    "total_pnl_pct": 4.97,
+    "best_trade_pct": 18.03,
+    "worst_trade_pct": -1.89,
+    "note": "Most trades exited at time_exit_4h. Many zero-PnL trades (likely stablecoin/USD1 positions). Best trade: +18.03% likely from pippin. Avg PnL positive but win rate only 12.5%."
+  },
+  "next_actions": [
+    "Fix GeckoTerminal rate limiting (increase sleep or switch price source)",
+    "Re-run backtest in 7+ days with full price data and 30+ signals",
+    "Switch default exit horizon to T+24h",
+    "Add quality_score and liquidity filters to signal parser",
+    "Consider Birdeye or Helius price history API as alternative to GeckoTerminal"
+  ],
+  "paper_trader_issues": [
+    "8 trades with PnL=0.0 \u2014 likely stablecoin (USD1) or tokens with no actual price movement",
+    "4 trades with identical pnl=-1.8862 \u2014 likely same token, dedup not fully preventing duplicate exits",
+    "12.5% win rate matches the convergence backtest (low short-term success rate)",
+    "Only 3 trades broke even or better out of 24"
+  ]
+}

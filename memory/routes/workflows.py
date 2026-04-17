@@ -230,6 +230,22 @@ def _interpolate(template: str, instance: dict) -> str:
             variables = {}
     values.update(variables)
 
+    # Variable alias mapping: common name mismatches between templates and instances.
+    # Templates may use short names (topic, scope) but instances may pass longer
+    # names (research_topic, research_scope). Map aliases so both work.
+    _ALIASES = {
+        "topic": ["research_topic", "subject", "focus"],
+        "scope": ["research_scope", "output_format", "focus_areas"],
+        "requirements": ["research_requirements", "constraints"],
+        "research_depth": ["depth", "detail_level"],
+    }
+    for canonical, aliases in _ALIASES.items():
+        if canonical not in values:
+            for alias in aliases:
+                if alias in values:
+                    values[canonical] = values[alias]
+                    break
+
     # Step outputs
     step_outputs = instance.get("step_outputs") or {}
     if isinstance(step_outputs, str):
@@ -978,8 +994,34 @@ async def _advance_workflow(pool, instance_id: UUID):
     - On task completion (step N+1)
     - On human approval (resume from paused)
     - On retry
+
+    Uses SELECT ... FOR UPDATE to prevent concurrent advances from creating
+    duplicate step tasks (race between task completion + gate resolve, etc.).
     """
     try:
+        # Acquire row-level lock to prevent concurrent advances
+        async with pool.acquire() as conn:
+            async with conn.transaction():
+                inst = await conn.fetchrow(
+                    "SELECT * FROM workflow_instances WHERE id = $1 FOR UPDATE",
+                    instance_id,
+                )
+                if not inst or inst["status"] not in ("pending", "running"):
+                    return
+                # Check no task is already running/pending for this step
+                current = inst["current_step"]
+                existing_step_task = await conn.fetchval(
+                    """SELECT id FROM tasks
+                       WHERE metadata->>'workflow_instance_id' = $1
+                         AND metadata->>'workflow_step' = $2
+                         AND status IN ('pending', 'running')
+                       LIMIT 1""",
+                    str(instance_id), str(current),
+                )
+                if existing_step_task:
+                    log.info(f"Workflow {instance_id} step {current}: already has active task {existing_step_task}, skipping advance")
+                    return
+        # Lock released — safe to proceed knowing no concurrent advance can race us
         inst = await pool.fetchrow("SELECT * FROM workflow_instances WHERE id = $1", instance_id)
         if not inst or inst["status"] not in ("pending", "running"):
             return
@@ -1259,15 +1301,20 @@ async def handle_step_completion(pool, instance_id: UUID, task_id: UUID, task_st
                 # Existing gate was approved or skipped — fall through to advance
 
             # No gate (or already resolved) — advance to next step
-            await pool.execute(
+            # Atomic: only advance if current_step hasn't been bumped by a concurrent call
+            updated = await pool.fetchval(
                 """UPDATE workflow_instances
                    SET current_step = current_step + 1,
                        step_outputs = $2::jsonb,
                        step_durations = $3::jsonb
-                   WHERE id = $1""",
-                instance_id, json.dumps(step_outputs), json.dumps(step_durations),
+                   WHERE id = $1 AND current_step = $4
+                   RETURNING id""",
+                instance_id, json.dumps(step_outputs), json.dumps(step_durations), current,
             )
-            await _advance_workflow(pool, instance_id)
+            if updated:
+                await _advance_workflow(pool, instance_id)
+            else:
+                log.info(f"Workflow {instance_id} step {current}: already advanced by concurrent call, skipping")
 
         else:
             # Task failed — apply on_failure policy
@@ -1276,27 +1323,31 @@ async def handle_step_completion(pool, instance_id: UUID, task_id: UUID, task_st
 
             if on_failure == "retry_once" and retry_count < 1:
                 log.info(f"Workflow {instance_id} step {current}: retrying (attempt {retry_count + 1})")
-                await pool.execute(
+                updated = await pool.fetchval(
                     """UPDATE workflow_instances
                        SET retry_count = retry_count + 1,
                            step_outputs = $2::jsonb
-                       WHERE id = $1""",
-                    instance_id, json.dumps(step_outputs),
+                       WHERE id = $1 AND current_step = $3
+                       RETURNING id""",
+                    instance_id, json.dumps(step_outputs), current,
                 )
-                await _advance_workflow(pool, instance_id)
+                if updated:
+                    await _advance_workflow(pool, instance_id)
 
             elif on_failure == "skip":
                 log.info(f"Workflow {instance_id} step {current}: skipping failed step")
                 step_outputs[str(current)] = f"[FAILED-SKIPPED] {task['error'] or output[:200]}"
-                await pool.execute(
+                updated = await pool.fetchval(
                     """UPDATE workflow_instances
                        SET current_step = current_step + 1,
                            step_outputs = $2::jsonb,
                            retry_count = 0
-                       WHERE id = $1""",
-                    instance_id, json.dumps(step_outputs),
+                       WHERE id = $1 AND current_step = $3
+                       RETURNING id""",
+                    instance_id, json.dumps(step_outputs), current,
                 )
-                await _advance_workflow(pool, instance_id)
+                if updated:
+                    await _advance_workflow(pool, instance_id)
 
             elif on_failure == "fail_workflow":
                 await pool.execute(

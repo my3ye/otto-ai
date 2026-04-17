@@ -50,6 +50,9 @@ async def record_outcome(name: str, req: ProcedureOutcome):
     else:
         trust_update = f"trust_score - {_TRUST_DELTA} * trust_score"
 
+    # Two-phase update: EMA step + recalibration guard.
+    # If EMA trust diverges >0.3 from actual success rate (burst-failure artifact),
+    # blend 50% toward actual rate to prevent permanent trust crater.
     row = await pool.fetchrow(
         f"""UPDATE procedures
             SET {col} = {col} + 1,
@@ -61,6 +64,23 @@ async def record_outcome(name: str, req: ProcedureOutcome):
     )
     if row is None:
         raise HTTPException(status_code=404, detail=f"Procedure '{name}' not found")
+
+    # Recalibration: fix burst-failure EMA divergence
+    total = (row["success_count"] or 0) + (row["failure_count"] or 0)
+    if total >= 20:  # only recalibrate with enough data
+        actual_rate = (row["success_count"] or 0) / total
+        ema_trust = row["trust_score"] or 0.5
+        if abs(ema_trust - actual_rate) > 0.3:
+            corrected = round((ema_trust + actual_rate) / 2, 6)
+            await pool.execute(
+                "UPDATE procedures SET trust_score = $1, updated_at = now() WHERE name = $2",
+                corrected, name,
+            )
+            log.info(f"Trust recalibrated for '{name}': EMA {ema_trust:.3f} → {corrected:.3f} (actual rate {actual_rate:.3f})")
+            row = await pool.fetchrow(
+                f"SELECT {SELECT_COLS} FROM procedures WHERE name = $1", name,
+            )
+
     return ProcedureOut(**dict(row))
 
 

@@ -36,3 +36,9 @@ Empire framing campaign Step 2 review (2026-03-28, WF Step 2): NEEDS_CHANGES (7.
 ## Recurring patterns
 - Links-in-body error: 3rd recurrence across MY3YE X content (Twitter threads final review, ONEON calendar). Add to Step 3 checklist.
 - "Owned by contributors" aspirational tense: 4th recurrence (same as Proof of Grit, Tusita, ONEON).
+
+---
+
+## Pattern Update (2026-03-29)
+
+**Agent-Narrative Thread (task 4be0d3ae):** NEEDS_CHANGES. Writing task produced arc-only (no tweet text), correctly rejected by QA. 3rd recurrence of DPC tense issue in social content: earning/redistribution claim written as deployed fact when Koink=concept, OPRLP=design phase. 4th recurrence of links-in-body rule violation (flagged at review time, pre-copy). Full review file: ~/otto/docs/otto-agent-narrative-thread-review-2026-03-29.md.

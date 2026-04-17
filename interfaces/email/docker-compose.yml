@@ -1,0 +1,59 @@
+# Otto Email Server — Self-hosted Postfix + Dovecot stack
+# Uses docker-mailserver which bundles Postfix + Dovecot + Rspamd in one container
+# Docs: https://docker-mailserver.github.io/docker-mailserver/
+
+services:
+  mailserver:
+    image: docker.io/mailserver/docker-mailserver:latest
+    container_name: otto-mailserver
+    hostname: mail.otto.lk
+    env_file: mailserver.env
+    ports:
+      - "25:25"       # SMTP (receiving mail from internet)
+      - "465:465"     # SMTPS (SSL submission)
+      - "587:587"     # SMTP submission (STARTTLS)
+      - "993:993"     # IMAPS (SSL)
+      - "143:143"     # IMAP (STARTTLS)
+    volumes:
+      - ./data/mail-data:/var/mail
+      - ./data/mail-state:/var/mail-state
+      - ./data/mail-logs:/var/log/mail
+      - ./data/config:/tmp/docker-mailserver
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - ENABLE_RSPAMD=0
+      - ENABLE_CLAMAV=0
+      - ENABLE_FAIL2BAN=0
+      - NETWORK_INTERFACE=eth0
+      - SSL_TYPE=manual
+      - SSL_CERT_PATH=/tmp/docker-mailserver/ssl/cert.pem
+      - SSL_KEY_PATH=/tmp/docker-mailserver/ssl/key.pem
+    cap_add:
+      - NET_ADMIN
+    restart: "no"
+    stop_grace_period: 1m
+    healthcheck:
+      test: ["CMD", "ss", "--listening", "--tcp", "|", "grep", "-P", "LISTEN.+:smtp"]
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+
+  # Postfix Admin — web interface for mailbox management
+  postfixadmin:
+    image: postfixadmin:latest
+    container_name: otto-postfixadmin
+    ports:
+      - "8180:80"
+    environment:
+      - POSTFIXADMIN_DB_TYPE=sqlite
+      - POSTFIXADMIN_DB_NAME=/var/www/html/data/postfixadmin.db
+      - POSTFIXADMIN_SETUP_PASSWORD=${POSTFIXADMIN_SETUP_PASSWORD:-changeme}
+    volumes:
+      - ./data/postfixadmin:/var/www/html/data
+    restart: "no"
+    depends_on:
+      - mailserver
+
+networks:
+  default:
+    name: otto-email-net

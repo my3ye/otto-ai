@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     svc_top_k: int = 3
     svc_components_path: str = "/home/web3relic/otto/memory/svc_components.npz"
 
+    # ── Local Embedding Fallback ─────────────────────────────────────
+    # Falls back to a local sentence-transformer model when OpenAI is unavailable.
+    # Model produces 384-dim vectors stored in embedding_local column.
+    local_embedding_enabled: bool = True
+    local_embedding_model: str = "all-MiniLM-L6-v2"
+
     # ── AgentOS Kernel Settings (arXiv 2602.20934v1) ──────────────────
     # Feature flag: when False, gateway uses legacy direct-LLM path
     kernel_enabled: bool = True

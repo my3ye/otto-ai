@@ -1,201 +1,10 @@
 {
   "version": 2,
-  "updated_at": "2026-04-13T18:31:45.166293+00:00",
+  "updated_at": "2026-04-17T04:31:39.148122+00:00",
   "description": "Auto-managed signal filter thresholds. Updated by pipeline_executor.py when backtest metrics cross thresholds.",
   "changes_log": [
     {
-      "ts": "2026-04-11T03:31:55.055152+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.7,
-      "new": 0.75,
-      "change": "Raised quality threshold 0.7 \u2192 0.75",
-      "rationale": "Win rate 38.7% is below 40% threshold (73 closed signals). Raising min_quality_score to filter lower-conviction signals.",
-      "metrics_snapshot": {
-        "closed_count": 73,
-        "win_rate": 0.387,
-        "avg_pnl": 0.19,
-        "sl_rate": 0.123
-      }
-    },
-    {
-      "ts": "2026-04-11T03:31:55.055152+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T03:33:23.108595+00:00",
-      "field": "single_wallet.min_quality_score",
-      "old": 0.75,
-      "new": 0.8,
-      "change": "Raised quality threshold 0.75 \u2192 0.8",
-      "rationale": "Win rate 38.7% is below 40% threshold (73 closed signals). Raising min_quality_score to filter lower-conviction signals.",
-      "metrics_snapshot": {
-        "closed_count": 73,
-        "win_rate": 0.387,
-        "avg_pnl": 0.19,
-        "sl_rate": 0.123
-      }
-    },
-    {
-      "ts": "2026-04-11T03:33:23.108595+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T06:31:31.113438+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T06:32:40.947901+00:00",
-      "field": "tp_sl.tp1_pct",
-      "old": 0.025,
-      "new": 0.02,
-      "change": "Research patch: tp_sl.tp1_pct 0.025 \u2192 0.02",
-      "rationale": "TP1 threshold can be safely tightened from 0.025 to 0.020 because quality_score \u22650.8 now filters to high-quality wallet behavior (SM_10: 88.9%, SM_5: 100%). Current 33% TP1 capture (4/12 closed signals) leaves room to improve without overshooting. Whitelisted wallets' tighter spreads support 2.0% ta",
-      "source": "research_pipeline"
-    },
-    {
-      "ts": "2026-04-11T06:32:40.949574+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T09:30:02.630113+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T09:31:37.328608+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T12:31:54.619948+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T12:32:51.584695+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T15:30:28.878188+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T15:31:48.284737+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T18:30:52.191435+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T18:32:20.989191+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=27.3% over 33 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 33,
-        "win_rate": 0.273,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T21:31:20.735716+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=25.0% over 36 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 36,
-        "win_rate": 0.25,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-11T21:31:27.596406+00:00",
-      "field": "wallet_flag.SM_5",
-      "change": "Flagged SM_5 as underperforming",
-      "rationale": "SM_5 WR=25.0% over 36 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
-      "metrics_snapshot": {
-        "n": 36,
-        "win_rate": 0.25,
-        "avg_pnl": 0.2
-      }
-    },
-    {
-      "ts": "2026-04-12T00:30:23.350910+00:00",
+      "ts": "2026-04-14T03:30:56.060401+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -206,7 +15,7 @@
       }
     },
     {
-      "ts": "2026-04-12T00:31:41.972990+00:00",
+      "ts": "2026-04-14T06:31:32.610397+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -217,7 +26,7 @@
       }
     },
     {
-      "ts": "2026-04-12T03:30:48.274468+00:00",
+      "ts": "2026-04-14T06:31:33.796288+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -228,7 +37,7 @@
       }
     },
     {
-      "ts": "2026-04-12T03:32:10.360692+00:00",
+      "ts": "2026-04-14T09:31:51.369266+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -239,7 +48,7 @@
       }
     },
     {
-      "ts": "2026-04-12T06:30:46.959569+00:00",
+      "ts": "2026-04-14T09:31:52.688265+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -250,7 +59,7 @@
       }
     },
     {
-      "ts": "2026-04-12T06:31:29.744228+00:00",
+      "ts": "2026-04-14T12:31:51.365820+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -261,7 +70,7 @@
       }
     },
     {
-      "ts": "2026-04-12T06:31:33.385021+00:00",
+      "ts": "2026-04-14T12:31:52.532291+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -272,7 +81,7 @@
       }
     },
     {
-      "ts": "2026-04-12T09:30:48.366460+00:00",
+      "ts": "2026-04-14T15:30:48.378500+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -283,7 +92,7 @@
       }
     },
     {
-      "ts": "2026-04-12T09:31:40.988583+00:00",
+      "ts": "2026-04-14T15:30:49.860315+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -294,7 +103,7 @@
       }
     },
     {
-      "ts": "2026-04-12T12:30:50.618860+00:00",
+      "ts": "2026-04-14T18:30:47.352775+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -305,7 +114,7 @@
       }
     },
     {
-      "ts": "2026-04-12T12:32:25.693365+00:00",
+      "ts": "2026-04-14T18:30:48.764861+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -316,7 +125,7 @@
       }
     },
     {
-      "ts": "2026-04-12T15:30:01.615475+00:00",
+      "ts": "2026-04-14T21:30:37.674477+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -327,7 +136,7 @@
       }
     },
     {
-      "ts": "2026-04-12T15:31:00.157466+00:00",
+      "ts": "2026-04-14T21:30:39.200506+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -338,7 +147,7 @@
       }
     },
     {
-      "ts": "2026-04-12T18:30:23.874189+00:00",
+      "ts": "2026-04-15T00:30:18.206594+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -349,7 +158,7 @@
       }
     },
     {
-      "ts": "2026-04-12T18:31:09.380553+00:00",
+      "ts": "2026-04-15T00:30:20.447215+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -360,7 +169,7 @@
       }
     },
     {
-      "ts": "2026-04-12T18:31:29.919127+00:00",
+      "ts": "2026-04-15T03:32:01.635843+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -371,7 +180,7 @@
       }
     },
     {
-      "ts": "2026-04-12T21:31:43.387159+00:00",
+      "ts": "2026-04-15T03:32:03.100249+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -382,7 +191,7 @@
       }
     },
     {
-      "ts": "2026-04-12T21:32:45.883596+00:00",
+      "ts": "2026-04-15T06:31:08.126921+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -393,7 +202,7 @@
       }
     },
     {
-      "ts": "2026-04-13T00:30:18.221533+00:00",
+      "ts": "2026-04-15T06:31:09.264656+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -404,7 +213,7 @@
       }
     },
     {
-      "ts": "2026-04-13T00:31:12.856847+00:00",
+      "ts": "2026-04-15T09:31:41.622920+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -415,7 +224,7 @@
       }
     },
     {
-      "ts": "2026-04-13T03:31:37.880926+00:00",
+      "ts": "2026-04-15T09:31:43.132339+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -426,7 +235,7 @@
       }
     },
     {
-      "ts": "2026-04-13T03:32:28.852594+00:00",
+      "ts": "2026-04-15T12:31:18.205667+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -437,7 +246,7 @@
       }
     },
     {
-      "ts": "2026-04-13T06:30:48.877157+00:00",
+      "ts": "2026-04-15T12:31:19.488295+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -448,7 +257,7 @@
       }
     },
     {
-      "ts": "2026-04-13T06:31:36.890249+00:00",
+      "ts": "2026-04-15T15:30:46.747577+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -459,7 +268,7 @@
       }
     },
     {
-      "ts": "2026-04-13T06:31:38.696620+00:00",
+      "ts": "2026-04-15T15:30:55.724310+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -470,7 +279,7 @@
       }
     },
     {
-      "ts": "2026-04-13T09:31:25.625814+00:00",
+      "ts": "2026-04-15T18:30:56.599768+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -481,7 +290,7 @@
       }
     },
     {
-      "ts": "2026-04-13T09:32:08.719219+00:00",
+      "ts": "2026-04-15T18:30:58.440170+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -492,7 +301,7 @@
       }
     },
     {
-      "ts": "2026-04-13T12:30:32.207536+00:00",
+      "ts": "2026-04-15T21:31:15.872830+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -503,7 +312,7 @@
       }
     },
     {
-      "ts": "2026-04-13T12:31:34.053259+00:00",
+      "ts": "2026-04-15T21:31:17.172261+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -514,7 +323,7 @@
       }
     },
     {
-      "ts": "2026-04-13T15:31:06.114036+00:00",
+      "ts": "2026-04-16T00:30:33.215099+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -525,7 +334,7 @@
       }
     },
     {
-      "ts": "2026-04-13T15:32:10.919827+00:00",
+      "ts": "2026-04-16T00:30:35.486751+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -536,7 +345,7 @@
       }
     },
     {
-      "ts": "2026-04-13T18:30:48.370165+00:00",
+      "ts": "2026-04-16T03:31:01.376585+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
@@ -547,7 +356,194 @@
       }
     },
     {
-      "ts": "2026-04-13T18:31:45.166237+00:00",
+      "ts": "2026-04-16T03:31:02.740277+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T06:30:18.207949+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T06:30:20.336257+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T09:31:29.877204+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T09:31:31.776296+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T12:30:18.232524+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T12:30:20.521119+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T15:30:13.036006+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T15:30:14.612298+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T18:31:12.524566+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T18:31:13.984318+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T21:31:58.630610+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-16T21:33:22.061871+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-17T00:31:35.615307+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-17T00:32:14.598033+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-17T03:31:18.200151+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-17T03:32:16.100881+00:00",
+      "field": "wallet_flag.SM_5",
+      "change": "Flagged SM_5 as underperforming",
+      "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",
+      "metrics_snapshot": {
+        "n": 39,
+        "win_rate": 0.256,
+        "avg_pnl": 0.24
+      }
+    },
+    {
+      "ts": "2026-04-17T04:31:39.148085+00:00",
       "field": "wallet_flag.SM_5",
       "change": "Flagged SM_5 as underperforming",
       "rationale": "SM_5 WR=25.6% over 39 signals. Below 30% threshold. Manual review recommended \u2014 consider adding to noisy_wallets list.",

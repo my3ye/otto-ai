@@ -126,6 +126,11 @@ if [[ -d "${INTERFACES_DIR}/email" ]]; then
   cp "${INTERFACES_DIR}/email/"*.md "${WORK_DIR}/interfaces/email/" 2>/dev/null || true
   cp "${INTERFACES_DIR}/email/"*.yml "${WORK_DIR}/interfaces/email/" 2>/dev/null || true
   cp "${INTERFACES_DIR}/email/"*.env "${WORK_DIR}/interfaces/email/" 2>/dev/null || true
+  # Email server data (bind mounts: mail-data, mail-state, config, postfixadmin DB)
+  if [[ -d "${INTERFACES_DIR}/email/data" ]]; then
+    cp -r "${INTERFACES_DIR}/email/data" "${WORK_DIR}/interfaces/email/data"
+    log "  Email server data included (mail-data, config, postfixadmin)"
+  fi
 else
   warn "No email interface found"
 fi
@@ -221,6 +226,7 @@ dump_volume "memory_postgres_data" "postgres_data"
 dump_volume "memory_neo4j_data"    "neo4j_data"
 dump_volume "graphiti_neo4j_data"  "graphiti_neo4j_data"
 dump_volume "projects-db_projects-postgres-data" "projects_postgres_data"
+dump_volume "projects-db_projects-leads-log" "projects_leads_log"
 
 # ── 11. PostgreSQL SQL dump ──────────────────────────────────────────────────
 log "[11/19] Creating PostgreSQL SQL dump ..."
@@ -341,7 +347,7 @@ mkdir -p "${WORK_DIR}/media-extras"
 [[ -f "/mnt/media/prompts.md" ]] && cp "/mnt/media/prompts.md" "${WORK_DIR}/media-extras/" && log "  prompts.md"
 [[ -d "/mnt/media/research" ]] && cp -r "/mnt/media/research" "${WORK_DIR}/media-extras/" && log "  research/"
 [[ -d "/mnt/media/documents" ]] && cp -r "/mnt/media/documents" "${WORK_DIR}/media-extras/" && log "  documents/"
-# hf_cache skipped (259MB, re-downloadable)
+[[ -d "/mnt/media/hf_cache" ]] && cp -r "/mnt/media/hf_cache" "${WORK_DIR}/media-extras/" && log "  hf_cache/ ($(du -sh /mnt/media/hf_cache 2>/dev/null | cut -f1))"
 
 # ── 18. UFW firewall rules ──────────────────────────────────────────────────
 log "[18/19] Backing up UFW rules ..."

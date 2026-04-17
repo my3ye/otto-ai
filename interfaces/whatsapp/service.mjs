@@ -20,7 +20,7 @@ const OTTO_API = 'http://localhost:8100'
 const HTTP_PORT = 3001
 const DEDUP_WINDOW_MS = 5 * 60 * 1000 // 5 minutes
 const LIVENESS_INTERVAL_MS = 60 * 1000 // check every 60s
-const LIVENESS_TIMEOUT_MS = 5 * 60 * 1000 // no activity for 5 min = stale
+const LIVENESS_TIMEOUT_MS = 30 * 60 * 1000 // no activity for 30 min = stale (Baileys handles its own keepalive)
 const DEEPGRAM_API_KEY = process.env.DEEPGRAM_API_KEY || 'b69c4145ea1b47cd6d795677d4e934eb321b9343'
 
 mkdirSync(LOG_DIR, { recursive: true })
@@ -229,9 +229,8 @@ function startLivenessMonitor() {
     if (silentMs > LIVENESS_TIMEOUT_MS) {
       log(`Connection stale (no activity for ${Math.round(silentMs / 1000)}s), forcing reconnect`)
       _connected = false
+      // Just close the socket — the connection.update close handler will call start()
       try { _sock?.end(undefined) } catch {}
-      _sock = null
-      start()
     }
   }, LIVENESS_INTERVAL_MS)
 }
@@ -400,6 +399,7 @@ const httpServer = createServer(async (req, res) => {
         return
       }
       await _sock.sendMessage(jid, { text: message })
+      _lastActivity = Date.now()
       log(`Sent message to ${jid}: ${message.slice(0, 100)}`)
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ status: 'sent' }))

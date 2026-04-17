@@ -540,3 +540,188 @@ def _fallback_copy(business_data: dict) -> dict:
         },
         "_fallback": True,
     }
+
+
+# ---------- Copy Synthesis (Multi-Phase Pipeline) ----------
+
+
+async def synthesize_copy(
+    research_data: dict,
+    scraped_content: dict,
+    competitor_data: dict,
+) -> dict:
+    """Synthesize landing page copy from scraped website + competitor research + wizard data.
+
+    Phase 2 of the multi-phase pipeline. Uses the business's own words (from scraping)
+    and competitive positioning to produce conversion-optimized copy.
+
+    Returns:
+        Structured copy dict matching SECTION_COPY_SCHEMA.
+    """
+    business_name = research_data.get("business_name", "Unknown Business")
+    description = research_data.get("description", "")
+    target_audience = research_data.get("target_audience", "general audience")
+    business_url = research_data.get("business_url", "")
+
+    # Build scraped content context
+    scraped_context = ""
+    home = scraped_content.get("home")
+    if home:
+        scraped_context += f"HOME PAGE TITLE: {home.get('title', 'N/A')}\n"
+        scraped_context += f"META DESCRIPTION: {home.get('meta_description', 'N/A')}\n"
+        for h in home.get("headings", [])[:15]:
+            scraped_context += f"  {h['level'].upper()}: {h['text']}\n"
+        scraped_context += f"BODY TEXT:\n{home.get('body_text', '')[:2000]}\n\n"
+        for t in home.get("testimonials", [])[:5]:
+            scraped_context += f"TESTIMONIAL: {t['quote'][:300]}\n"
+
+    for page in scraped_content.get("pages", [])[:4]:
+        scraped_context += f"\nPAGE: {page.get('url', 'unknown')}\n"
+        scraped_context += f"TITLE: {page.get('title', 'N/A')}\n"
+        for h in page.get("headings", [])[:8]:
+            scraped_context += f"  {h['level'].upper()}: {h['text']}\n"
+        scraped_context += f"BODY: {page.get('body_text', '')[:1000]}\n"
+
+    # Build competitor context
+    competitor_context = ""
+    competitors = competitor_data.get("competitors", [])
+    if competitors:
+        for comp in competitors[:5]:
+            if isinstance(comp, dict):
+                competitor_context += f"- {comp.get('name', '?')}: {comp.get('positioning', comp.get('visual_style', ''))}\n"
+    positioning_gaps = competitor_data.get("positioning_gaps", [])
+    if positioning_gaps:
+        competitor_context += f"POSITIONING GAPS: {', '.join(str(g) for g in positioning_gaps[:5])}\n"
+
+    system_prompt = f"""You are an expert landing page copywriter writing copy for {business_name}.
+
+Synthesize the business's existing content (from their current website) with competitive
+intelligence to produce sharp, conversion-optimized landing page copy.
+
+RULES:
+- Use the business's OWN language and terminology where possible
+- Headlines: under 8 words, zero jargon, one sharp truth
+- Subheadlines: expand the benefit, max 25 words
+- CTAs: action-oriented, specific to THIS business (never "Learn More")
+- Stats/metrics: use real numbers from scraped content, or plausible specific numbers
+- Testimonials: use real ones from scraped content if available, or write realistic ones
+- Position against competitors — highlight what makes this business different
+- No cliches: "revolutionize", "cutting-edge", "world-class", "synergy", "leverage"
+- SEO meta description: 150-160 chars with primary keyword"""
+
+    user_prompt = f"""Write all copy for the {business_name} landing page.
+
+BUSINESS INFO (from wizard):
+- Name: {business_name}
+- URL: {business_url}
+- Description: {description}
+- Target audience: {target_audience}
+
+EXISTING WEBSITE CONTENT (scraped):
+{scraped_context if scraped_context else "No existing website content available."}
+
+COMPETITOR LANDSCAPE:
+{competitor_context if competitor_context else "No competitor data available."}
+
+Return a JSON object:
+{{
+    "headline": "primary hero headline (max 8 words)",
+    "subheadline": "supporting text (max 25 words)",
+    "cta_primary": {{"text": "button text", "action": "#signup or url"}},
+    "cta_secondary": {{"text": "secondary link text", "action": "#learn-more"}},
+    "sections": [
+        {{
+            "type": "section_type (features|social_proof|how_it_works|pricing|about|testimonials|faq|cta)",
+            "heading": "section heading",
+            "subheading": "optional subheading or null",
+            "body": "body text if applicable or null",
+            "items": [
+                {{"title": "item title", "description": "1-2 sentence description", "icon_hint": "suggested icon"}}
+            ]
+        }}
+    ],
+    "social_proof": {{
+        "headline": "social proof section heading",
+        "testimonials": [
+            {{"quote": "testimonial text (2-3 sentences)", "author": "First L.", "role": "Title, Company"}}
+        ],
+        "stats": [
+            {{"value": "100+", "label": "metric name"}}
+        ]
+    }},
+    "footer": {{
+        "tagline": "short footer tagline",
+        "cta": "footer CTA text"
+    }},
+    "meta": {{
+        "page_title": "SEO title (50-60 chars)",
+        "meta_description": "SEO meta description (150-160 chars)",
+        "og_title": "social share title",
+        "og_description": "social share description (under 100 chars)"
+    }}
+}}
+
+Include at least 4 sections. Write copy for EVERY section. Return ONLY valid JSON, no markdown fences."""
+
+    # Use Claude CLI directly (llm_chat backends are unreliable)
+    full_prompt = f"{system_prompt}\n\n{user_prompt}"
+    copy_data = await _claude_json_call(full_prompt, label="copy-synthesis")
+
+    if not copy_data:
+        log.error("Copy synthesis failed for %s — using fallback", business_name)
+        return _fallback_copy(research_data)
+
+    copy_data = _validate_copy(copy_data, research_data)
+
+    log.info(
+        "Copy synthesized for %s: %d sections, %d testimonials",
+        business_name,
+        len(copy_data.get("sections", [])),
+        len(copy_data.get("social_proof", {}).get("testimonials", [])),
+    )
+
+    return copy_data
+
+
+async def _claude_json_call(prompt: str, label: str = "claude-json", timeout: int = 120) -> dict | None:
+    """Run a short Claude CLI call and extract JSON from the response."""
+    import asyncio
+    import os
+
+    cmd = [
+        "/home/web3relic/.local/bin/claude",
+        "--print", "--dangerously-skip-permissions",
+        "--model", "claude-sonnet-4-6",
+        "--max-turns", "1",
+        "--max-budget-usd", "0.50",
+        "--output-format", "json",
+        "-p", prompt,
+    ]
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd="/home/web3relic/otto",
+            env={**os.environ, "HOME": "/home/web3relic"},
+        )
+        stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+        text = stdout.decode(errors="replace")
+
+        if not text.strip():
+            log.warning("[%s] Empty response", label)
+            return None
+
+        result = extract_json(text)
+        if result:
+            log.info("[%s] Got JSON (%d keys)", label, len(result))
+        else:
+            log.warning("[%s] Could not extract JSON (%d chars)", label, len(text))
+        return result
+
+    except asyncio.TimeoutError:
+        log.warning("[%s] Timed out after %ds", label, timeout)
+        return None
+    except Exception as exc:
+        log.warning("[%s] Failed: %s", label, exc)
+        return None

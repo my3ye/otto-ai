@@ -1,0 +1,12 @@
+{
+  "patch_id": "2b3d7e5b",
+  "proposed_at": "2026-03-29T02:04:39.210034+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "    'expected': '<WHAT you expect by next cycle \u2014 focus on SYSTEM-OBSERVABLE outcomes (task completions, queue state, system health). For Mev-dependent outcomes, use conditional framing: \"IF Mev responds, THEN X\". Do NOT predict WHAT Mev will say or when \u2014 only predict what YOU control.>',",
+  "new_string": "    'expected': '<WHAT you expect by next cycle \u2014 ONLY system-observable outcomes YOU control: task completions, queue state changes, system health metrics, workflow progress. HARD RULE: Do NOT mention Mev at all in predictions. No \"IF Mev responds\", no timeframes for Mev, no guessing what Mev will say/decide/provide. Mev timing is fundamentally unpredictable and every Mev-conditional prediction becomes a partial/miss. Example GOOD: \"Queue stays 0 running, 4 pending. System idle.\" Example BAD: \"IF Mev responds within 6h, expect direction on X.\">',",
+  "reason": "RL2F at 36% for 56 cycles. All 5 recent predictions violate existing normative principle (0.9 confidence) by including Mev-timing predictions. The current instruction says 'use conditional framing' which the orchestrator interprets too loosely. This stronger instruction explicitly bans Mev mentions in predictions.",
+  "review_notes": null,
+  "applied_at": "2026-03-29T02:04:44.864849+00:00"
+}

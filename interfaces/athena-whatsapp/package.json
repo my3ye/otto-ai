@@ -1,0 +1,9 @@
+{
+  "name": "athena-whatsapp",
+  "type": "module",
+  "dependencies": {
+    "baileys": "^7.0.0-rc.9",
+    "qrcode-terminal": "^0.12.0",
+    "pino": "^9.6.0"
+  }
+}

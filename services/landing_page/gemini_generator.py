@@ -1,7 +1,8 @@
 """Landing page generation via Gemini CLI.
 
 Mirror of agent_generator.py but uses `gemini` CLI with
-gemini-3.1-pro-preview model. Cheaper/faster alternative.
+gemini-3.1-pro-preview model. Creative direction injected via
+GEMINI_SYSTEM_MD env var pointing to system_prompt.md.
 """
 
 import asyncio
@@ -14,7 +15,7 @@ log = logging.getLogger("otto.gemini_generator")
 
 WEBASSIST_DIR = Path("/var/www/webassist")
 BASE_URL = "https://webassist.otto.lk"
-PROMPTS_PATH = Path("/mnt/media/prompts.md")
+SYSTEM_PROMPT_PATH = Path(__file__).parent / "system_prompt.md"
 
 
 def _build_prompt(
@@ -23,79 +24,62 @@ def _build_prompt(
     business_url: str,
     description: str,
     target_audience: str,
+    output_subdir: str = "",
+    design_md: str = "",
 ) -> str:
-    output_dir = WEBASSIST_DIR / str(page_id)
+    base = WEBASSIST_DIR / str(page_id)
+    output_dir = base / output_subdir if output_subdir else base
     output_path = output_dir / "index.html"
-    preview_url = f"{BASE_URL}/{page_id}"
+    preview_url = f"{BASE_URL}/{page_id}/{output_subdir}" if output_subdir else f"{BASE_URL}/{page_id}"
 
-    return f"""You are building a production landing page for "{business_name}".
+    design_section = ""
+    if design_md:
+        design_section = f"""
+## DESIGN SYSTEM (MANDATORY — follow this exactly)
 
-## STEP 1: Read the design system
+{design_md}
 
-Read the file at {PROMPTS_PATH}. It contains 33 proven design systems, each starting
-with a line like "DESIGN 01", "DESIGN 02", etc. Each design block contains:
+You MUST follow the design system above. Use the exact colors, fonts, spacing,
+component styles, and layout principles specified. This is your creative brief —
+do NOT deviate from these specifications. The design system IS your sensory DNA,
+style direction, and visual identity. Skip Steps A-E of the system prompt and
+go straight to building based on this design system.
+"""
 
-- **Summary** — one-line description of the aesthetic
-- **Style** — fonts, colors, gradients, effects, animation curves
-- **Spec** — exact CSS values: hex colors, font weights, tracking, line-height, border-radius, transitions
-- **Layout & Structure** — section-by-section breakdown: Navigation, Hero, content sections, Footer
-- **Special Components** — signature UI elements unique to that design (echo stacks, shiny borders, glassmorphic cards, etc.)
-- **Special Notes** — DOs and DON'Ts for that specific design
-
-## STEP 2: Pick the best design
-
-Choose the ONE design that best fits this business. Consider:
-
-- **Industry fit** — a law firm needs authority (editorial/technical), a wellness brand needs warmth (soft-organic), a tech startup needs energy (brutalist/futuristic)
-- **Audience match** — Gen Z prefers bold/futuristic, corporate professionals prefer minimal/editorial
-- **Tone** — premium businesses need luxury aesthetics, approachable brands need clean/friendly
-- **Differentiation** — avoid the most common/generic-looking designs
-
-## STEP 3: Build the page
-
-Follow the chosen design's spec EXACTLY. This means:
-
-- Use the EXACT fonts specified (family, weight, tracking, line-height). Never substitute with Inter, Roboto, Arial, Open Sans, Lato, Montserrat, Poppins, or Space Grotesk.
-- Use the EXACT color palette (hex values for background, text, accent, muted). Don't default to generic blue/white.
-- Implement EVERY section described in the Layout & Structure (Navigation, Hero, content sections, Footer) using the EXACT layout specified (if it says asymmetric grid, build an asymmetric grid — don't fall back to centered stacks).
-- Build ALL special components described for that design (echo stacks, pill showcases, gradient blobs, shiny borders, etc.). These are what make each design unique.
-- Use the EXACT animation values (easing curves, durations, transforms) — not generic ease-in-out.
-- Navigation sections describe the sticky nav bar. Implement as a proper <nav> element, not as body content cards.
-
+    return f"""Build a landing page for "{business_name}".
+{design_section}
 ## BUSINESS INFO
 - Name: {business_name}
 - URL: {business_url or 'N/A'}
 - Description: {description or 'N/A'}
 - Target audience: {target_audience or 'N/A'}
 
+## INSTRUCTIONS
+{'''Follow your system prompt end-to-end. Run through sensory translation, style fitness,
+experiential design, and signature moment. Generate 2-3 concept proposals internally,
+pick the strongest one yourself, and build it — do NOT wait for user input.''' if not design_md else '''The design system above is your complete creative direction. Implement it faithfully.
+Focus on translating the design system into pixel-perfect HTML/CSS.'''}
+
 ## COPY RULES
 - Hero headline: punchy, specific, benefit-driven, max 10 words. NOT "Welcome to {business_name}".
 - Subheadline: expand the benefit, max 25 words.
 - CTAs: action-oriented and specific to THIS business. NOT generic "Learn More" or "Get Started".
-- For stats/metrics/counters: always include specific plausible numbers (e.g. "500+ Clients", "98% Satisfaction", "10+ Years"). Never leave empty.
-- Write real testimonials with names and roles if none exist in research data.
+- Stats/metrics: always include specific plausible numbers (e.g. "500+ Clients", "98% Satisfaction").
+- Write real testimonials with names and roles.
 - No "Lorem ipsum", no "Coming soon", no empty placeholder text anywhere.
 
-## OUTPUT REQUIREMENTS
-- Single self-contained HTML file — ALL CSS in <style>, ALL JS in <script>
-- Google Fonts loaded via <link> — no other external dependencies
-- Mobile-first responsive: 375px → 768px → 1440px breakpoints
-- IntersectionObserver for scroll-triggered animations
-- Full SEO: <title>, <meta description>, Open Graph, Twitter Card tags
-- Accessibility: skip-to-content link, :focus-visible states, prefers-reduced-motion
-- No placeholder images — use CSS gradients, geometric shapes, or SVG patterns
+## OUTPUT
 - Canonical URL: {preview_url}
 {f'- Primary CTA links to: {business_url}' if business_url else '- Primary CTA links to: #contact'}
-
-## WRITE THE FILE
-Output path: {output_path}
-First run: mkdir -p {output_dir}
-Use the Write tool to create the file, then verify it exists and is larger than 5KB.
+- Output path: {output_path}
+- First run: mkdir -p {output_dir}
+- Write the file, then verify it exists and is larger than 5KB.
 """
 
 
-def _build_qa_prompt(page_id: UUID, business_name: str) -> str:
-    html_path = WEBASSIST_DIR / str(page_id) / "index.html"
+def _build_qa_prompt(page_id: UUID, business_name: str, output_subdir: str = "") -> str:
+    base = WEBASSIST_DIR / str(page_id)
+    html_path = (base / output_subdir / "index.html") if output_subdir else (base / "index.html")
 
     return f"""You are doing a QA review of a generated landing page for "{business_name}".
 
@@ -177,29 +161,36 @@ async def generate_with_gemini(
     description: str = "",
     target_audience: str = "",
     pool=None,
+    output_subdir: str = "",
+    design_md: str = "",
 ) -> dict:
     """Generate a landing page by spawning a Gemini CLI session, then QA it."""
-    output_dir = WEBASSIST_DIR / str(page_id)
+    base_dir = WEBASSIST_DIR / str(page_id)
+    output_dir = base_dir / output_subdir if output_subdir else base_dir
     output_dir.mkdir(parents=True, exist_ok=True)
     html_path = output_dir / "index.html"
 
-    env = {**os.environ, "HOME": "/home/web3relic"}
+    env = {
+        **os.environ,
+        "HOME": "/home/web3relic",
+        "GEMINI_SYSTEM_MD": str(SYSTEM_PROMPT_PATH),
+    }
 
     # ── Generation pass ─────────────────────────────────────────────
-    prompt = _build_prompt(page_id, business_name, business_url, description, target_audience)
+    prompt = _build_prompt(page_id, business_name, business_url, description, target_audience, output_subdir, design_md=design_md)
 
     gen_cmd = [
         "/usr/bin/gemini",
         "-y",
         "-m", "gemini-3.1-pro-preview",
-        "--include-directories", "/var/www/webassist,/mnt/media",
+        "--include-directories", "/var/www/webassist",
         "-p", prompt,
     ]
 
-    log.info("[gemini-gen:%s] Starting generation for '%s'", page_id, business_name)
+    log.info("[gemini-gen:%s] Starting generation for '%s' (subdir=%s)", page_id, business_name, output_subdir or "root")
     await _run_agent(gen_cmd, page_id, "gemini-gen", env, timeout=1500)
 
-    # Verify generation output (Gemini flash-lite produces leaner HTML than Claude)
+    # Verify generation output (Gemini produces leaner HTML than Claude)
     if not html_path.exists():
         raise RuntimeError("Gemini agent did not create HTML file")
 
@@ -209,14 +200,14 @@ async def generate_with_gemini(
 
     log.info("[gemini-gen:%s] Generated %d bytes, starting QA", page_id, file_size)
 
-    # ── QA pass (use Claude for QA — it's better at code review) ───
-    qa_prompt = _build_qa_prompt(page_id, business_name)
+    # ── QA pass ────────────────────────────────────────────────────
+    qa_prompt = _build_qa_prompt(page_id, business_name, output_subdir)
 
     qa_cmd = [
         "/usr/bin/gemini",
         "-y",
         "-m", "gemini-3.1-pro-preview",
-        "--include-directories", "/var/www/webassist,/mnt/media",
+        "--include-directories", "/var/www/webassist",
         "-p", qa_prompt,
     ]
 
@@ -231,16 +222,7 @@ async def generate_with_gemini(
     if file_size < 3 * 1024:
         raise RuntimeError(f"HTML too small after QA ({file_size} bytes, min 3KB)")
 
-    preview_url = f"{BASE_URL}/{page_id}"
-
-    if pool:
-        await pool.execute(
-            """UPDATE landing_pages
-               SET html_path = $2, preview_url = $3, status = 'review',
-                   error_text = NULL, updated_at = now()
-               WHERE id = $1""",
-            page_id, str(html_path), preview_url,
-        )
+    preview_url = f"{BASE_URL}/{page_id}/{output_subdir}" if output_subdir else f"{BASE_URL}/{page_id}"
 
     log.info("[gemini-done:%s] %s (%d bytes) → %s", page_id, html_path, file_size, preview_url)
 

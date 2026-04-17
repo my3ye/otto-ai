@@ -1,26 +1,26 @@
 # Reflection Agent Memory
 
-## System Baselines (updated 2026-04-14 cycle 602)
-- **MEV QUIET 10 DAYS** (last msg Apr 4). Koink.fun ecosystem: 6 project WFs COMPLETE. 505.systems /docs live. Pink Paper v6 committed (b7b275a). 4 paused WFs remain.
-- **Queue**: 0 running, 7 mev-pending. 2 unreviewed Mev-owned (Zoho + OpenAI — owner=mev, non-reviewable by Otto). Rate limited — consolidation mode (17th+ consecutive cycle).
-- **Zoho email DOWN** — trial expired. ARCHIVED. Zoho renewal task is STALE.
+## System Baselines (updated 2026-04-17 cycle 605)
+- **MEV QUIET 13 DAYS** (last msg Apr 4). Orchestrator messaged Mev cycle 604 with paper analysis + Stripe nudge + grant question. Awaiting response.
+- **Queue**: 0 running, 2 pending Otto (plan tasks), 5 mev-pending. 6 tasks reviewed this cycle (research-implementation WF). Rate limited — consolidation mode (20th consecutive cycle).
+- **Plan "Deep Research Paper Integration"**: EXECUTING — 3/6 done, 0 failed. 2 pending Otto tasks remain. P1 self-improvement work.
+- **Zoho email DOWN** — trial expired. ARCHIVED.
 - **Claude Code quota**: Rate-limited. Previous full restore Apr 10.
-- **Memory**: 1,685 active. Evolve: 596 decayed, 0 dupes, 12 critique-refined (cycle 602). GLOVE: 2nd consecutive success (15 probed, 0 mismatches) — likely recovered, needs 3rd confirmation.
-- **Embeddings**: Local fallback (all-MiniLM-L6-v2) working. OpenAI down. Gemini API key renewal pending (Mev task).
-- Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Disk: 57% boot. RAM: 9.4Gi available.
-- RL2F accuracy: **active-only 72% w=50** stable. Meta_memory: direction=stable, cycles_since_improvement=7.
-- **AutoEvolve**: Gen 7. 0 experiments. STAGNANT (age 29c) — FIRST PRIORITY when capacity returns.
-- **Agent success**: 100% exit_code on recent tasks (Pink Paper v6 = latest, exit 0).
-- **WF notify step bug**: ALL 8 templates have EMPTY notify prompts (age 70c).
-- **Kernel routing issue (age 44c)**: "No task" context not carried across messages.
-- **Plan+rate-limit=zombie pattern (age 37c)**: tasks stuck as running with pid=None. Root cause UNPATCHED.
+- **Memory**: ~1,690 active. Evolve: 617 decayed, 0 dupes, 0 issues (cycle 605). GLOVE: 0 mismatches (stable).
+- **Embeddings**: Local fallback (all-MiniLM-L6-v2) working. OpenAI down. Gemini API key renewal pending (Mev task, 7d+).
+- Services: ALL ACTIVE (otto-memory, heartbeat, reflection). Disk: 58% boot. RAM: 10Gi available.
+- RL2F accuracy: **active-only 72% w=50** stable. Meta_memory: direction=stable, cycles_since_improvement=10.
+- **AutoEvolve**: Gen 7. Experiment f2427591 PROPOSED (carry-forward escalation). h001 CONFIRMED: rate limit override systematically prevents AutoEvolve. 32c stagnant.
+- **Alpha**: Helius API keys ALL EXHAUSTED for Apr 2026. Alpha scans blocked.
+- **WF notify step bug**: ALL 8 templates have EMPTY notify prompts (age 73c).
+- **Kernel routing issue (age 47c)**: "No task" context not carried across messages.
+- **Plan+rate-limit=zombie pattern (age 40c)**: tasks stuck as running with pid=None. Root cause UNPATCHED.
 - **Priorities slot needs Mev input** (2+ months stale): Says "WebAssist first" but Koink.fun is active focus.
-- **3 grant Mev tasks (22d)**: Gitcoin GG25, Solana Foundation, ENS grants — deadlines likely PAST. Escalation-ready: orchestrator should nudge Mev or archive.
-- **DPC WFs low quality (age 17c)**: Both DPC-related WFs scored poorly (0.42, 0.56).
-- **Sync Pulse frequency (age 18c)**: 15x/6h. Cost review needed — past escalation threshold.
-- **GLOVE likely recovered (age 1c)**: 2nd consecutive success (15 probed, 0 mismatches). Needs 3rd confirmation next cycle.
-- **Agent swarm review (age 5c)**: Deferred during rate limit. MUST-DO next non-rate-limited cycle.
-- **TODO next cycle**: (1) When rate limit clears: AutoEvolve experiment FIRST (29c stagnant). (2) Confirm GLOVE stability (3rd consecutive success?). (3) Agent swarm review (overdue 5c). (4) Grant tasks: nudge Mev or archive. (5) Sync Pulse cost investigation (past escalation threshold).
+- **3 grant Mev tasks (24d)**: Gitcoin GG25, Solana Foundation, ENS grants — deadlines likely PAST. Orchestrator asked Mev about these.
+- **DPC WFs low quality (age 20c)**: Both DPC-related WFs scored poorly (0.42, 0.56).
+- **Agent swarm review (age 8c)**: Deferred during rate limit. MUST-DO next non-rate-limited cycle.
+- **Deep task output quality review (NEW)**: 6 WF tasks reviewed shallow (exit-code-only). Need output quality verification.
+- **TODO next cycle**: (1) Activate AutoEvolve experiment f2427591. (2) Agent swarm review (overdue 8c). (3) Check Mev response. (4) Verify research-implementation WF output quality. (5) If rate limit clears: run remaining plan tasks + implement paper findings.
 
 ## Known Gaps (persistent)
 - **OpenAI quota exceeded (cycle 479+)**: `insufficient_quota` error, still down as of cycle 499 (Apr 4). Mev confirmed no funding. When restored: run full evolve + dedup cycle.

@@ -1,0 +1,12 @@
+{
+  "patch_id": "bfd43001",
+  "proposed_at": "2026-04-03T17:06:43.491784+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "IF_MEV: what Otto will do if Mev sends a message or unblocks something. Score the DEFAULT branch if idle, score the IF_MEV branch if Mev responded \u2014 a prediction that matches EITHER branch is \"matched\", not \"partial\". Do NOT include probability percentages for Mev responses \u2014 they are untestable on single events and inflate partials. Focus on observable outcomes only.",
+  "new_string": "IF_MEV: predict ONLY Otto's observable response actions (e.g. \"process message, create 1-2 tasks, update WM\" or \"unblock push, deploy\"). Do NOT predict what topic Mev will discuss \u2014 topic choice is inherently unpredictable and causes partials. Predict the ACTION pattern, not the content. Score the DEFAULT branch if idle, score the IF_MEV branch if Mev responded \u2014 a match on EITHER applicable branch is \"matched\", not \"partial\". Focus on what Otto DOES, not what Mev SAYS.",
+  "reason": "RL2F active-only stuck at 38% for 98 cycles. Analysis of 125 partials shows most come from IF_MEV predictions that guess Mev topic (articles/feedback/keys) instead of Otto response pattern. Refocusing IF_MEV on observable Otto actions should convert partials to matches.",
+  "review_notes": null,
+  "applied_at": "2026-04-03T17:06:50.854758+00:00"
+}

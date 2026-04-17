@@ -1,0 +1,12 @@
+{
+  "patch_id": "6e653cfc",
+  "proposed_at": "2026-03-31T14:06:41.947635+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/heartbeat.md",
+  "old_string": "  that is last cycle's unscored prediction. Compare its `expected` vs what actually happened, then score it:",
+  "new_string": "  that is last cycle's unscored prediction. Compare its `expected` vs what actually happened, then score it.\n  **Conditional scoring**: If expected has DEFAULT and IF_MEV branches, score against the branch that applies \u2014 DEFAULT if idle, IF_MEV if Mev responded. A match on EITHER applicable branch = \"matched\".",
+  "reason": "Complements the EXPECTED restructuring patch (22738f65). Without explicit scoring guidance for conditional predictions, the heartbeat may still score two-branch predictions as partial.",
+  "review_notes": null,
+  "applied_at": "2026-03-31T14:06:58.463795+00:00"
+}

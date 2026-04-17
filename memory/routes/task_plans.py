@@ -277,11 +277,13 @@ async def _spawn_workflow_for_plan_task(pool, task_id: UUID):
     )
     instance_id = inst_row["id"]
 
-    # Link the plan task to the workflow instance
+    # Link the plan task to the workflow instance.
+    # Use 'coordinating' status — not 'running' — so it doesn't appear as an
+    # active task (no PID, no process; the workflow steps do the real work).
     meta["workflow_instance_id"] = str(instance_id)
     meta["is_plan_coordinator"] = True
     await pool.execute(
-        "UPDATE tasks SET status = 'running', started_at = now(), metadata = $2 WHERE id = $1",
+        "UPDATE tasks SET status = 'coordinating', started_at = now(), metadata = $2 WHERE id = $1",
         task_id, meta,
     )
 
@@ -329,7 +331,7 @@ async def execute_plan(pool, plan_id: UUID):
     if not ready_tasks:
         # Check if plan is done (no pending or running tasks left)
         remaining = await pool.fetchval(
-            "SELECT COUNT(*) FROM tasks WHERE plan_id = $1 AND status IN ('pending', 'running')",
+            "SELECT COUNT(*) FROM tasks WHERE plan_id = $1 AND status IN ('pending', 'running', 'coordinating')",
             plan_id,
         )
         if remaining == 0:
@@ -474,15 +476,16 @@ async def on_plan_task_complete(pool, task_id: UUID, status: str):
             "UPDATE task_plans SET completed_items = completed_items + 1 WHERE id = $1",
             plan_id,
         )
-    elif status == "failed":
+    elif status in ("failed", "cancelled"):
         await pool.execute(
             "UPDATE task_plans SET failed_items = failed_items + 1 WHERE id = $1",
             plan_id,
         )
-        # Check if any pending tasks depend on this failed task — mark them skipped
-        await pool.execute("""
+        # Mark pending tasks that depend on this failed/cancelled task as skipped
+        reason = "cancelled" if status == "cancelled" else "failed"
+        await pool.execute(f"""
             UPDATE tasks SET status = 'skipped',
-                   error = 'Dependency failed: ' || $2,
+                   error = 'Dependency {reason}: ' || $2,
                    completed_at = now()
             WHERE plan_id = $3
               AND status = 'pending'
@@ -503,7 +506,7 @@ async def check_plan_workflow_complete(pool, workflow_instance_id: UUID, wf_stat
         SELECT id, plan_id FROM tasks
         WHERE metadata->>'workflow_instance_id' = $1
           AND metadata->>'is_plan_coordinator' = 'true'
-          AND status = 'running'
+          AND status IN ('running', 'coordinating')
     """, str(workflow_instance_id))
 
     if not row:

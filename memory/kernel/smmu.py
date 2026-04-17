@@ -303,11 +303,24 @@ class SMMU:
 
                 if memories:
                     _add(f"[Otto] {r['label']}:")
+                    slice_tokens = 0
                     for m in memories:
-                        _add(f"  [{m['category']}] {m['content'][:300]}")
+                        content = m["content"]
+                        est = len(content) // 4 + 5
+                        # L2 Expand: full content up to per-memory cap (800 chars)
+                        # OmniMem pyramid: expanded set gets much more than L3 summaries
+                        if loaded_tokens + slice_tokens + est > remaining_tokens:
+                            # Truncate this memory to fit budget, then stop
+                            remaining_chars = (remaining_tokens - loaded_tokens - slice_tokens) * 4
+                            if remaining_chars > 100:
+                                _add(f"  [{m['category']}] {content[:remaining_chars]}...")
+                                slice_tokens += remaining_chars // 4 + 5
+                            break
+                        _add(f"  [{m['category']}] {content[:800]}")
+                        slice_tokens += min(est, 205)  # cap estimate per memory
                     _add("")
 
-                    loaded_tokens += r["token_count"]
+                    loaded_tokens += slice_tokens
                     loaded_ids.append(r["id"])
 
                     if not self._top_relevance_anchor and memories:

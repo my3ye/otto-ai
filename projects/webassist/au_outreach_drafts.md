@@ -1,0 +1,128 @@
+# Web Assist — AU Outreach Copy Drafts
+_Drafted: 2026-02-20 | Target: Australian SMBs (no website / outdated site)_
+
+---
+
+## Context & Design Notes
+
+### SL Templates (baseline, for reference)
+The Sri Lanka templates used in `stage_outreach_queue.py`:
+- **A1** (high rating ≥4.0, ≥10 reviews): Lead with social proof ("X stars, Y reviews"), then pivot to the website gap. CTA: free mockup.
+- **A2** (general / no website): Straight pitch — no website = invisible to Google searchers. CTA: free mockup.
+
+### AU Adaptation Principles
+1. **No hard sell** — Australians are skeptical of pushy sales. Lead with value, not pressure.
+2. **Direct but conversational** — drop the corporate polish. WhatsApp is informal.
+3. **Local anchor** — mention their city to signal it's not a mass blast.
+4. **Pricing framing** — don't quote numbers in outreach. AU SMBs pay more for professional services; let the mockup do the selling.
+5. **CTA is soft** — "Happy to show you" > "Want to buy?" Free mockup is the right hook.
+6. **Emoji use** — one opener emoji max. AU business culture tolerates emojis on WhatsApp but not spam-level decoration.
+
+---
+
+## Variant AU-A1 — High Rating / No Website
+
+_Trigger: rating ≥ 4.0, reviews ≥ 10, no website_
+
+```
+Hi {business_name}! 👋 {rating} stars with {reviews} reviews in {city} — solid reputation.
+
+One thing holding you back: no website. When someone Googles your type of business in {city}, you don't show up.
+
+We build modern, AI-assisted websites for Aussie businesses, fast and without the agency price tag.
+
+Happy to put together a free mockup so you can see what it'd look like. Want to take a look?
+```
+
+**Character count (example):** ~280 chars. Fits comfortably in a WhatsApp message.
+
+**Notes:**
+- "Solid reputation" = acknowledges their work without being sycophantic
+- "Aussie businesses" = local signal without over-localising
+- "without the agency price tag" = addresses the common pain point (AU web agencies are expensive)
+- CTA is an open question, not a link or a push
+
+---
+
+## Variant AU-A2 — General / No Website
+
+_Trigger: no website, rating <4.0 or <10 reviews (or no rating data)_
+
+```
+Hi {business_name}! 👋 Came across your business in {city} — looks like you don't have a website yet.
+
+In Australia, most people Google before they visit anywhere new. Without a site, you're handing those customers to competitors who do.
+
+We build clean, professional websites for small businesses — AI-assisted, quick to launch.
+
+Want a free mockup to see what yours could look like?
+```
+
+**Character count (example):** ~330 chars.
+
+**Notes:**
+- More explanatory than A1 since there's no social proof to lean on
+- "Handing those customers to competitors" — creates mild urgency without fear-mongering
+- "Clean, professional" — Australians appreciate quality framing over feature lists
+
+---
+
+## Variant AU-A3 — Revamp Candidate (Outdated Website)
+
+_Trigger: lead_type = 'revamp', existing website looks outdated_
+
+```
+Hi {business_name}! 👋 Noticed your website in {city} — has the look of something built a few years back.
+
+An outdated site can quietly hurt you: slow load times, no mobile view, and Google tends to rank it lower.
+
+We refresh and rebuild business websites using AI-assisted tools — faster and more affordable than going back to a traditional agency.
+
+Happy to show you a free mockup of what a modern version could look like. Interested?
+```
+
+**Character count (example):** ~370 chars.
+
+**Notes:**
+- "Has the look of something built a few years back" — factual, not insulting
+- Calls out real pain: slow load, mobile, SEO — things Australians can relate to
+- "Going back to a traditional agency" — positions us as the better alternative, not just another agency
+- Good for Revamp leads where we've spotted an existing but outdated site
+
+---
+
+## Template Variable Reference
+
+| Variable         | Source                        | Fallback         |
+|------------------|-------------------------------|------------------|
+| `{business_name}`| `web_assist_leads.name`       | "there"          |
+| `{city}`         | `web_assist_leads.city`       | "your area"      |
+| `{rating}`       | `web_assist_leads.rating`     | — (only in A1)   |
+| `{reviews}`      | `web_assist_leads.user_ratings_total` | — (only in A1) |
+
+---
+
+## Recommended Variant Selection Logic (for stage_outreach_queue.py)
+
+```python
+# AU lead routing
+if lead_type == "revamp":
+    template = AU_A3
+elif rating and float(rating) >= 4.0 and int(reviews) >= 10:
+    template = AU_A1
+else:
+    template = AU_A2
+```
+
+---
+
+## Next Steps (pending Mev approval)
+
+- [ ] Mev reviews and approves one or more variants
+- [ ] Update `stage_outreach_queue.py` with AU templates (swap SL references)
+- [ ] Re-stage AU leads in outreach_queue with new copy (flush SL pending rows for AU leads, or add country filter to staging)
+- [ ] Confirm AU WhatsApp number / sending setup before sending
+
+---
+
+_Generated by Otto task runner | Reviewed by heartbeat_

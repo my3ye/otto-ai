@@ -1,0 +1,11 @@
+[Unit]
+Description=Otto Service Monitor Timer — runs every 5 minutes
+Requires=service-monitor.service
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+Unit=service-monitor.service
+
+[Install]
+WantedBy=timers.target

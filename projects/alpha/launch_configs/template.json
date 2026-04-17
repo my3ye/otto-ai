@@ -1,0 +1,36 @@
+{
+  "_comment": "TEMPLATE — copy this file for each new token launch. Fill in all fields.",
+
+  "name": "TOKEN NAME",
+  "symbol": "TKN",
+  "description": "One-sentence description of the token and its mission.",
+
+  "launch_platform": "pumpfun",
+
+  "image_uri": "",
+  "website": "",
+  "twitter": "",
+  "telegram": "",
+  "discord": "",
+
+  "attributes": [
+    { "trait_type": "Chain",     "value": "Solana" },
+    { "trait_type": "Launchpad", "value": "pump.fun" }
+  ],
+
+  "decimals": 6,
+  "supply_units": 1000000000,
+
+  "initial_buy_sol": 0.05,
+  "slippage_bps": 1000,
+  "priority_fee_sol": 0.001,
+  "use_jito_bundle": false,
+
+  "revoke_mint_authority": true,
+  "revoke_freeze_authority": true,
+
+  "_platform_notes": {
+    "pumpfun":      "Zero creator cost. First buyer pays ~0.02 SOL. Graduates at ~$69k MC to PumpSwap. No creator allocation.",
+    "raydium_cpmm": "~0.20 SOL pool creation + liquidity you seed. Full control, creator allocation possible. NOT YET IMPLEMENTED."
+  }
+}

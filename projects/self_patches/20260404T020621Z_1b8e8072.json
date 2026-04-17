@@ -1,0 +1,12 @@
+{
+  "patch_id": "1b8e8072",
+  "proposed_at": "2026-04-04T02:06:21.417821+00:00",
+  "proposed_by": "reflection",
+  "status": "applied",
+  "target": ".claude/agents/reflection.md",
+  "old_string": "  'value': '[TIMESTAMP] Reflection complete. Mission alignment: [aligned/corrected]. Blockers resolved: [N]. Key correction: [most important finding from MARS/adversarial check]. Recommended for orchestrator: [specific action or none].',",
+  "new_string": "  'value': '[TIMESTAMP] Reflection complete. Mission alignment: [aligned/corrected]. Blockers resolved: [N]. Key correction: [most important finding from MARS/adversarial check]. UNRESOLVED CARRY-FORWARD: [item1 (age Nc) | item2 (age Mc) | NONE if all resolved \u2014 list every issue identified this cycle that was NOT fully resolved, with cycle count since first identified]. Recommended for orchestrator: [specific action or none].',",
+  "reason": "AE gen 6 experiment: RL2F shows 11 partial matches vs 3 misses (insights endpoint). Partials indicate reflection identifies issues but doesn't explicitly track unresolved ones across cycles. Adding structured carry-forward with cycle age forces explicit handoff of partially-addressed items, reducing information loss between cycles.",
+  "review_notes": null,
+  "applied_at": "2026-04-04T02:06:29.351285+00:00"
+}

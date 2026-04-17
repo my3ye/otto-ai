@@ -1,0 +1,11 @@
+{
+  "patch_id": "54bf3933",
+  "proposed_at": "2026-02-21T01:34:58.074299+00:00",
+  "proposed_by": "self_patch_test",
+  "status": "rejected",
+  "target": ".claude/agents/reflection.md",
+  "old_string": "**This is mandatory. Run it after completing steps 1-5, before logging.**",
+  "new_string": "**This is mandatory. Run it after completing steps 1-7, before logging.**",
+  "reason": "Self-test: adversarial check label still says steps 1-5 but section 7b was added. This is a demonstration patch \u2014 to be rejected.",
+  "review_notes": "Rejected by reflection 2026-02-21. Demo patch as intended. The adversarial check is positioned between step 5 and 5b — 'steps 1-5' is correct for its location in the file."
+}

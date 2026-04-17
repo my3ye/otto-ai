@@ -1,0 +1,253 @@
+{
+  "_comment": "Smart money wallets sourced via on-chain analysis: DexScreener top-volume Solana pairs (WIF, BONK, JUP, JitoSOL) -> Helius parsed SWAP transactions -> wallets with 50+ swaps active within 7 days. No Birdeye API key available; validated via Helius enhanced transaction API. Win-rate is approximated by high swap frequency across multiple DEXes \u2014 true PnL win_rate requires per-tx balance delta computation (Phase 2).",
+  "wallets": [
+    {
+      "address": "AVedewo4W5E5C9vtjFeAe13DGq6L5WNN2Kk3yuWZGNUN",
+      "label": "SM_1",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "mev_routing",
+      "swap_count_sampled": 100,
+      "last_active_unix": 1771587346,
+      "notes": "DROPPED 2026-02-22: High noise, single-wallet self-convergence. TITAN + JUPITER routing - likely MEV-aware or algorithmic trader.",
+      "active": false
+    },
+    {
+      "address": "8oKVwqA5S2B7g2Li6yqZ4KKghpER8G1vj3bbeg8dFkSw",
+      "label": "SM_2",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "active_trader",
+      "swap_count_sampled": 97,
+      "last_active_unix": 1771587347,
+      "notes": "DROPPED 2026-02-22: High noise, high-frequency with low signal quality. 97 swaps in sampled window.",
+      "active": false
+    },
+    {
+      "address": "HWoaBAnp7MLSgLSBkdoNkSFCJCANo8dyvmaYU9P5W5d9",
+      "label": "SM_3",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "cross_dex_arb",
+      "swap_count_sampled": 92,
+      "last_active_unix": 1771587338,
+      "notes": "RAYDIUM + ORCA cross-DEX activity \u2014 swing trader or arb bot. Multi-venue presence is strong signal."
+    },
+    {
+      "address": "Gnush1ub9TsC35HeqxzaSkfubfDdGD2hgrgH3dqPDr8X",
+      "label": "SM_4",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "active_trader",
+      "swap_count_sampled": 91,
+      "last_active_unix": 1771587377,
+      "notes": "91 swaps in sample, active across multiple top-volume pairs."
+    },
+    {
+      "address": "MfDuWeqSHEqTFVYZ7LoexgAK9dxk7cy4DFJWjWMGVWa",
+      "label": "SM_5",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "active_trader",
+      "swap_count_sampled": 87,
+      "last_active_unix": 1771587320,
+      "notes": "87 swaps in sample window."
+    },
+    {
+      "address": "848cJSQZnJFDUVee9aGEf2mhasMEQoC8JYdqMGReHexv",
+      "label": "SM_6",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "algo_bot",
+      "swap_count_sampled": 78,
+      "last_active_unix": 1771587005,
+      "notes": "72/78 swaps via TITAN \u2014 likely a TITAN-integrated bot or algorithmic trader."
+    },
+    {
+      "address": "5ZGprBDnP2pWaYcbiAfN87UrZH3VihZo1aKSXXWskrZZ",
+      "label": "SM_7",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "active_trader",
+      "swap_count_sampled": 70,
+      "last_active_unix": 1771587379,
+      "notes": "70 swaps in sample window, recently active."
+    },
+    {
+      "address": "AgmLJBMDCqWynYnQiPCuj9ewsNNsBJXyzoUhD9LJzN51",
+      "label": "SM_8",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "meme_coins",
+      "swap_count_sampled": 66,
+      "last_active_unix": 1771587326,
+      "notes": "OKX_DEX_ROUTER + PUMP_AMM + PUMP_FUN + JUPITER \u2014 classic meme coin hunter using pump.fun early entries."
+    },
+    {
+      "address": "3DumNyQssYHU7Y5Ccc9vcLX3ViUwnvsjaBP5kumVK5aZ",
+      "label": "SM_9",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "active_trader",
+      "swap_count_sampled": 66,
+      "last_active_unix": 1771587354,
+      "notes": "66 swaps in sample window."
+    },
+    {
+      "address": "BMnT51N4iSNhWU5PyFFgWwFvN1jgaiiDr9ZHgnkm3iLJ",
+      "label": "SM_10",
+      "source": "Helius/DexScreener on-chain analysis 2026-02-20",
+      "strategy": "multi_dex",
+      "swap_count_sampled": 56,
+      "last_active_unix": 1771587322,
+      "notes": "ORCA + RAYDIUM + METEORA DAMM V2 \u2014 multi-DEX trader, broader strategy range."
+    },
+    {
+      "address": "ARu4n5mFdZogZAravu7CcizaojWnS6oqka37gdLT5SZn",
+      "label": "SM_11",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 3,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "5wvM4sfvvcALQ9bCTnCTFm4JoBuFV4r8YKTuU2khUuNt",
+        "6REwPqkyCLF2h5gy24Xpwi2tvgZDBABLbZcfEmj5bonk"
+      ],
+      "last_active_unix": 1771633979,
+      "pnl_estimate": "unknown",
+      "active": false,
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position via on-chain analysis. Amount always 0 SOL. Not a directional trader."
+    },
+    {
+      "address": "HydraXoSz7oE3774DoWQQaofKb31Kbn2cbcqG4ShKy85",
+      "label": "SM_12",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 3,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "5wvM4sfvvcALQ9bCTnCTFm4JoBuFV4r8YKTuU2khUuNt",
+        "6REwPqkyCLF2h5gy24Xpwi2tvgZDBABLbZcfEmj5bonk"
+      ],
+      "last_active_unix": 1771633979,
+      "pnl_estimate": "unknown",
+      "active": false,
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position. Same LP token discovery pool as SM_11/SM_13-20."
+    },
+    {
+      "address": "HLnpSz9h2S4hiLQ43rnSD9XkcUThA7B8hQMKmDaiTLcC",
+      "label": "SM_13",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 2,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "5wvM4sfvvcALQ9bCTnCTFm4JoBuFV4r8YKTuU2khUuNt"
+      ],
+      "last_active_unix": 1771633979,
+      "pnl_estimate": "unknown",
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position (wallet_discovery.py batch). Amount always 0 SOL \u2014 not a directional trader. Convergence with other LP wallets was causing false positive signals.",
+      "active": false
+    },
+    {
+      "address": "gtagyESa99t49VmUqnnfsuowYnigSNKuYXdXWyXWNdd",
+      "label": "SM_14",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 2,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "6REwPqkyCLF2h5gy24Xpwi2tvgZDBABLbZcfEmj5bonk"
+      ],
+      "last_active_unix": 1771633686,
+      "pnl_estimate": "unknown",
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position (wallet_discovery.py batch). Amount always 0 SOL \u2014 not a directional trader. Convergence with other LP wallets was causing false positive signals.",
+      "active": false
+    },
+    {
+      "address": "smRrAfKKYG7Gvxghgz1e8nr6CX3fy8EVf5y4RA1s3FB",
+      "label": "SM_15",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 2,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "6REwPqkyCLF2h5gy24Xpwi2tvgZDBABLbZcfEmj5bonk"
+      ],
+      "last_active_unix": 1771633686,
+      "pnl_estimate": "unknown",
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position (wallet_discovery.py batch). Amount always 0 SOL \u2014 not a directional trader. Convergence with other LP wallets was causing false positive signals.",
+      "active": false
+    },
+    {
+      "address": "Bz9ETFkwC59TYq4FBsxZB4BaLqqGKc7EPMHdC9Fk3QDH",
+      "label": "SM_16",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 2,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "fH1YDRu48pBwedxhNxTRSLsriqx3ysUntRbKMtkpump"
+      ],
+      "last_active_unix": 1771654890,
+      "pnl_estimate": "unknown",
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position (wallet_discovery.py batch). Amount always 0 SOL \u2014 not a directional trader. Convergence with other LP wallets was causing false positive signals.",
+      "active": false
+    },
+    {
+      "address": "8psNvWTrdNTiVRNzAgsou9kETXNJm2SXZyaKuJraVRtf",
+      "label": "SM_17",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 2,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "Arw9tnn113NxrKFJDBCxLrCWBL1uwQq82fpqdah7pump"
+      ],
+      "last_active_unix": 1771650181,
+      "pnl_estimate": "unknown",
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position (wallet_discovery.py batch). Amount always 0 SOL \u2014 not a directional trader. Convergence with other LP wallets was causing false positive signals.",
+      "active": false
+    },
+    {
+      "address": "HFqp6ErWHY6Uzhj8rFyjYuDya2mXUpYEk8VW75K9PSiY",
+      "label": "SM_18",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 2,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "6REwPqkyCLF2h5gy24Xpwi2tvgZDBABLbZcfEmj5bonk"
+      ],
+      "last_active_unix": 1771651293,
+      "pnl_estimate": "unknown",
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position (wallet_discovery.py batch). Amount always 0 SOL \u2014 not a directional trader. Convergence with other LP wallets was causing false positive signals.",
+      "active": false
+    },
+    {
+      "address": "LvjCuiYEvNiHiXNAMUPUDbuCrmaMTUyubLypXwn22Fm",
+      "label": "SM_19",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 2,
+      "tokens_early": [
+        "8ZyibVskrntjEzL5vQn5TDM6S7xZ7MA3S5EPc1mRsji2",
+        "Arw9tnn113NxrKFJDBCxLrCWBL1uwQq82fpqdah7pump"
+      ],
+      "last_active_unix": 1771650181,
+      "pnl_estimate": "unknown",
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position (wallet_discovery.py batch). Amount always 0 SOL \u2014 not a directional trader. Convergence with other LP wallets was causing false positive signals.",
+      "active": false
+    },
+    {
+      "address": "GpMZbSM2GgvTKHJirzeGfMFoaZ8UR2X7F4v8vHTvxFbL",
+      "label": "SM_20",
+      "source": "wallet_discovery.py 2026-02-21",
+      "strategy": "early_buyer",
+      "early_buy_count": 2,
+      "tokens_early": [
+        "fH1YDRu48pBwedxhNxTRSLsriqx3ysUntRbKMtkpump",
+        "6REwPqkyCLF2h5gy24Xpwi2tvgZDBABLbZcfEmj5bonk"
+      ],
+      "last_active_unix": 1771654890,
+      "pnl_estimate": "unknown",
+      "notes": "DROPPED 2026-03-13: Confirmed LP/bot position (wallet_discovery.py batch). Amount always 0 SOL \u2014 not a directional trader. Convergence with other LP wallets was causing false positive signals.",
+      "active": false
+    }
+  ],
+  "sourcing_method": "DexScreener top-volume pairs (WIF/SOL, BONK/SOL, JUP/SOL, JitoSOL/SOL) \u2192 Helius parsed SWAP txns (262 total) \u2192 wallet frequency ranking \u2192 top 20 candidates \u2192 individual Helius SWAP history validation \u2192 filter swap_count>=50 AND last_active within 7 days",
+  "birdeye_note": "No BIRDEYE_API_KEY configured. True win_rate > 0.60 validation requires Birdeye PnL endpoint or manual per-tx balance delta computation. Phase 2 improvement: add BIRDEYE_API_KEY to ~/otto/projects/alpha/.env and re-screen.",
+  "last_updated": "2026-03-13",
+  "wallet_count": 8
+}
