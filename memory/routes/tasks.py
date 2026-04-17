@@ -766,6 +766,67 @@ async def list_tasks(
     return results
 
 
+@router.get("/exemplars")
+async def get_exemplars(
+    category: str = Query(None, description="Filter by agent_type or keyword in title"),
+    limit: int = Query(3, ge=1, le=10),
+):
+    """Cross-task exemplar leaderboard (CORAL 2604.01658).
+
+    Returns top completed+approved tasks ranked by output quality.
+    Injected into new task prompts for quality calibration — 17% improvement
+    rate from cross-agent parentage per CORAL paper.
+    """
+    pool = await get_pool()
+
+    conditions = [
+        "status = 'completed'",
+        "qa_status = 'approved'",
+        "LENGTH(COALESCE(output, '')) > 200",
+    ]
+    params: list = []
+    idx = 1
+
+    if category:
+        conditions.append(
+            f"(agent_type = ${idx} OR title ILIKE ${idx + 1})"
+        )
+        params.extend([category, f"%{category}%"])
+        idx += 2
+
+    where = " AND ".join(conditions)
+
+    # Rank by: upvotes (if any), output length (proxy for thoroughness), priority
+    rows = await pool.fetch(
+        f"""SELECT id, title, agent_type, LEFT(output, 500) AS output_excerpt,
+                   priority, upvotes, LENGTH(output) AS output_length,
+                   completed_at
+            FROM tasks
+            WHERE {where}
+            ORDER BY COALESCE(upvotes, 0) DESC,
+                     LENGTH(COALESCE(output, '')) DESC,
+                     priority DESC
+            LIMIT ${idx}""",
+        *params, limit,
+    )
+
+    return [
+        {
+            "task_id": str(r["id"]),
+            "title": r["title"],
+            "agent_type": r["agent_type"],
+            "output_excerpt": r["output_excerpt"],
+            "quality_signals": {
+                "upvotes": r["upvotes"] or 0,
+                "output_length": r["output_length"],
+                "priority": r["priority"],
+            },
+            "completed_at": r["completed_at"].isoformat() if r["completed_at"] else None,
+        }
+        for r in rows
+    ]
+
+
 @router.get("/{task_id}", response_model=TaskOut)
 async def get_task(task_id: UUID):
     """Get a single task by ID."""
@@ -1362,9 +1423,17 @@ async def mark_reviewed(task_id: UUID):
             task_data["metadata"] = _json.loads(task_data["metadata"]) if task_data.get("metadata") else {}
         except Exception:
             task_data["metadata"] = {}
-    # Fire-and-forget skill extraction for successful completions
-    if task_data.get("status") == "completed" and task_data.get("exit_code") == 0:
+    # Fire-and-forget skill extraction (IMPL-09: includes partial-success)
+    # Trace2Skill (2603.25158): extract from failures with useful partial output
+    _exit = task_data.get("exit_code")
+    _output_len = len(task_data.get("output") or "")
+    _timed_out = (task_data.get("metadata") or {}).get("timed_out", False)
+    if _exit == 0:
+        # Full success — standard extraction
         asyncio.create_task(_extract_skill_from_task(task_data))
+    elif _exit != 0 and _output_len > 500 and not _timed_out:
+        # Partial success — extract anti-patterns + partial wins (lower trust)
+        asyncio.create_task(_extract_skill_from_task(task_data, partial=True))
 
     # Fire-and-forget JitRL experience ingestion (all terminal states)
     asyncio.create_task(_jitrl_ingest_task(task_id))
@@ -1482,10 +1551,12 @@ async def mev_update_task(task_id: UUID, req: MevTaskUpdate):
     return TaskOut(**result)
 
 
-async def _extract_skill_from_task(task: dict):
-    """Use Gemini Flash to extract a reusable skill from a completed task.
+async def _extract_skill_from_task(task: dict, partial: bool = False):
+    """Use LLM to extract a reusable skill from a completed (or partially-completed) task.
 
     Checks for novelty (name not already in procedures) before creating.
+    Partial mode (Trace2Skill 2603.25158): extracts anti-patterns and partial
+    successes from failed tasks. Lower initial trust (0.30 vs 0.50).
     """
     if not settings.kimi_api_key:
         return
@@ -1498,24 +1569,44 @@ async def _extract_skill_from_task(task: dict):
         log.debug(f"Skill extraction skipped — no output for task {str(task['id'])[:8]}")
         return
 
-    gemini_prompt = (
-        "You are analyzing a completed AI agent task to extract a reusable skill pattern.\n\n"
-        f"Task title: {title}\n"
-        f"Task prompt: {prompt_text}\n"
-        f"Task output (truncated): {output}\n\n"
-        "Extract a reusable skill/procedure if this task represents a repeatable pattern.\n"
-        "Return ONLY a JSON object (no markdown, no code fences) with these fields:\n"
-        '{"name": "<snake_case_name max 40 chars>", '
-        '"description": "<1-2 sentence description>", '
-        '"steps": ["<step 1>", "<step 2>", ...], '
-        '"is_novel": <true|false>, '
-        '"skip_reason": "<why skip, or null if extracting>"}\n\n'
-        "Rules:\n"
-        "- steps: 3-7 concise action steps that could guide future task execution\n"
-        "- name: snake_case, descriptive (e.g. 'wallet_discovery_pipeline', 'reflact_agent_implementation')\n"
-        "- is_novel=false if: one-off task, too specific, debugging only, or no reusable pattern\n"
-        "- skip_reason: set if is_novel=false, else null"
-    )
+    if partial:
+        gemini_prompt = (
+            "You are analyzing a FAILED AI agent task that produced useful partial output.\n"
+            "Extract anti-patterns (what went wrong) and partial successes (what worked before failure).\n\n"
+            f"Task title: {title}\n"
+            f"Task prompt: {prompt_text}\n"
+            f"Task output (truncated): {output}\n\n"
+            "Return ONLY a JSON object (no markdown, no code fences) with these fields:\n"
+            '{"name": "<snake_case_name max 40 chars>", '
+            '"description": "<1-2 sentence description of what to avoid or what partially worked>", '
+            '"steps": ["<lesson 1>", "<lesson 2>", ...], '
+            '"is_novel": <true|false>, '
+            '"skip_reason": "<why skip, or null if extracting>"}\n\n'
+            "Rules:\n"
+            "- steps: 3-5 lessons learned — what to do differently next time\n"
+            "- Focus on ANTI-PATTERNS (what caused the failure) and RECOVERABLE PATTERNS (what worked)\n"
+            "- name: prefix with 'avoid_' or 'partial_' (e.g. 'avoid_scope_creep_in_refactor')\n"
+            "- is_novel=false if: failure is too specific, one-off, or no generalizable lesson\n"
+        )
+    else:
+        gemini_prompt = (
+            "You are analyzing a completed AI agent task to extract a reusable skill pattern.\n\n"
+            f"Task title: {title}\n"
+            f"Task prompt: {prompt_text}\n"
+            f"Task output (truncated): {output}\n\n"
+            "Extract a reusable skill/procedure if this task represents a repeatable pattern.\n"
+            "Return ONLY a JSON object (no markdown, no code fences) with these fields:\n"
+            '{"name": "<snake_case_name max 40 chars>", '
+            '"description": "<1-2 sentence description>", '
+            '"steps": ["<step 1>", "<step 2>", ...], '
+            '"is_novel": <true|false>, '
+            '"skip_reason": "<why skip, or null if extracting>"}\n\n'
+            "Rules:\n"
+            "- steps: 3-7 concise action steps that could guide future task execution\n"
+            "- name: snake_case, descriptive (e.g. 'wallet_discovery_pipeline', 'reflact_agent_implementation')\n"
+            "- is_novel=false if: one-off task, too specific, debugging only, or no reusable pattern\n"
+            "- skip_reason: set if is_novel=false, else null"
+        )
 
     try:
         text = await llm_chat([{"role": "user", "content": gemini_prompt}], max_tokens=500, temperature=0.1)
@@ -1549,16 +1640,19 @@ async def _extract_skill_from_task(task: dict):
             log.info(f"Skill '{name}' already exists — skipping auto-extract")
             return
 
-        # Create the new procedure
+        # Create the new procedure (lower trust for partial-success extractions)
+        initial_trust = 0.30 if partial else 0.50
+        source_tag = "partial_success" if partial else "auto_extract"
         await pool.execute(
-            """INSERT INTO procedures (name, description, steps)
-               VALUES ($1, $2, $3)
+            """INSERT INTO procedures (name, description, steps, trust_score, metadata)
+               VALUES ($1, $2, $3, $4, $5)
                ON CONFLICT (name) DO NOTHING""",
-            name, description, steps,
+            name, description, steps, initial_trust,
+            json.dumps({"source": source_tag, "task_id": str(task["id"])}),
         )
         log.info(
-            f"Auto-extracted skill: '{name}' from task '{title[:40]}' "
-            f"({str(task['id'])[:8]})"
+            f"Auto-extracted skill ({source_tag}, trust={initial_trust}): "
+            f"'{name}' from task '{title[:40]}' ({str(task['id'])[:8]})"
         )
 
     except Exception as e:

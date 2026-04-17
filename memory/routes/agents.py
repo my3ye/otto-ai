@@ -1,9 +1,9 @@
 """
-Agent prompt self-tuning route.
+Agent prompt self-tuning + Caller Profiler (STEM Agent 2603.22359).
 
-Analyzes task history to propose targeted improvements to agent .md prompts.
-Proposals are stored in agent_tuning table and NEVER auto-applied.
-The heartbeat reviews proposals and applies them with POST /agents/tune/{id}/apply.
+- Tuning: Analyzes task history to propose targeted improvements to agent .md prompts.
+  Proposals are stored in agent_tuning table and NEVER auto-applied.
+- Profiler: Tracks tool usage patterns per agent_type for behavioral profiling.
 """
 import asyncio
 import json
@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Optional
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from ..db import get_pool
@@ -409,3 +409,234 @@ async def get_agent_activity(
     ]
 
     return {"total": total, "entries": entries}
+
+
+# ── Caller Profiler (STEM Agent 2603.22359) ────────────────────────
+
+
+class ToolUsageLog(BaseModel):
+    agent_type: str
+    tool_name: str
+    success: bool = True
+    latency_ms: float | None = None
+    session_id: str | None = None
+    task_id: str | None = None
+
+
+class ToolUsageBatch(BaseModel):
+    entries: list[ToolUsageLog]
+
+
+@router.post("/tool-usage")
+async def log_tool_usage(req: ToolUsageLog):
+    """Log a single tool invocation for an agent."""
+    pool = await get_pool()
+    await _upsert_tool_usage(pool, req)
+    return {"status": "ok"}
+
+
+@router.post("/tool-usage/batch")
+async def log_tool_usage_batch(req: ToolUsageBatch):
+    """Log multiple tool invocations at once (post-task bulk upload)."""
+    pool = await get_pool()
+    for entry in req.entries:
+        await _upsert_tool_usage(pool, entry)
+    return {"status": "ok", "logged": len(req.entries)}
+
+
+@router.get("/tool-usage/profile")
+async def get_agent_profile(
+    agent_type: str = Query(..., description="Agent type to profile"),
+):
+    """Get tool usage profile for a specific agent type."""
+    pool = await get_pool()
+
+    rows = await pool.fetch(
+        """SELECT tool_name, invocation_count, success_count, failure_count,
+                  avg_latency_ms, last_used
+           FROM agent_tool_usage
+           WHERE agent_type = $1
+           ORDER BY invocation_count DESC""",
+        agent_type,
+    )
+
+    total_invocations = sum(r["invocation_count"] for r in rows)
+    total_successes = sum(r["success_count"] for r in rows)
+
+    return {
+        "agent_type": agent_type,
+        "total_tools": len(rows),
+        "total_invocations": total_invocations,
+        "overall_success_rate": (
+            total_successes / total_invocations if total_invocations > 0 else 0.0
+        ),
+        "tools": [
+            {
+                "tool_name": r["tool_name"],
+                "invocations": r["invocation_count"],
+                "success_rate": (
+                    r["success_count"] / r["invocation_count"]
+                    if r["invocation_count"] > 0
+                    else 0.0
+                ),
+                "avg_latency_ms": r["avg_latency_ms"],
+                "last_used": r["last_used"].isoformat() if r["last_used"] else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get("/tool-usage/anomalies")
+async def detect_tool_anomalies(
+    min_invocations: int = Query(5, description="Minimum invocations to consider"),
+):
+    """Detect unusual tool usage patterns across agents.
+
+    Flags:
+    - High failure rates (>30% failure on 5+ invocations)
+    - Unusually slow tools (>2x average latency)
+    - Abandoned tools (not used in 7+ days with 10+ prior uses)
+    """
+    pool = await get_pool()
+
+    # High failure rate
+    high_failure = await pool.fetch(
+        """SELECT agent_type, tool_name, invocation_count, failure_count,
+                  ROUND(failure_count::numeric / NULLIF(invocation_count, 0), 2) AS failure_rate
+           FROM agent_tool_usage
+           WHERE invocation_count >= $1
+             AND failure_count::float / NULLIF(invocation_count, 0) > 0.30
+           ORDER BY failure_count DESC
+           LIMIT 20""",
+        min_invocations,
+    )
+
+    # Slow tools (>2x average latency)
+    avg_latency = await pool.fetchval(
+        "SELECT AVG(avg_latency_ms) FROM agent_tool_usage WHERE avg_latency_ms IS NOT NULL"
+    )
+
+    slow_tools = []
+    if avg_latency and avg_latency > 0:
+        slow_tools = await pool.fetch(
+            """SELECT agent_type, tool_name, avg_latency_ms, invocation_count
+               FROM agent_tool_usage
+               WHERE avg_latency_ms > $1 * 2
+                 AND invocation_count >= $2
+               ORDER BY avg_latency_ms DESC
+               LIMIT 10""",
+            avg_latency, min_invocations,
+        )
+
+    # Abandoned tools
+    abandoned = await pool.fetch(
+        """SELECT agent_type, tool_name, invocation_count, last_used
+           FROM agent_tool_usage
+           WHERE invocation_count >= 10
+             AND last_used < NOW() - INTERVAL '7 days'
+           ORDER BY invocation_count DESC
+           LIMIT 10""",
+    )
+
+    return {
+        "high_failure_rate": [
+            {
+                "agent_type": r["agent_type"],
+                "tool_name": r["tool_name"],
+                "failure_rate": float(r["failure_rate"]) if r["failure_rate"] else 0,
+                "invocations": r["invocation_count"],
+            }
+            for r in high_failure
+        ],
+        "slow_tools": [
+            {
+                "agent_type": r["agent_type"],
+                "tool_name": r["tool_name"],
+                "avg_latency_ms": r["avg_latency_ms"],
+                "global_avg_ms": round(avg_latency, 1) if avg_latency else None,
+            }
+            for r in slow_tools
+        ],
+        "abandoned_tools": [
+            {
+                "agent_type": r["agent_type"],
+                "tool_name": r["tool_name"],
+                "invocations": r["invocation_count"],
+                "last_used": r["last_used"].isoformat() if r["last_used"] else None,
+            }
+            for r in abandoned
+        ],
+    }
+
+
+@router.get("/tool-usage/summary")
+async def tool_usage_summary():
+    """High-level tool usage summary across all agents."""
+    pool = await get_pool()
+
+    rows = await pool.fetch(
+        """SELECT agent_type,
+                  COUNT(*) AS tools_used,
+                  SUM(invocation_count) AS total_invocations,
+                  SUM(success_count) AS total_successes,
+                  AVG(avg_latency_ms) AS avg_latency
+           FROM agent_tool_usage
+           GROUP BY agent_type
+           ORDER BY SUM(invocation_count) DESC"""
+    )
+
+    return [
+        {
+            "agent_type": r["agent_type"],
+            "tools_used": r["tools_used"],
+            "total_invocations": r["total_invocations"],
+            "success_rate": (
+                float(r["total_successes"]) / float(r["total_invocations"])
+                if r["total_invocations"] and r["total_invocations"] > 0
+                else 0.0
+            ),
+            "avg_latency_ms": round(float(r["avg_latency"]), 1) if r["avg_latency"] else None,
+        }
+        for r in rows
+    ]
+
+
+async def _upsert_tool_usage(pool, entry: ToolUsageLog):
+    """Upsert tool usage with exponential moving average for latency."""
+    session_id = None
+    task_id = None
+    try:
+        if entry.session_id:
+            session_id = UUID(entry.session_id)
+        if entry.task_id:
+            task_id = UUID(entry.task_id)
+    except ValueError:
+        pass
+
+    await pool.execute(
+        """INSERT INTO agent_tool_usage
+               (agent_type, tool_name, invocation_count, success_count, failure_count,
+                avg_latency_ms, session_id, task_id, last_used, updated_at)
+           VALUES ($1, $2, 1, $3, $4, $5, $6, $7, NOW(), NOW())
+           ON CONFLICT (agent_type, tool_name) DO UPDATE SET
+               invocation_count = agent_tool_usage.invocation_count + 1,
+               success_count = agent_tool_usage.success_count + $3,
+               failure_count = agent_tool_usage.failure_count + $4,
+               avg_latency_ms = CASE
+                   WHEN $5 IS NOT NULL THEN
+                       COALESCE(agent_tool_usage.avg_latency_ms, 0) * 0.9 + $5 * 0.1
+                   ELSE agent_tool_usage.avg_latency_ms
+               END,
+               session_id = COALESCE($6, agent_tool_usage.session_id),
+               task_id = COALESCE($7, agent_tool_usage.task_id),
+               last_used = NOW(),
+               updated_at = NOW()""",
+        entry.agent_type,
+        entry.tool_name,
+        1 if entry.success else 0,
+        0 if entry.success else 1,
+        entry.latency_ms,
+        session_id,
+        task_id,
+    )

@@ -357,6 +357,39 @@ class SMMU:
             log.warning(f"Slice loading failed, using legacy fallback: {e}")
             await self._load_legacy_context(pool, message, "whatsapp", _add, remaining_tokens)
 
+    async def request_expansion(self, pool, slice_id) -> list[dict] | None:
+        """On-demand content loading for a specific slice (RLM symbolic handle).
+
+        Returns full memory content for a slice previously shown only as summary.
+        Agents can request expansion of any summary-only entry when they need detail.
+        """
+        try:
+            row = await pool.fetchrow(
+                "SELECT memory_ids, label FROM semantic_slices WHERE id = $1",
+                slice_id,
+            )
+            if not row or not row["memory_ids"]:
+                return None
+
+            memories = await pool.fetch(
+                """SELECT id, content, category, confidence FROM semantic_memories
+                   WHERE id = ANY($1) AND archived IS NOT TRUE AND deleted_at IS NULL
+                   ORDER BY confidence DESC""",
+                row["memory_ids"],
+            )
+
+            await pool.execute(
+                """UPDATE semantic_page_table
+                   SET last_accessed_at = NOW(), access_count = access_count + 1
+                   WHERE slice_id = $1""",
+                slice_id,
+            )
+
+            return [dict(m) for m in memories] if memories else None
+        except Exception as e:
+            log.warning(f"Slice expansion failed for {slice_id}: {e}")
+            return None
+
     async def _load_legacy_context(
         self, pool, message: str, channel: str, _add, remaining_tokens: int
     ) -> None:

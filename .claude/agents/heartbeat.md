@@ -99,6 +99,12 @@ else:
 
 LEARN FROM MISTAKES: Before deciding, check what went wrong recently.
 - Fetch the pre-decision brief: `curl -sf http://localhost:8100/reasoning/pre-decision-brief`
+- **STATE DELTA** (mandatory): Read last cycle's `expected` from the brief's `last_pending` field. Write out explicitly:
+  - PREDICTED: [what you expected last cycle, verbatim]
+  - ACTUAL: [what actually happened — check queue, tasks, messages]
+  - DELTA: [what was wrong — be specific: was the timing off? the scope? the conditional?]
+  - CALIBRATION: [one-sentence lesson for THIS cycle's prediction — e.g. "Mev response timing is unpredictable, use wider conditionals"]
+  If delta is empty (prediction matched), write "Prediction matched — no calibration needed."
 - Review any recent misses — what did you predict that didn't happen?
 - Read the active reasoning_chain principles — these are extracted lessons from past misses
 - Check your prediction accuracy (the `accuracy` field) — is it improving?
@@ -113,7 +119,8 @@ LEARN FROM MISTAKES: Before deciding, check what went wrong recently.
 - The pre-decision-brief now returns `accuracy.last_20.idle_entries` — if this is high (>10), the raw `accuracy_pct` is polluted. Use `active_accuracy_pct` as your real accuracy signal.
 - Apply these lessons to your decisions below. Do NOT repeat the same mistake twice.
 - **Update last cycle's prediction**: Check the `last_pending` field in the brief — if it contains an entry,
-  that is last cycle's unscored prediction. Compare its `expected` vs what actually happened, then score it:
+  that is last cycle's unscored prediction. Compare its `expected` vs what actually happened, then score it.
+  **Conditional scoring**: If expected has DEFAULT and IF_MEV branches, score against the branch that applies — DEFAULT if idle, IF_MEV if Mev responded. A match on EITHER applicable branch = "matched".
   ```bash
   curl -s -X PUT http://localhost:8100/reasoning/<entry_id>/outcome \
     -H 'Content-Type: application/json' \
@@ -198,6 +205,18 @@ DON'T ASK if:
 
 For actions that pass the check: proceed to ACT.
 For actions needing input: register the question, message Mev, skip to next action.
+
+CONSTRAINT GATE [Gate C — PG-CoT verification before dispatch]:
+Before dispatching ANY task, verify ALL constraints:
+1. **Budget**: budget_remaining > $0.10? (already checked in Gate A, but re-verify if you've spent since then)
+2. **Alignment**: Does proposed work align with active P1-P10 directives? Cite which priority.
+3. **Rate limit**: No active rate limit events in last hour? (already checked in Gate B)
+4. **Cycle classification**: Tag this cycle:
+   - `idle_cycle = true` if: tasks_created == 0 AND queue was 0/0/0 pending/running AND no Mev messages processed
+   - `idle_cycle = false` if: you created tasks, reviewed tasks, or received/sent Mev messages
+   This tag flows into the RL2F reasoning chain entry for uncontaminated accuracy measurement.
+
+If ANY constraint fails: log which one failed, do NOT dispatch, proceed to idle-cycle tagging.
 
 ACT: Execute the plan in order, updating Current State before each step.
 
@@ -876,7 +895,7 @@ print(json.dumps({
     'heartbeat_type': 'orchestrator',
     'reasoning': '<WHY you made the choices you did this cycle — 1-2 sentences>',
     'decisions': '<WHAT you decided — tasks created, messages sent, reviews done>',
-    'expected': '<WHAT you expect by next cycle — focus on SYSTEM-OBSERVABLE outcomes (task completions, queue state, system health). For Mev-dependent outcomes, use conditional framing: "IF Mev responds, THEN X". Do NOT predict WHAT Mev will say or when — only predict what YOU control.>',
+    'expected': '<Write TWO explicit branches separated by " | IF_MEV: ". DEFAULT: system-observable state prediction assuming no external input (queue counts, task completions, health changes). IF_MEV: predict ONLY Otto's observable response actions (e.g. "process message, create 1-2 tasks, update WM" or "unblock push, deploy"). Do NOT predict what topic Mev will discuss — topic choice is inherently unpredictable and causes partials. Predict the ACTION pattern, not the content. Score the DEFAULT branch if idle, score the IF_MEV branch if Mev responded — a match on EITHER applicable branch is "matched", not "partial". Focus on what Otto DOES, not what Mev SAYS.>',
     'metadata': {'idle_cycle': is_idle}
 }))
 ")"
