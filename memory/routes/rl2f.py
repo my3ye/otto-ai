@@ -161,19 +161,32 @@ async def feedback_stats():
     )
     result = dict(row)
 
-    # Add 7-day accuracy for AutoEvolve metric tracking
+    # Add 7-day accuracy for AutoEvolve metric tracking (from reasoning_chain — authoritative source)
     week_row = await pool.fetchrow(
         """SELECT
                COUNT(*) as total_7d,
-               COUNT(*) FILTER (WHERE outcome_match = 'matched') as matched_7d
-           FROM rl2f_feedback
-           WHERE created_at > NOW() - INTERVAL '7 days'
-             AND outcome_match IS NOT NULL"""
+               COUNT(*) FILTER (WHERE outcome_match = 'matched') as matched_7d,
+               -- Active-only: exclude idle cycles (metadata->>'idle_cycle' = 'true')
+               COUNT(*) FILTER (WHERE COALESCE(metadata->>'idle_cycle', 'false') != 'true') as active_total_7d,
+               COUNT(*) FILTER (WHERE outcome_match = 'matched'
+                                  AND COALESCE(metadata->>'idle_cycle', 'false') != 'true') as active_matched_7d,
+               -- Idle cycle counts for visibility
+               COUNT(*) FILTER (WHERE metadata->>'idle_cycle' = 'true') as idle_cycles_7d
+           FROM reasoning_chain
+           WHERE cycle_ts > NOW() - INTERVAL '7 days'
+             AND outcome_match IS NOT NULL
+             AND outcome_match != 'pending'"""
     )
     total_7d = week_row["total_7d"] or 0
     matched_7d = week_row["matched_7d"] or 0
+    active_total_7d = week_row["active_total_7d"] or 0
+    active_matched_7d = week_row["active_matched_7d"] or 0
+
     result["accuracy_7d"] = round(matched_7d / total_7d, 3) if total_7d > 0 else None
+    result["active_accuracy_7d"] = round(active_matched_7d / active_total_7d, 3) if active_total_7d > 0 else None
     result["total_7d"] = total_7d
+    result["active_total_7d"] = active_total_7d
+    result["idle_cycles_7d"] = week_row["idle_cycles_7d"] or 0
 
     return result
 
@@ -197,23 +210,28 @@ async def create_task_feedback(body: TaskRetryFeedbackCreate):
     """Store a task rejection feedback turn.
     Called by qa_runner.sh when a task is rejected.
     Returns the feedback ID so it can be linked to the retry task.
+    IMPL-03: Now also stores VISTA structured failure labels.
     """
     import json as _json
     pool = await get_pool()
     row = await pool.fetchrow(
         """INSERT INTO task_retry_feedback
                (original_task_id, retry_task_id, attempt_number, feedback,
-                qa_rejection_reason, feedback_injected, outcome)
-           VALUES ($1, $2, $3, $4, $5, $6, 'pending')
+                qa_rejection_reason, feedback_injected, outcome,
+                failure_type, failure_hypothesis)
+           VALUES ($1, $2, $3, $4, $5, $6, 'pending', $7, $8)
            RETURNING id, original_task_id, retry_task_id, attempt_number,
                      feedback, qa_rejection_reason, feedback_injected,
-                     outcome, outcome_details, created_at, resolved_at""",
+                     outcome, outcome_details, failure_type, failure_hypothesis,
+                     created_at, resolved_at""",
         body.original_task_id,
         body.retry_task_id,
         body.attempt_number,
         _json.dumps(body.feedback),
         body.qa_rejection_reason,
         body.feedback_injected,
+        body.failure_type,
+        body.failure_hypothesis,
     )
     return _parse_trf_row(row)
 
@@ -239,7 +257,8 @@ async def resolve_task_feedback(feedback_id: UUID, body: TaskRetryFeedbackResolv
            WHERE id = $1
            RETURNING id, original_task_id, retry_task_id, attempt_number,
                      feedback, qa_rejection_reason, feedback_injected,
-                     outcome, outcome_details, created_at, resolved_at""",
+                     outcome, outcome_details, failure_type, failure_hypothesis,
+                     created_at, resolved_at""",
         feedback_id,
         body.outcome,
         body.outcome_details,
@@ -264,7 +283,8 @@ async def mark_feedback_injected(feedback_id: UUID, retry_task_id: UUID | None =
            WHERE id = $1
            RETURNING id, original_task_id, retry_task_id, attempt_number,
                      feedback, qa_rejection_reason, feedback_injected,
-                     outcome, outcome_details, created_at, resolved_at""",
+                     outcome, outcome_details, failure_type, failure_hypothesis,
+                     created_at, resolved_at""",
         feedback_id,
         retry_task_id,
     )
@@ -283,7 +303,8 @@ async def get_task_feedback_chain(task_id: UUID):
     rows = await pool.fetch(
         """SELECT id, original_task_id, retry_task_id, attempt_number,
                   feedback, qa_rejection_reason, feedback_injected,
-                  outcome, outcome_details, created_at, resolved_at
+                  outcome, outcome_details, failure_type, failure_hypothesis,
+                  created_at, resolved_at
            FROM task_retry_feedback
            WHERE original_task_id = $1
            ORDER BY attempt_number ASC""",
@@ -342,6 +363,43 @@ async def get_retry_metrics():
     )
 
 
+# ── IMPL-03: Per-Failure-Type Retry Metrics ──────────────────────────────────
+
+@router.get("/retry-metrics/by-type")
+async def get_retry_metrics_by_type():
+    """Return retry success rate broken down by VISTA failure type.
+
+    Shows which failure types are most recoverable on retry and which are
+    persistent. Data comes from the failure_type column added by IMPL-03.
+    """
+    pool = await get_pool()
+    rows = await pool.fetch(
+        """SELECT
+               failure_type,
+               COUNT(*) as total,
+               COUNT(*) FILTER (WHERE outcome = 'succeeded') as succeeded,
+               COUNT(*) FILTER (WHERE outcome = 'failed') as failed,
+               COUNT(*) FILTER (WHERE outcome = 'pending') as pending
+           FROM task_retry_feedback
+           WHERE failure_type IS NOT NULL
+           GROUP BY failure_type
+           ORDER BY total DESC"""
+    )
+    results = []
+    for r in rows:
+        total = r["total"]
+        succeeded = r["succeeded"]
+        results.append({
+            "failure_type": r["failure_type"],
+            "total": total,
+            "succeeded": succeeded,
+            "failed": r["failed"],
+            "pending": r["pending"],
+            "success_rate": round(succeeded / total, 3) if total > 0 else 0.0,
+        })
+    return {"by_type": results, "total_labeled": sum(r["total"] for r in results)}
+
+
 # ── QA Feedback Bridge ──────────────────────────────────────────────────────
 # Simple endpoint for qa_runner.sh to log every QA decision as RL2F training signal.
 # Converts task QA outcomes (approve/reject) into rl2f_feedback table records.
@@ -393,6 +451,90 @@ async def create_qa_feedback(body: QAFeedbackCreate):
         teacher_feedback, body.outcome, outcome_match,
     )
     return RL2FFeedbackOut(**dict(row))
+
+
+# ── Active Accuracy (IMPL-01: idle-cycle tagging) ─────────────────────────────
+# Queries reasoning_chain (authoritative RL2F source) and separates idle vs active
+# cycles using the metadata->>'idle_cycle' tag set by heartbeat.md Gate C.
+# This gives uncontaminated accuracy: predicting "do nothing" on an idle cycle
+# is trivially correct and should not inflate the metric.
+
+@router.get("/active-accuracy")
+async def get_active_accuracy(
+    days: int = Query(default=7, ge=1, le=90, description="Lookback window in days"),
+):
+    """Return RL2F accuracy split by idle vs active cycles.
+
+    Uses reasoning_chain table (not rl2f_feedback) which is the authoritative
+    source for heartbeat prediction accuracy. Idle cycles are tagged in
+    metadata->>'idle_cycle' by heartbeat.md Gate C.
+    """
+    pool = await get_pool()
+    row = await pool.fetchrow(
+        """SELECT
+               -- Total (all cycles)
+               COUNT(*) as total,
+               COUNT(*) FILTER (WHERE outcome_match = 'matched') as matched,
+               COUNT(*) FILTER (WHERE outcome_match = 'partial') as partial,
+               COUNT(*) FILTER (WHERE outcome_match = 'miss') as miss,
+               -- Active only (excluding idle)
+               COUNT(*) FILTER (
+                   WHERE COALESCE(metadata->>'idle_cycle', 'false') != 'true'
+               ) as active_total,
+               COUNT(*) FILTER (
+                   WHERE outcome_match = 'matched'
+                     AND COALESCE(metadata->>'idle_cycle', 'false') != 'true'
+               ) as active_matched,
+               COUNT(*) FILTER (
+                   WHERE outcome_match = 'partial'
+                     AND COALESCE(metadata->>'idle_cycle', 'false') != 'true'
+               ) as active_partial,
+               COUNT(*) FILTER (
+                   WHERE outcome_match = 'miss'
+                     AND COALESCE(metadata->>'idle_cycle', 'false') != 'true'
+               ) as active_miss,
+               -- Idle only
+               COUNT(*) FILTER (
+                   WHERE metadata->>'idle_cycle' = 'true'
+               ) as idle_total,
+               COUNT(*) FILTER (
+                   WHERE outcome_match = 'matched'
+                     AND metadata->>'idle_cycle' = 'true'
+               ) as idle_matched
+           FROM reasoning_chain
+           WHERE cycle_ts > NOW() - make_interval(days => $1)
+             AND outcome_match IS NOT NULL
+             AND outcome_match != 'pending'""",
+        days,
+    )
+    d = dict(row)
+
+    total = d["total"] or 0
+    matched = d["matched"] or 0
+    active_total = d["active_total"] or 0
+    active_matched = d["active_matched"] or 0
+    idle_total = d["idle_total"] or 0
+    idle_matched = d["idle_matched"] or 0
+
+    return {
+        "days": days,
+        # Overall accuracy (inflated by idle cycles)
+        "total_accuracy": round(matched / total, 4) if total > 0 else None,
+        "total_cycles": total,
+        # Active-only accuracy (the real metric)
+        "active_accuracy": round(active_matched / active_total, 4) if active_total > 0 else None,
+        "active_cycles": active_total,
+        "active_matched": active_matched,
+        "active_partial": d["active_partial"] or 0,
+        "active_miss": d["active_miss"] or 0,
+        # Idle cycle stats
+        "idle_cycles": idle_total,
+        "idle_accuracy": round(idle_matched / idle_total, 4) if idle_total > 0 else None,
+        # Delta: how much idle cycles inflate accuracy
+        "idle_inflation": round(
+            (matched / total) - (active_matched / active_total), 4
+        ) if total > 0 and active_total > 0 else None,
+    }
 
 
 # ── IMPORTANT: Wildcard route LAST — must come after all fixed-path routes ──

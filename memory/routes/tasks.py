@@ -550,6 +550,106 @@ async def route_task_endpoint(req: TaskRouteRequest):
     return TaskRouteResponse(strategy=strategy, applied=applied, task_id=req.task_id)
 
 
+# ── IMPL-03: VISTA Structured Failure Labels ─────────────────────────────────
+# VISTA (2603.18388): hypothesis-driven prompt optimization.
+# When QA rejects a task, parse the rejection into structured labels so the
+# retrying agent gets a diagnosis, not just raw rejection text.
+
+FAILURE_TYPES = (
+    "scope_creep",          # agent did more than asked
+    "quality_insufficient", # output exists but doesn't meet standards
+    "incomplete",           # agent stopped before finishing
+    "wrong_approach",       # correct scope but wrong method
+    "format_violation",     # output format doesn't match requirements
+    "timeout_related",      # ran out of time/budget
+    "dependency_missing",   # needed something that wasn't available
+)
+
+
+class FailureLabelRequest(BaseModel):
+    qa_output: str
+    task_title: str = ""
+    task_prompt_excerpt: str = ""
+
+
+class FailureLabelResponse(BaseModel):
+    failure_type: str
+    root_cause: str
+    hypothesis: str
+    corrective_action: str
+
+
+@router.post("/parse-failure", response_model=FailureLabelResponse)
+async def parse_failure(body: FailureLabelRequest):
+    """Parse a QA rejection into structured failure labels.
+
+    Uses Kimi Flash (cheapest LLM) to classify the failure type, identify root
+    cause, generate a hypothesis for what went wrong, and recommend a corrective
+    action. The structured output is injected into the retry prompt instead of
+    (or alongside) raw QA text.
+
+    Called by task_runner.sh in the qa_rejected retry path.
+    """
+    failure_types_str = ", ".join(FAILURE_TYPES)
+    prompt = (
+        "You are analyzing why an AI agent task was rejected by QA.\n\n"
+        f"Task title: {body.task_title}\n"
+        f"Task prompt excerpt: {body.task_prompt_excerpt[:500]}\n"
+        f"QA rejection output: {body.qa_output[:800]}\n\n"
+        "Classify this failure. Return ONLY a JSON object (no markdown, no fences):\n"
+        "{\n"
+        f'  "failure_type": "<one of: {failure_types_str}>",\n'
+        '  "root_cause": "<1-2 sentence diagnosis of what specifically went wrong>",\n'
+        '  "hypothesis": "<what the agent likely misunderstood or did incorrectly>",\n'
+        '  "corrective_action": "<specific instruction for the retry agent to fix this>"\n'
+        "}\n"
+    )
+
+    try:
+        response = await llm_chat(
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=300,
+            temperature=0.0,
+            system_instruction="You are a concise failure analysis system. Return only valid JSON.",
+        )
+        parsed = extract_json(response)
+
+        # Validate failure_type
+        ft = parsed.get("failure_type", "quality_insufficient")
+        if ft not in FAILURE_TYPES:
+            ft = "quality_insufficient"
+
+        return FailureLabelResponse(
+            failure_type=ft,
+            root_cause=parsed.get("root_cause", "Unknown root cause")[:500],
+            hypothesis=parsed.get("hypothesis", "Unknown hypothesis")[:500],
+            corrective_action=parsed.get("corrective_action", "Review and fix the issues identified by QA")[:500],
+        )
+    except Exception as e:
+        log.warning(f"VISTA parse-failure LLM call failed: {e}")
+        # Fallback: heuristic classification from QA text
+        qa_lower = body.qa_output.lower()
+        if "scope" in qa_lower or "more than" in qa_lower or "unauthorized" in qa_lower:
+            ft = "scope_creep"
+        elif "incomplete" in qa_lower or "missing" in qa_lower or "not present" in qa_lower:
+            ft = "incomplete"
+        elif "format" in qa_lower or "structure" in qa_lower:
+            ft = "format_violation"
+        elif "timeout" in qa_lower or "time" in qa_lower:
+            ft = "timeout_related"
+        elif "approach" in qa_lower or "wrong" in qa_lower or "method" in qa_lower:
+            ft = "wrong_approach"
+        else:
+            ft = "quality_insufficient"
+
+        return FailureLabelResponse(
+            failure_type=ft,
+            root_cause=f"LLM classification failed ({e}). Heuristic fallback used.",
+            hypothesis=f"Heuristic classification based on QA keywords: {ft}",
+            corrective_action="Address ALL points in the QA feedback before completing the task.",
+        )
+
+
 # ── CRUD ───────────────────────────────────────────────────────────
 
 @router.post("", response_model=TaskOut, status_code=201)
@@ -1645,7 +1745,7 @@ async def stop_task(task_id: UUID):
     if status == "pending":
         return await cancel_task(task_id, cancelled_by="admin")
 
-    if status != "running":
+    if status not in ("running", "coordinating"):
         raise HTTPException(409, f"Task is '{status}', not running or pending")
 
     # Kill the process group (task_runner uses start_new_session=True)
@@ -1672,7 +1772,7 @@ async def stop_task(task_id: UUID):
                 error = 'Stopped by admin',
                 exit_code = -15,
                 updated_at = now()
-            WHERE id = $1 AND status = 'running'
+            WHERE id = $1 AND status IN ('running', 'coordinating')
             RETURNING {TASK_COLUMNS}""",
         task_id,
     )

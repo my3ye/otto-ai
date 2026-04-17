@@ -46,6 +46,7 @@ class TimelineQuery(BaseModel):
     min_importance: int = 1
     event_type: str | None = None
     session_id: UUID | None = None
+    hours: int | None = None  # Lookback window — filter to last N hours
 
 
 # ── Semantic Memories ──────────────────────────────────────────────
@@ -713,6 +714,9 @@ class TaskRetryFeedbackCreate(BaseModel):
     feedback: dict                        # structured rl2f_feedback JSON
     qa_rejection_reason: str | None = None
     feedback_injected: bool = False
+    # IMPL-03 VISTA: structured failure labels
+    failure_type: str | None = None       # VISTA taxonomy (scope_creep, incomplete, etc.)
+    failure_hypothesis: str | None = None  # LLM-generated root cause hypothesis
 
 
 class TaskRetryFeedbackOut(BaseModel):
@@ -725,6 +729,9 @@ class TaskRetryFeedbackOut(BaseModel):
     feedback_injected: bool
     outcome: str                          # pending | succeeded | failed | abandoned
     outcome_details: str | None = None
+    # IMPL-03 VISTA: structured failure labels
+    failure_type: str | None = None
+    failure_hypothesis: str | None = None
     created_at: datetime
     resolved_at: datetime | None = None
 

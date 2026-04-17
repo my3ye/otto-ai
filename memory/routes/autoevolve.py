@@ -196,6 +196,238 @@ async def get_generation():
     }
 
 
+# ── IMPL-02: Stagnation Detection + Auto-Pivot ───────────────────────────────
+# CORAL (2604.01658): 5 consecutive non-improving evals → forced strategy pivot.
+# AutoEvolve has been frozen at gen 7, 0 experiments, for 30+ days. The prompt
+# fix (forward_plan "move to Step 1") is marked done but ineffective. This gives
+# the reflection agent a code-level endpoint it can call reliably.
+
+
+class StagnationReport(BaseModel):
+    stagnation_detected: bool
+    cycles_since_improvement: int
+    current_accuracy: Optional[float]
+    active_accuracy: Optional[float]
+    pivot_recommendation: Optional[str] = None
+    pivot_actions: list[str] = Field(default_factory=list)
+    autoevolve_generation: int = 0
+    experiments_proposed: int = 0
+    experiments_kept: int = 0
+
+
+class ForceExperimentRequest(BaseModel):
+    hypothesis: str = Field(..., description="Why this experiment should help")
+    target_file: str = Field(default=".claude/agents/heartbeat.md")
+    change_description: str = Field(..., description="What to change")
+    metric_name: str = Field(default="rl2f_active_accuracy")
+    source: str = Field(default="stagnation_pivot")
+
+
+@router.post("/stagnation-check", response_model=StagnationReport)
+async def check_stagnation():
+    """Detect if Otto's learning systems are stagnant and recommend pivots.
+
+    Reads meta_memory.json for trend data, cross-references with reasoning_chain
+    for active accuracy, and returns specific pivot actions if stagnation detected.
+    Threshold: 5+ cycles with no accuracy improvement (CORAL paper recommendation).
+    """
+    import json as _json
+    from pathlib import Path
+
+    pool = await get_pool()
+
+    # Read meta_memory.json
+    meta_path = Path("/home/web3relic/otto/meta_memory.json")
+    meta = {}
+    if meta_path.exists():
+        try:
+            meta = _json.loads(meta_path.read_text())
+        except Exception:
+            pass
+
+    rl2f_trend = meta.get("rl2f_trend", {})
+    cycles_since = rl2f_trend.get("cycles_since_improvement", 0)
+    current_accuracy = rl2f_trend.get("last_7d_accuracy")
+
+    # Get active accuracy (excluding idle cycles) from reasoning_chain
+    active_row = await pool.fetchrow(
+        """SELECT
+               COUNT(*) FILTER (
+                   WHERE COALESCE(metadata->>'idle_cycle', 'false') != 'true'
+               ) as active_total,
+               COUNT(*) FILTER (
+                   WHERE outcome_match = 'matched'
+                     AND COALESCE(metadata->>'idle_cycle', 'false') != 'true'
+               ) as active_matched
+           FROM reasoning_chain
+           WHERE cycle_ts > NOW() - INTERVAL '7 days'
+             AND outcome_match IS NOT NULL
+             AND outcome_match != 'pending'"""
+    )
+    active_total = active_row["active_total"] or 0
+    active_matched = active_row["active_matched"] or 0
+    active_accuracy = round(active_matched / active_total, 4) if active_total > 0 else None
+
+    # Get AutoEvolve state
+    ae_state = meta.get("autoevolve_state", {})
+    gen = ae_state.get("generation", 0)
+    exp_count = await pool.fetchval(
+        "SELECT COUNT(*) FROM autoevolve_experiments"
+    ) or 0
+    kept_count = await pool.fetchval(
+        "SELECT COUNT(*) FROM autoevolve_experiments WHERE status = 'keep'"
+    ) or 0
+
+    # Stagnation threshold: 5+ cycles (CORAL paper)
+    stagnation_detected = cycles_since >= 5
+    pivot_recommendation = None
+    pivot_actions = []
+
+    if stagnation_detected:
+        # Determine specific pivot actions based on data
+        if active_accuracy is not None and current_accuracy is not None:
+            inflation = round(current_accuracy - active_accuracy, 4)
+            if inflation > 0.05:
+                pivot_actions.append(
+                    f"Idle-cycle inflation is {inflation:.1%} — active accuracy ({active_accuracy:.1%}) "
+                    f"is significantly lower than total ({current_accuracy:.1%}). "
+                    "Focus improvements on active-cycle decision quality."
+                )
+
+        if ae_state.get("experiments_this_generation", 0) == 0:
+            pivot_actions.append(
+                "AutoEvolve has 0 experiments this generation. "
+                "Use POST /autoevolve/force-experiment to create one directly."
+            )
+
+        if cycles_since >= 10:
+            pivot_actions.append(
+                "Extended stagnation (10+ cycles). Consider rotating the RL2F feature set: "
+                "change which dimensions the teacher evaluates (root_condition_analysis fields)."
+            )
+
+        pivot_actions.append(
+            "Run POST /autoevolve/insights to get the highest-value hypothesis, "
+            "then POST /autoevolve/force-experiment with that hypothesis."
+        )
+
+        pivot_recommendation = (
+            f"Stagnation detected: {cycles_since} cycles without improvement. "
+            f"Active accuracy: {active_accuracy}. {len(pivot_actions)} actions recommended."
+        )
+
+    return StagnationReport(
+        stagnation_detected=stagnation_detected,
+        cycles_since_improvement=cycles_since,
+        current_accuracy=current_accuracy,
+        active_accuracy=active_accuracy,
+        pivot_recommendation=pivot_recommendation,
+        pivot_actions=pivot_actions,
+        autoevolve_generation=gen,
+        experiments_proposed=exp_count,
+        experiments_kept=kept_count,
+    )
+
+
+@router.post("/force-experiment", response_model=ExperimentOut, status_code=201)
+async def force_experiment(body: ForceExperimentRequest):
+    """Create an experiment directly, bypassing the normal reflection cycle gate.
+
+    Used by the stagnation pivot system: when AutoEvolve is frozen because the
+    budget/prompt gate blocks experiment creation during DEGRADED cycles, this
+    endpoint creates the experiment unconditionally. The experiment IS the fix
+    for stagnation — blocking it perpetuates the problem.
+
+    Also updates meta_memory.json to track the forced pivot.
+    """
+    import json as _json
+    from pathlib import Path
+
+    pool = await get_pool()
+
+    # Get current generation
+    gen_row = await pool.fetchrow(
+        "SELECT current_generation FROM autoevolve_generation WHERE id = 1"
+    )
+    generation = (gen_row["current_generation"] + 1) if gen_row else 1
+
+    # Get current active accuracy as metric_before
+    active_row = await pool.fetchrow(
+        """SELECT
+               COUNT(*) FILTER (
+                   WHERE COALESCE(metadata->>'idle_cycle', 'false') != 'true'
+               ) as active_total,
+               COUNT(*) FILTER (
+                   WHERE outcome_match = 'matched'
+                     AND COALESCE(metadata->>'idle_cycle', 'false') != 'true'
+               ) as active_matched
+           FROM reasoning_chain
+           WHERE cycle_ts > NOW() - INTERVAL '7 days'
+             AND outcome_match IS NOT NULL
+             AND outcome_match != 'pending'"""
+    )
+    at = active_row["active_total"] or 0
+    am = active_row["active_matched"] or 0
+    metric_before = round(am / at, 4) if at > 0 else None
+
+    # Create the experiment
+    row = await pool.fetchrow(
+        """INSERT INTO autoevolve_experiments
+               (target_file, hypothesis, change_description, metric_name,
+                metric_before, source, generation)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
+           RETURNING id, target_file, hypothesis, change_description, metric_name,
+                     metric_before, metric_after, evaluation_cycles, status, outcome,
+                     git_checkpoint, generation, source, created_at, evaluated_at, resolved_at""",
+        body.target_file,
+        body.hypothesis,
+        body.change_description,
+        body.metric_name,
+        metric_before,
+        body.source,
+        generation,
+    )
+
+    # Update meta_memory.json with pivot record
+    meta_path = Path("/home/web3relic/otto/meta_memory.json")
+    meta = {}
+    if meta_path.exists():
+        try:
+            meta = _json.loads(meta_path.read_text())
+        except Exception:
+            pass
+
+    now_str = datetime.now(timezone.utc).isoformat()
+
+    # Add stagnation_pivots array if missing
+    if "stagnation_pivots" not in meta:
+        meta["stagnation_pivots"] = []
+    meta["stagnation_pivots"].append({
+        "timestamp": now_str,
+        "experiment_id": str(row["id"]),
+        "hypothesis": body.hypothesis[:200],
+        "target_file": body.target_file,
+        "metric_before": metric_before,
+    })
+
+    # Update autoevolve_state
+    ae_state = meta.get("autoevolve_state", {})
+    ae_state["active_experiment_id"] = str(row["id"])
+    ae_state["experiments_this_generation"] = ae_state.get("experiments_this_generation", 0) + 1
+    meta["autoevolve_state"] = ae_state
+
+    # Enable auto-pivot flag
+    if "auto_pivot_enabled" not in meta:
+        meta["auto_pivot_enabled"] = True
+
+    meta["last_updated"] = now_str
+
+    meta_path.write_text(_json.dumps(meta, indent=2))
+    logger.info(f"Force-experiment created: {row['id']} (stagnation pivot)")
+
+    return ExperimentOut(**dict(row))
+
+
 @router.get("/insights", response_model=InsightsOut)
 async def get_insights():
     """Analyze system data and return the highest-value hypothesis for next experiment.
@@ -210,18 +442,25 @@ async def get_insights():
     """
     pool = await get_pool()
 
-    # Gather RL2F data
+    # Gather RL2F data from reasoning_chain (authoritative source)
+    # IMPL-01: Use active-only accuracy (exclude idle cycles) for hypothesis selection.
+    # Idle cycles inflate accuracy by counting trivial "do nothing" predictions.
     rl2f_rows = await pool.fetch(
-        """SELECT outcome_match, heartbeat_type, teacher_feedback
-           FROM rl2f_feedback
-           WHERE created_at > NOW() - INTERVAL '7 days'
-           ORDER BY created_at DESC LIMIT 50""",
+        """SELECT outcome_match, COALESCE(metadata->>'idle_cycle', 'false') as idle
+           FROM reasoning_chain
+           WHERE outcome_match != 'pending'
+           ORDER BY cycle_ts DESC LIMIT 50""",
     )
-    total = len(rl2f_rows)
-    matches = sum(1 for r in rl2f_rows if r["outcome_match"] == "matched")
-    misses = sum(1 for r in rl2f_rows if r["outcome_match"] == "miss")
-    partials = sum(1 for r in rl2f_rows if r["outcome_match"] == "partial")
+    # Active-only counts (what actually matters)
+    active_rows = [r for r in rl2f_rows if r["idle"] != "true"]
+    total = len(active_rows)
+    matches = sum(1 for r in active_rows if r["outcome_match"] == "matched")
+    misses = sum(1 for r in active_rows if r["outcome_match"] == "miss")
+    partials = sum(1 for r in active_rows if r["outcome_match"] == "partial")
     accuracy = (matches / total) if total > 0 else 0.0
+    # Also track total for context
+    total_all = len(rl2f_rows)
+    idle_count = total_all - total
 
     # Gather principles violations
     principle_rows = await pool.fetch(
@@ -267,10 +506,11 @@ async def get_insights():
         target_file=target_file,
         change_type=change_type,
         supporting_data={
-            "rl2f_accuracy": round(accuracy, 3),
+            "rl2f_active_accuracy": round(accuracy, 3),
             "rl2f_misses": misses,
             "rl2f_partials": partials,
-            "rl2f_total": total,
+            "rl2f_active_total": total,
+            "rl2f_idle_excluded": idle_count,
             "top_violated_principle": principle_rows[0]["principle"][:200] if principle_rows else None,
             "lowest_trust_procedure": procedure_rows[0]["name"] if procedure_rows else None,
             "active_experiments": len(active_files),

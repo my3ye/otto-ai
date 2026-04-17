@@ -1280,10 +1280,41 @@ import json, sys
 d = json.load(sys.stdin)
 print((d.get('qa_output') or '')[:500])
 " 2>/dev/null || echo "")
-            RETRY_CONTEXT_INJECTION="=== RETRY (attempt ${INLINE_RETRY_COUNT}): Previous attempt was REJECTED by QA ===
+            # IMPL-03 VISTA: Parse QA rejection into structured failure labels
+            VISTA_LABELS=$(curl -sf -X POST "${API}/tasks/parse-failure" \
+                -H 'Content-Type: application/json' \
+                -d "$(python3 -c "
+import json, sys
+print(json.dumps({
+    'qa_output': sys.argv[1][:800],
+    'task_title': sys.argv[2][:200],
+    'task_prompt_excerpt': sys.argv[3][:500]
+}))
+" "${QA_REJECTION_TEXT}" "${TITLE}" "${PROMPT_EXCERPT}" 2>/dev/null)" 2>/dev/null || echo "")
+
+            if [ -n "$VISTA_LABELS" ]; then
+                VISTA_TYPE=$(echo "$VISTA_LABELS" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('failure_type','unknown'))" 2>/dev/null || echo "unknown")
+                VISTA_CAUSE=$(echo "$VISTA_LABELS" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('root_cause','')[:200])" 2>/dev/null || echo "")
+                VISTA_ACTION=$(echo "$VISTA_LABELS" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('corrective_action','')[:200])" 2>/dev/null || echo "")
+                log "SMART_RETRY: VISTA classified failure as ${VISTA_TYPE}"
+                RETRY_CONTEXT_INJECTION="=== RETRY (attempt ${INLINE_RETRY_COUNT}): Previous attempt was REJECTED by QA ===
+## Failure Analysis (VISTA)
+Type: ${VISTA_TYPE}
+Root cause: ${VISTA_CAUSE}
+Corrective action: ${VISTA_ACTION}
+
+## Original QA Feedback
+${QA_REJECTION_TEXT:0:400}
+
+Address the corrective action above FIRST, then verify all QA feedback points.
+=== End retry context ==="
+            else
+                log "SMART_RETRY: VISTA parse-failure unavailable, using raw QA text"
+                RETRY_CONTEXT_INJECTION="=== RETRY (attempt ${INLINE_RETRY_COUNT}): Previous attempt was REJECTED by QA ===
 QA rejection feedback: ${QA_REJECTION_TEXT:0:400}
 Address ALL points in the QA feedback above before completing the task.
 === End retry context ==="
+            fi
             log "SMART_RETRY: qa_rejected mode — injecting QA feedback"
             ;;
     esac
