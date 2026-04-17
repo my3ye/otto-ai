@@ -297,16 +297,47 @@ async def _gemini_summarize(memories_text: str, category: str) -> str:
 _AMEM_LINK_THRESHOLD = 0.70  # cosine similarity threshold for auto-linking
 _AMEM_TOP_K = 3              # max links to create per new memory
 
+# A-MEM relationship type keywords (IMPL-07, arXiv 2502.12110)
+_CONTRADICTION_KEYWORDS = frozenset({
+    "not", "no longer", "incorrect", "wrong", "deprecated",
+    "replaced", "instead", "but", "however", "contrary",
+})
 
-async def _amem_create_links(pool, new_id, embedding_str: str) -> int:
+
+def _classify_relationship(similarity: float, new_content: str, existing_content: str) -> str:
+    """Heuristic relationship type classification (A-MEM IMPL-07).
+
+    Types: extends, refines, contradicts, related (default).
+    Uses similarity threshold + keyword detection — no LLM call.
+    """
+    # Very high similarity = extends (same topic, adding more)
+    if similarity >= 0.95:
+        return "extends"
+
+    # Check for contradiction signals in new content relative to existing
+    new_lower = new_content.lower()
+    if any(kw in new_lower for kw in _CONTRADICTION_KEYWORDS):
+        # Only flag as contradiction if content is about same topic (sim > 0.80)
+        if similarity >= 0.80:
+            return "contradicts"
+
+    # Same domain but different enough = refines
+    if similarity >= 0.85:
+        return "refines"
+
+    return "related"
+
+
+async def _amem_create_links(pool, new_id, embedding_str: str, new_content: str = "") -> int:
     """Find top-K similar existing memories and create bidirectional note_links.
+    Classifies relationship type via heuristic (IMPL-07).
     Returns number of link pairs created."""
     col = emb_col()
     cast = emb_cast("$1")
     async with pool.acquire() as conn:
         await conn.execute("SET hnsw.iterative_scan = relaxed_order")
         candidates = await conn.fetch(
-            f"""SELECT id, 1 - ({col} <=> {cast}) AS similarity
+            f"""SELECT id, content, 1 - ({col} <=> {cast}) AS similarity
                FROM semantic_memories
                WHERE id != $2
                  AND {col} IS NOT NULL
@@ -330,18 +361,21 @@ async def _amem_create_links(pool, new_id, embedding_str: str) -> int:
         for r in above_threshold:
             existing_id = r["id"]
             strength = float(r["similarity"])
+            rel_type = _classify_relationship(
+                strength, new_content, r["content"] or ""
+            )
             # Insert A→B and B→A (bidirectional), skip on conflict
             await conn.execute(
-                """INSERT INTO note_links (source_id, target_id, link_strength)
-                   VALUES ($1, $2, $3)
+                """INSERT INTO note_links (source_id, target_id, link_strength, relationship_type)
+                   VALUES ($1, $2, $3, $4)
                    ON CONFLICT (source_id, target_id) DO NOTHING""",
-                new_id, existing_id, strength,
+                new_id, existing_id, strength, rel_type,
             )
             await conn.execute(
-                """INSERT INTO note_links (source_id, target_id, link_strength)
-                   VALUES ($1, $2, $3)
+                """INSERT INTO note_links (source_id, target_id, link_strength, relationship_type)
+                   VALUES ($1, $2, $3, $4)
                    ON CONFLICT (source_id, target_id) DO NOTHING""",
-                existing_id, new_id, strength,
+                existing_id, new_id, strength, rel_type,
             )
             links_created += 1
 
@@ -624,7 +658,7 @@ async def remember(req: SemanticMemoryCreate):
     new_id = row["id"]
     if embedding_str is not None:
         try:
-            n_links = await _amem_create_links(pool, new_id, embedding_str)
+            n_links = await _amem_create_links(pool, new_id, embedding_str, req.content)
             if n_links:
                 logger.info(f"A-Mem: created {n_links} bidirectional links for memory {new_id}")
         except Exception as e:

@@ -252,11 +252,22 @@ async def rebuild_all_slices() -> dict:
         seg_cid = cid_values[start:end]
         boundary_score = max(seg_cid) if seg_cid else 0.0
 
+        # Generate summary handle for pyramid retrieval (IMPL-04)
+        # First sentence of highest-confidence memory, capped at 200 chars
+        summary = label  # default to label
+        if segment_memories:
+            best = max(segment_memories, key=lambda m: float(m.get("confidence", 0) or 0))
+            first_sent = (best.get("content") or "")[:200]
+            dot_idx = first_sent.find(". ")
+            if dot_idx > 20:
+                first_sent = first_sent[:dot_idx + 1]
+            summary = first_sent.strip() or label
+
         # Insert slice
         row = await pool.fetchrow(
             """INSERT INTO semantic_slices
-               (label, memory_ids, centroid, cid_boundary_score, token_count, category)
-               VALUES ($1, $2, $3, $4, $5, $6)
+               (label, memory_ids, centroid, cid_boundary_score, token_count, category, summary)
+               VALUES ($1, $2, $3, $4, $5, $6, $7)
                RETURNING id""",
             label,
             memory_ids,
@@ -264,6 +275,7 @@ async def rebuild_all_slices() -> dict:
             boundary_score,
             tokens,
             dom_cat,
+            summary[:200],
         )
 
         slice_id = row["id"]

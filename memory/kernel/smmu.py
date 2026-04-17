@@ -219,19 +219,36 @@ class SMMU:
         except Exception:
             pass
 
+    # ── Pyramid retrieval constants (OmniMem 2604.01007) ────────────
+    _SIMILARITY_THRESHOLD = 0.45  # lower floor for wider screening (was 0.7)
+    _PYRAMID_EXPAND_K = 7         # how many slices get full expansion (was 5)
+    _HANDLE_TOKEN_EST = 12        # estimated tokens per summary handle
+
     async def _load_relevant_slices(
         self, pool, message: str, _add, remaining_tokens: int
     ) -> None:
-        """Load relevant L2 slices by centroid similarity to message embedding."""
+        """Pyramid retrieval: L1 Handle → L2 Expand → L3 Greedy Fill.
+
+        OmniMem (2604.01007) + RLM (2512.24601) symbolic handles:
+        - L1 Handle: load summary + metadata for ALL candidates (~10 tokens each)
+        - L2 Expand: load full memory content for top-K by similarity
+        - L3 Greedy Fill: fill remaining token budget with next-best summaries
+        """
         try:
             msg_embedding = await get_embedding(message)
             embedding_str = "[" + ",".join(str(x) for x in msg_embedding) + "]"
 
-            # Find top slices by centroid similarity + importance + recency
+            # Screen ALL slices — fetch summaries (cheap) + similarity scores
             rows = await pool.fetch(
-                """SELECT s.id, s.label, s.memory_ids, s.token_count, s.category,
+                """SELECT s.id, s.label, s.summary, s.memory_ids,
+                          s.token_count, s.category,
                           p.importance_score, p.access_count,
-                          1 - (s.centroid <=> $1::vector(1536)) AS similarity
+                          1 - (s.centroid <=> $1::vector(1536)) AS similarity,
+                          (0.4 * (1 - (s.centroid <=> $1::vector(1536)))
+                           + 0.25 * COALESCE(p.importance_score, 0.5)
+                           + 0.15 * LEAST(p.access_count::float / 100.0, 1.0)
+                           + 0.2 * GREATEST(0, 1.0 - EXTRACT(EPOCH FROM NOW() - s.updated_at) / 2592000.0)
+                          ) AS composite_score
                    FROM semantic_slices s
                    JOIN semantic_page_table p ON p.slice_id = s.id
                    WHERE s.centroid IS NOT NULL
@@ -240,33 +257,41 @@ class SMMU:
                            + 0.15 * LEAST(p.access_count::float / 100.0, 1.0)
                            + 0.2 * GREATEST(0, 1.0 - EXTRACT(EPOCH FROM NOW() - s.updated_at) / 2592000.0)
                            ) DESC
-                   LIMIT 10""",
+                   LIMIT 30""",
                 embedding_str,
             )
 
             if not rows:
                 return
 
+            # Filter by similarity threshold
+            candidates = [
+                r for r in rows
+                if r["similarity"] >= self._SIMILARITY_THRESHOLD
+            ]
+
+            if not candidates:
+                log.warning(
+                    f"S-MMU: all {len(rows)} slices below threshold "
+                    f"{self._SIMILARITY_THRESHOLD} — falling back to legacy"
+                )
+                await self._load_legacy_context(pool, message, "whatsapp", _add, remaining_tokens)
+                return
+
             loaded_tokens = 0
             loaded_ids = []
 
-            # Minimum similarity floor — skip semantically unrelated slices that
-            # only rank high due to access_count or importance_score (context-rot guard)
-            SIMILARITY_THRESHOLD = 0.7
+            # ── L2 Expand: full content for top-K candidates ──────────
+            expand_set = candidates[:self._PYRAMID_EXPAND_K]
+            summary_set = candidates[self._PYRAMID_EXPAND_K:]
 
-            for r in rows:
-                if r["similarity"] < SIMILARITY_THRESHOLD:
-                    log.debug(
-                        f"S-MMU skipping low-similarity slice '{r['label']}' "
-                        f"({r['similarity']:.3f} < {SIMILARITY_THRESHOLD})"
-                    )
-                    continue
-                if loaded_tokens + r["token_count"] > remaining_tokens:
-                    continue
-
-                # Load actual memories in this slice
+            for r in expand_set:
                 memory_ids = r["memory_ids"]
                 if not memory_ids:
+                    continue
+                if loaded_tokens + r["token_count"] > remaining_tokens:
+                    # Can't fit full expansion — demote to summary set
+                    summary_set.insert(0, r)
                     continue
 
                 memories = await pool.fetch(
@@ -285,12 +310,10 @@ class SMMU:
                     loaded_tokens += r["token_count"]
                     loaded_ids.append(r["id"])
 
-                    # Capture top-relevance content for position bias anchor (first slice only)
                     if not self._top_relevance_anchor and memories:
                         top_items = [m["content"][:180] for m in memories[:2]]
                         self._top_relevance_anchor = f"[{r['label']}] " + " | ".join(top_items)
 
-                    # Update access tracking
                     await pool.execute(
                         """UPDATE semantic_page_table
                            SET last_accessed_at = NOW(), access_count = access_count + 1,
@@ -299,16 +322,35 @@ class SMMU:
                         r["id"],
                     )
 
-            self.l1_slice_ids = loaded_ids
-            log.info(f"S-MMU loaded {len(loaded_ids)} slices ({loaded_tokens} tokens)")
+            # ── L3 Greedy Fill: summaries for remaining budget ────────
+            if summary_set and loaded_tokens < remaining_tokens:
+                summary_lines = []
+                for r in summary_set:
+                    handle = r["summary"] or r["label"]
+                    est = self._HANDLE_TOKEN_EST
+                    if loaded_tokens + est > remaining_tokens:
+                        break
+                    summary_lines.append(
+                        f"  [{r['category'] or '?'}] {handle} (sim={r['similarity']:.2f})"
+                    )
+                    loaded_tokens += est
+                    loaded_ids.append(r["id"])
 
-            # If all slices were filtered by the similarity threshold, fall back to legacy
-            # context so L1 always has relevant memories beyond always-resident content.
+                if summary_lines:
+                    _add("[Otto] Additional context (summaries):")
+                    for line in summary_lines:
+                        _add(line)
+                    _add("")
+
+            self.l1_slice_ids = loaded_ids
+            log.info(
+                f"S-MMU pyramid: {len(expand_set)} expanded + "
+                f"{len(loaded_ids) - len(expand_set)} summaries "
+                f"({loaded_tokens} tokens from {len(candidates)} candidates)"
+            )
+
             if not loaded_ids:
-                log.warning(
-                    f"S-MMU: all {len(rows)} slices filtered by threshold {SIMILARITY_THRESHOLD} "
-                    f"— falling back to legacy context"
-                )
+                log.warning("S-MMU: no slices loaded after pyramid — legacy fallback")
                 await self._load_legacy_context(pool, message, "whatsapp", _add, remaining_tokens)
 
         except Exception as e:
